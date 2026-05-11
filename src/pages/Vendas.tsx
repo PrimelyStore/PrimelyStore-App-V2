@@ -17,6 +17,7 @@ import {
     type LocalEstoque,
 } from '../services/locaisEstoqueService'
 import { buscarProdutos, type Produto } from '../services/produtosService'
+import { buscarEstoque, type EstoqueSaldo } from '../services/estoqueService'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
 
@@ -161,6 +162,99 @@ function converterNumero(valor: string) {
     return numero
 }
 
+function formatarNumeroParaFormulario(valor: number) {
+    if (!Number.isFinite(valor)) {
+        return '0'
+    }
+
+    return valor.toFixed(2).replace('.', ',')
+}
+
+function calcularValorTotalVenda(formulario: FormularioVenda) {
+    const valorProdutos = converterNumero(formulario.valor_produtos)
+    const valorFreteCobrado = converterNumero(formulario.valor_frete_cobrado)
+    const valorDesconto = converterNumero(formulario.valor_desconto)
+
+    if (
+        Number.isNaN(valorProdutos) ||
+        Number.isNaN(valorFreteCobrado) ||
+        Number.isNaN(valorDesconto)
+    ) {
+        return formulario.valor_total
+    }
+
+    const total = Math.max(valorProdutos + valorFreteCobrado - valorDesconto, 0)
+
+    return formatarNumeroParaFormulario(total)
+}
+
+function calcularValorBrutoItem(formulario: FormularioItemVenda) {
+    const quantidade = converterNumero(formulario.quantidade)
+    const valorUnitario = converterNumero(formulario.valor_unitario)
+
+    if (Number.isNaN(quantidade) || Number.isNaN(valorUnitario)) {
+        return 0
+    }
+
+    return quantidade * valorUnitario
+}
+
+function obterSaldoDisponivel(
+    saldosEstoque: EstoqueSaldo[],
+    produtoId: string,
+    localEstoqueId?: string | null
+) {
+    if (!produtoId || !localEstoqueId) {
+        return null
+    }
+
+    const saldoEncontrado = saldosEstoque.find((saldo) => {
+        return (
+            saldo.produto_id === produtoId &&
+            saldo.local_estoque_id === localEstoqueId
+        )
+    })
+
+    return Number(saldoEncontrado?.saldo_atual ?? 0)
+}
+
+function calcularQuantidadePendenteReservada(
+    itensVendas: VendaItemDetalhado[],
+    vendas: VendaResumo[],
+    produtoId: string,
+    localEstoqueId?: string | null
+) {
+    if (!produtoId || !localEstoqueId) {
+        return 0
+    }
+
+    return itensVendas.reduce((total, item) => {
+        if (item.produto_id !== produtoId || item.status !== 'ativo') {
+            return total
+        }
+
+        const vendaDoItem = vendas.find((venda) => venda.venda_id === item.venda_id)
+
+        if (vendaDoItem?.local_saida_id !== localEstoqueId) {
+            return total
+        }
+
+        const quantidadeConsumida = calcularQuantidadeConsumida(item)
+        const quantidadePendente = Math.max(
+            Number(item.quantidade ?? 0) - quantidadeConsumida,
+            0
+        )
+
+        return total + quantidadePendente
+    }, 0)
+}
+
+const camposVendaQueRecalculamTotal: Array<keyof FormularioVenda> = [
+    'valor_produtos',
+    'valor_frete_cobrado',
+    'valor_desconto',
+]
+
 function obterClasseStatus(status?: string | null) {
     const valor = status?.toLowerCase() ?? ''
 
@@ -224,9 +318,21 @@ function validarVenda(formulario: FormularioVenda) {
     return null
 }
 
-function validarItemVenda(formulario: FormularioItemVenda) {
+function validarItemVenda(
+    formulario: FormularioItemVenda,
+    vendaSelecionada: VendaResumo | undefined,
+    saldoDisponivelParaNovoItem: number | null
+) {
     if (!formulario.venda_id) {
         return 'Selecione a venda.'
+    }
+
+    if (!vendaSelecionada) {
+        return 'A venda selecionada não foi encontrada na lista carregada.'
+    }
+
+    if (!vendaSelecionada.local_saida_id) {
+        return 'A venda selecionada não possui local de saída informado.'
     }
 
     if (!formulario.produto_id) {
@@ -237,6 +343,14 @@ function validarItemVenda(formulario: FormularioItemVenda) {
 
     if (Number.isNaN(quantidade) || quantidade <= 0 || !Number.isInteger(quantidade)) {
         return 'A quantidade precisa ser um número inteiro maior que zero.'
+    }
+
+    if (saldoDisponivelParaNovoItem === null) {
+        return 'Não foi possível consultar o saldo disponível para este produto e local de saída.'
+    }
+
+    if (quantidade > saldoDisponivelParaNovoItem) {
+        return `Estoque insuficiente. Disponível para novo item: ${saldoDisponivelParaNovoItem} unidade(s).`
     }
 
     const camposNumericos = [
@@ -268,6 +382,7 @@ export function Vendas() {
     const [canaisVenda, setCanaisVenda] = useState<CanalVenda[]>([])
     const [locaisEstoque, setLocaisEstoque] = useState<LocalEstoque[]>([])
     const [produtos, setProdutos] = useState<Produto[]>([])
+    const [saldosEstoque, setSaldosEstoque] = useState<EstoqueSaldo[]>([])
     const [salvandoVenda, setSalvandoVenda] = useState(false)
     const [salvandoItem, setSalvandoItem] = useState(false)
     const [baixandoVendaId, setBaixandoVendaId] = useState<string | null>(null)
@@ -279,13 +394,15 @@ export function Vendas() {
         useState<FormularioItemVenda>(formularioItemInicial)
 
     async function recarregarVendasEItens() {
-        const [vendasResumo, itensDados] = await Promise.all([
+        const [vendasResumo, itensDados, saldosDados] = await Promise.all([
             buscarVendasResumo(),
             buscarItensVendas(),
+            buscarEstoque(),
         ])
 
         setVendas(vendasResumo)
         setItensVendas(itensDados)
+        setSaldosEstoque(saldosDados)
 
         if (vendasResumo.length === 0) {
             setMensagem('Consulta realizada com sucesso, mas nenhuma venda foi encontrada.')
@@ -302,12 +419,14 @@ export function Vendas() {
                 canaisDados,
                 locaisDados,
                 produtosDados,
+                saldosDados,
             ] = await Promise.all([
                 buscarVendasResumo(),
                 buscarItensVendas(),
                 buscarCanaisVendaAtivos(),
                 buscarLocaisEstoqueAtivos(),
                 buscarProdutos(),
+                buscarEstoque(),
             ])
 
             setVendas(vendasResumo)
@@ -315,6 +434,7 @@ export function Vendas() {
             setCanaisVenda(canaisDados)
             setLocaisEstoque(locaisDados)
             setProdutos(produtosDados)
+            setSaldosEstoque(saldosDados)
             setStatus('sucesso')
 
             if (vendasResumo.length === 0) {
@@ -338,10 +458,18 @@ export function Vendas() {
     }, [])
 
     function atualizarCampoVenda(campo: keyof FormularioVenda, valor: string) {
-        setFormularioVenda((formularioAtual) => ({
-            ...formularioAtual,
-            [campo]: valor,
-        }))
+        setFormularioVenda((formularioAtual) => {
+            const novoFormulario = {
+                ...formularioAtual,
+                [campo]: valor,
+            }
+
+            if (camposVendaQueRecalculamTotal.includes(campo)) {
+                novoFormulario.valor_total = calcularValorTotalVenda(novoFormulario)
+            }
+
+            return novoFormulario
+        })
     }
 
     function atualizarCampoItem(campo: keyof FormularioItemVenda, valor: string) {
@@ -384,6 +512,8 @@ export function Vendas() {
             return
         }
 
+        const valorTotalCalculado = calcularValorTotalVenda(formularioVenda)
+
         const novaVenda: NovaVenda = {
             canal_venda_id: formularioVenda.canal_venda_id,
             local_saida_id: formularioVenda.local_saida_id,
@@ -407,7 +537,7 @@ export function Vendas() {
             ),
             valor_impostos: converterNumero(formularioVenda.valor_impostos),
             outros_custos: converterNumero(formularioVenda.outros_custos),
-            valor_total: converterNumero(formularioVenda.valor_total),
+            valor_total: converterNumero(valorTotalCalculado),
             observacoes: transformarTextoEmNull(formularioVenda.observacoes),
         }
 
@@ -438,7 +568,31 @@ export function Vendas() {
     async function enviarItemVenda(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
 
-        const erroValidacao = validarItemVenda(formularioItem)
+        const vendaSelecionada = vendas.find((venda) => {
+            return venda.venda_id === formularioItem.venda_id
+        })
+
+        const saldoBrutoNoLocal = obterSaldoDisponivel(
+            saldosEstoque,
+            formularioItem.produto_id,
+            vendaSelecionada?.local_saida_id
+        )
+        const quantidadePendenteReservada = calcularQuantidadePendenteReservada(
+            itensVendas,
+            vendas,
+            formularioItem.produto_id,
+            vendaSelecionada?.local_saida_id
+        )
+        const saldoDisponivelParaNovoItem =
+            saldoBrutoNoLocal === null
+                ? null
+                : Math.max(saldoBrutoNoLocal - quantidadePendenteReservada, 0)
+
+        const erroValidacao = validarItemVenda(
+            formularioItem,
+            vendaSelecionada,
+            saldoDisponivelParaNovoItem
+        )
 
         if (erroValidacao) {
             setStatus('erro')
@@ -528,6 +682,52 @@ export function Vendas() {
     const lucroEstimado = vendas.reduce((total, venda) => {
         return total + Number(venda.lucro_estimado ?? 0)
     }, 0)
+
+    const valorBrutoItemPreview = calcularValorBrutoItem(formularioItem)
+    const vendaSelecionadaParaItem = vendas.find((venda) => {
+        return venda.venda_id === formularioItem.venda_id
+    })
+    const produtoSelecionadoParaItem = produtos.find((produto) => {
+        return produto.id === formularioItem.produto_id
+    })
+    const localSaidaSelecionadoParaItem = locaisEstoque.find((local) => {
+        return local.id === vendaSelecionadaParaItem?.local_saida_id
+    })
+    const saldoBrutoNoLocalParaItem = obterSaldoDisponivel(
+        saldosEstoque,
+        formularioItem.produto_id,
+        vendaSelecionadaParaItem?.local_saida_id
+    )
+    const quantidadePendenteReservadaParaItem = calcularQuantidadePendenteReservada(
+        itensVendas,
+        vendas,
+        formularioItem.produto_id,
+        vendaSelecionadaParaItem?.local_saida_id
+    )
+    const saldoDisponivelParaItem =
+        saldoBrutoNoLocalParaItem === null
+            ? null
+            : Math.max(saldoBrutoNoLocalParaItem - quantidadePendenteReservadaParaItem, 0)
+    const quantidadeItemPreview = converterNumero(formularioItem.quantidade)
+    const quantidadeItemValida =
+        !Number.isNaN(quantidadeItemPreview) &&
+        Number.isInteger(quantidadeItemPreview) &&
+        quantidadeItemPreview > 0
+    const saldoInsuficiente =
+        saldoDisponivelParaItem !== null &&
+        quantidadeItemValida &&
+        quantidadeItemPreview > saldoDisponivelParaItem
+    const saldoPodeSerExibido =
+        !!formularioItem.venda_id &&
+        !!formularioItem.produto_id &&
+        saldoDisponivelParaItem !== null
+    const cadastroItemBloqueado =
+        salvandoItem ||
+        !formularioItem.venda_id ||
+        !formularioItem.produto_id ||
+        !quantidadeItemValida ||
+        saldoDisponivelParaItem === null ||
+        saldoInsuficiente
 
     return (
         <div className="space-y-6">
@@ -706,6 +906,21 @@ export function Vendas() {
 
                     <div>
                         <label className="mb-2 block text-sm text-slate-300">
+                            Desconto da venda
+                        </label>
+
+                        <input
+                            value={formularioVenda.valor_desconto}
+                            onChange={(event) =>
+                                atualizarCampoVenda('valor_desconto', event.target.value)
+                            }
+                            placeholder="0,00"
+                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="mb-2 block text-sm text-slate-300">
                             Taxa marketplace
                         </label>
 
@@ -757,17 +972,34 @@ export function Vendas() {
 
                     <div>
                         <label className="mb-2 block text-sm text-slate-300">
+                            Outros custos
+                        </label>
+
+                        <input
+                            value={formularioVenda.outros_custos}
+                            onChange={(event) =>
+                                atualizarCampoVenda('outros_custos', event.target.value)
+                            }
+                            placeholder="0,00"
+                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="mb-2 block text-sm text-slate-300">
                             Valor total
                         </label>
 
                         <input
                             value={formularioVenda.valor_total}
-                            onChange={(event) =>
-                                atualizarCampoVenda('valor_total', event.target.value)
-                            }
+                            readOnly
                             placeholder="0,00"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                            className="w-full cursor-not-allowed rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-slate-300 outline-none"
                         />
+
+                        <p className="mt-2 text-xs text-slate-500">
+                            Calculado automaticamente: valor dos produtos + frete cobrado - desconto.
+                        </p>
                     </div>
 
                     <div className="md:col-span-2">
@@ -857,6 +1089,77 @@ export function Vendas() {
                         </select>
                     </div>
 
+                    <div className="md:col-span-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-4">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <p className="text-sm font-semibold text-cyan-200">
+                                    Saldo disponível para novo item
+                                </p>
+
+                                <p className="mt-1 text-xs text-cyan-100/70">
+                                    O sistema considera o saldo real do local e também desconta itens já cadastrados que ainda estão pendentes de baixa FIFO.
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl border border-cyan-400/30 bg-slate-950 px-4 py-3 text-right">
+                                <p className="text-xs text-slate-400">Disponível para lançar</p>
+
+                                <p className={`mt-1 text-2xl font-bold ${saldoInsuficiente ? 'text-red-300' : 'text-cyan-300'}`}>
+                                    {saldoPodeSerExibido ? saldoDisponivelParaItem : '-'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {saldoPodeSerExibido ? (
+                            <div className="mt-4 grid gap-3 text-sm md:grid-cols-5">
+                                <div className="rounded-lg bg-slate-950/70 p-3">
+                                    <p className="text-slate-500">Produto</p>
+                                    <p className="mt-1 text-slate-200">
+                                        {produtoSelecionadoParaItem?.nome ?? 'Produto selecionado'}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-lg bg-slate-950/70 p-3">
+                                    <p className="text-slate-500">Local de saída</p>
+                                    <p className="mt-1 text-slate-200">
+                                        {vendaSelecionadaParaItem?.local_saida_nome ?? localSaidaSelecionadoParaItem?.nome ?? '-'}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-lg bg-slate-950/70 p-3">
+                                    <p className="text-slate-500">Saldo real no local</p>
+                                    <p className="mt-1 text-slate-200">
+                                        {saldoBrutoNoLocalParaItem ?? '-'}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-lg bg-slate-950/70 p-3">
+                                    <p className="text-slate-500">Pendente já lançado</p>
+                                    <p className="mt-1 text-slate-200">
+                                        {quantidadePendenteReservadaParaItem}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-lg bg-slate-950/70 p-3">
+                                    <p className="text-slate-500">Quantidade informada</p>
+                                    <p className="mt-1 text-slate-200">
+                                        {quantidadeItemValida ? quantidadeItemPreview : '-'}
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="mt-4 text-sm text-cyan-100/70">
+                                Selecione uma venda e um produto para visualizar o saldo disponível.
+                            </p>
+                        )}
+
+                        {saldoInsuficiente && (
+                            <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+                                Estoque insuficiente para cadastrar este item. Reduza a quantidade, baixe o FIFO dos itens pendentes ou escolha uma venda com outro local de saída.
+                            </p>
+                        )}
+                    </div>
+
                     <div>
                         <label className="mb-2 block text-sm text-slate-300">
                             SKU vendido
@@ -919,6 +1222,21 @@ export function Vendas() {
 
                     <div>
                         <label className="mb-2 block text-sm text-slate-300">
+                            Desconto item
+                        </label>
+
+                        <input
+                            value={formularioItem.valor_desconto_item}
+                            onChange={(event) =>
+                                atualizarCampoItem('valor_desconto_item', event.target.value)
+                            }
+                            placeholder="0,00"
+                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="mb-2 block text-sm text-slate-300">
                             Taxa marketplace item
                         </label>
 
@@ -970,6 +1288,21 @@ export function Vendas() {
 
                     <div>
                         <label className="mb-2 block text-sm text-slate-300">
+                            Outros custos item
+                        </label>
+
+                        <input
+                            value={formularioItem.outros_custos_item}
+                            onChange={(event) =>
+                                atualizarCampoItem('outros_custos_item', event.target.value)
+                            }
+                            placeholder="0,00"
+                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="mb-2 block text-sm text-slate-300">
                             Custo unitário estimado
                         </label>
 
@@ -984,6 +1317,20 @@ export function Vendas() {
                             placeholder="Ex: 13,18"
                             className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
                         />
+                    </div>
+
+                    <div className="md:col-span-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+                        <p className="text-sm text-emerald-200">
+                            Valor bruto do item
+                        </p>
+
+                        <p className="mt-2 text-2xl font-bold text-emerald-300">
+                            {formatarMoeda(valorBrutoItemPreview)}
+                        </p>
+
+                        <p className="mt-2 text-xs text-emerald-100/70">
+                            Cálculo visual: quantidade × valor unitário.
+                        </p>
                     </div>
 
                     <div className="md:col-span-2">
@@ -1006,10 +1353,20 @@ export function Vendas() {
                 <div className="mt-6 flex justify-end">
                     <button
                         type="submit"
-                        disabled={salvandoItem}
+                        disabled={cadastroItemBloqueado}
                         className="rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {salvandoItem ? 'Adicionando...' : 'Adicionar item à venda'}
+                        {salvandoItem
+                            ? 'Adicionando...'
+                            : saldoInsuficiente
+                                ? 'Estoque insuficiente'
+                                : !formularioItem.venda_id || !formularioItem.produto_id
+                                    ? 'Selecione venda e produto'
+                                    : !quantidadeItemValida
+                                        ? 'Informe uma quantidade válida'
+                                        : saldoDisponivelParaItem === null
+                                            ? 'Saldo não localizado'
+                                            : 'Adicionar item à venda'}
                     </button>
                 </div>
             </form>
