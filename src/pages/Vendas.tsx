@@ -501,6 +501,27 @@ export function Vendas() {
         setFormularioItem(formularioItemInicial)
     }
 
+    function limparFormularioItemMantendoVenda(vendaId: string) {
+        setFormularioItem({
+            ...formularioItemInicial,
+            venda_id: vendaId,
+        })
+    }
+
+    function selecionarVendaParaItem(vendaId: string) {
+        const vendaSelecionada = vendas.find((venda) => venda.venda_id === vendaId)
+
+        setFormularioItem({
+            ...formularioItemInicial,
+            venda_id: vendaId,
+        })
+
+        setStatus('sucesso')
+        setMensagem(
+            `Venda ${vendaSelecionada?.numero_pedido ?? 'selecionada'} pronta para receber itens.`
+        )
+    }
+
     async function enviarVenda(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
 
@@ -545,13 +566,16 @@ export function Vendas() {
             setSalvandoVenda(true)
             setMensagem('Cadastrando venda...')
 
-            await cadastrarVenda(novaVenda)
+            const vendaCadastrada = await cadastrarVenda(novaVenda)
 
             limparFormularioVenda()
+            limparFormularioItemMantendoVenda(vendaCadastrada.id)
             await recarregarVendasEItens()
 
             setStatus('sucesso')
-            setMensagem('Venda cadastrada com sucesso.')
+            setMensagem(
+                'Venda cadastrada com sucesso. Agora selecione o produto vendido no formulário de item.'
+            )
         } catch (error) {
             setStatus('erro')
 
@@ -600,6 +624,8 @@ export function Vendas() {
             return
         }
 
+        const vendaIdSelecionada = formularioItem.venda_id
+
         const novoItem: NovoVendaItem = {
             venda_id: formularioItem.venda_id,
             produto_id: formularioItem.produto_id,
@@ -629,11 +655,13 @@ export function Vendas() {
 
             await cadastrarItemVenda(novoItem)
 
-            limparFormularioItem()
+            limparFormularioItemMantendoVenda(vendaIdSelecionada)
             await recarregarVendasEItens()
 
             setStatus('sucesso')
-            setMensagem('Item de venda cadastrado com sucesso.')
+            setMensagem(
+                'Item de venda cadastrado com sucesso. A venda foi mantida selecionada para facilitar o próximo item.'
+            )
         } catch (error) {
             setStatus('erro')
 
@@ -1089,6 +1117,45 @@ export function Vendas() {
                         </select>
                     </div>
 
+                    {vendaSelecionadaParaItem && (
+                        <div className="md:col-span-2 rounded-xl border border-slate-700 bg-slate-950/70 p-4">
+                            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                    <p className="text-sm font-semibold text-slate-200">
+                                        Venda selecionada para adicionar itens
+                                    </p>
+
+                                    <p className="mt-1 text-sm text-slate-400">
+                                        {vendaSelecionadaParaItem.numero_pedido ?? 'Venda sem número'} — {vendaSelecionadaParaItem.canal_venda_nome ?? 'Canal não informado'}
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-2 text-sm md:grid-cols-3">
+                                    <div className="rounded-lg bg-slate-900 px-3 py-2">
+                                        <p className="text-slate-500">Local de saída</p>
+                                        <p className="text-slate-200">
+                                            {vendaSelecionadaParaItem.local_saida_nome ?? '-'}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-lg bg-slate-900 px-3 py-2">
+                                        <p className="text-slate-500">Status</p>
+                                        <p className="text-slate-200">
+                                            {vendaSelecionadaParaItem.status ?? '-'}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-lg bg-slate-900 px-3 py-2">
+                                        <p className="text-slate-500">Data</p>
+                                        <p className="text-slate-200">
+                                            {formatarData(vendaSelecionadaParaItem.data_venda)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="md:col-span-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-4">
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                             <div>
@@ -1423,7 +1490,7 @@ export function Vendas() {
                 {itensVendas.length === 0 ? (
                     <div className="rounded-xl border border-slate-700 bg-slate-950 p-5">
                         <p className="text-slate-300">
-                            Nenhum item de venda encontrado.
+                            Nenhum item de venda encontrado. Cadastre uma venda e adicione o produto vendido no formulário acima.
                         </p>
                     </div>
                 ) : (
@@ -1453,7 +1520,14 @@ export function Vendas() {
                                         !!item.venda_id
 
                                     return (
-                                        <tr key={item.id} className="hover:bg-slate-800/60">
+                                        <tr
+                                            key={item.id}
+                                            className={
+                                                pendente > 0
+                                                    ? 'border-l-4 border-orange-500/50 hover:bg-slate-800/60'
+                                                    : 'border-l-4 border-emerald-500/50 hover:bg-slate-800/60'
+                                            }
+                                        >
                                             <td className="px-4 py-3 text-slate-100">
                                                 {item.vendas?.numero_pedido ?? '-'}
                                             </td>
@@ -1546,6 +1620,7 @@ export function Vendas() {
                                     <th className="px-4 py-3 font-medium">Lucro</th>
                                     <th className="px-4 py-3 font-medium">Margem</th>
                                     <th className="px-4 py-3 font-medium">Status</th>
+                                    <th className="px-4 py-3 font-medium">Ações</th>
                                 </tr>
                             </thead>
 
@@ -1603,6 +1678,16 @@ export function Vendas() {
                                                 {venda.status ?? '-'}
                                             </span>
                                         </td>
+
+                                        <td className="px-4 py-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => selecionarVendaParaItem(venda.venda_id)}
+                                                className="rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10"
+                                            >
+                                                Usar venda
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -1610,15 +1695,19 @@ export function Vendas() {
                     </div>
                 )}
 
-                <div className="mt-6 rounded-xl border border-slate-700 bg-slate-950 p-5">
-                    <p className="mb-3 text-sm text-slate-400">
-                        Retorno bruto do Supabase:
+                <details className="mt-6 rounded-xl border border-slate-700 bg-slate-950 p-5">
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-300">
+                        Ver retorno bruto do Supabase
+                    </summary>
+
+                    <p className="mt-3 text-xs text-slate-500">
+                        Área técnica para conferência durante o desenvolvimento. Em produção, este bloco pode ser removido.
                     </p>
 
-                    <pre className="max-h-80 overflow-auto rounded-lg bg-black p-4 text-xs text-slate-200">
+                    <pre className="mt-4 max-h-80 overflow-auto rounded-lg bg-black p-4 text-xs text-slate-200">
                         {JSON.stringify({ vendas, itensVendas }, null, 2)}
                     </pre>
-                </div>
+                </details>
             </div>
         </div>
     )
