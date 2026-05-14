@@ -52,6 +52,27 @@ export type ResumoAmazonFBAEstoqueSnapshot = {
     ultima_sincronizacao: string | null
 }
 
+export type SincronizacaoAmazonFBAResultado = {
+    ok: boolean
+    service: string
+    message: string
+    timestamp?: string
+    authorization_mode?: string
+    security_note?: string
+    result?: {
+        status?: number
+        ok?: boolean
+        marketplace_id?: string
+        seller_skus_filter_count?: number
+        details?: string
+        received_count?: number
+        saved_count?: number
+        skipped_without_seller_sku?: number
+        next_token_present?: boolean
+        synchronized_at?: string
+    }
+}
+
 export async function buscarAmazonFBAEstoqueSnapshot() {
     const { data, error } = await supabase
         .from('amazon_fba_estoque_snapshot')
@@ -108,4 +129,29 @@ export async function buscarResumoAmazonFBAEstoqueSnapshot() {
     )
 
     return resumo
+}
+
+export async function sincronizarAmazonFBAEstoqueSnapshot() {
+    const { data, error } =
+        await supabase.functions.invoke<SincronizacaoAmazonFBAResultado>(
+            'amazon-spapi-fba-inventory',
+            {
+                method: 'POST',
+                body: {},
+            }
+        )
+
+    if (error) {
+        throw new Error(error.message)
+    }
+
+    if (!data) {
+        throw new Error('A função de sincronização não retornou dados.')
+    }
+
+    if (!data.ok) {
+        throw new Error(data.message || 'Erro ao sincronizar Amazon FBA.')
+    }
+
+    return data
 }

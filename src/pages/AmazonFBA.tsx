@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
     buscarAmazonFBAEstoqueSnapshot,
+    sincronizarAmazonFBAEstoqueSnapshot,
     type AmazonFBAEstoqueSnapshot,
+    type SincronizacaoAmazonFBAResultado,
 } from '../services/amazonService'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
@@ -98,6 +100,14 @@ function obterTextoSituacao(item: AmazonFBAEstoqueSnapshot) {
     return 'Disponível'
 }
 
+function montarMensagemSincronizacao(resultado: SincronizacaoAmazonFBAResultado) {
+    const received = resultado.result?.received_count ?? 0
+    const saved = resultado.result?.saved_count ?? 0
+    const skipped = resultado.result?.skipped_without_seller_sku ?? 0
+
+    return `Sincronização concluída. Recebidos: ${received}. Salvos: ${saved}. Ignorados sem SKU: ${skipped}.`
+}
+
 export function AmazonFBA() {
     const [status, setStatus] = useState<StatusCarregamento>('carregando')
     const [mensagem, setMensagem] = useState(
@@ -106,6 +116,7 @@ export function AmazonFBA() {
     const [itens, setItens] = useState<AmazonFBAEstoqueSnapshot[]>([])
     const [filtros, setFiltros] =
         useState<FiltrosAmazonFBA>(filtrosIniciais)
+    const [sincronizando, setSincronizando] = useState(false)
 
     async function carregarSnapshot() {
         try {
@@ -132,6 +143,31 @@ export function AmazonFBA() {
             } else {
                 setMensagem('Erro desconhecido ao carregar snapshot FBA.')
             }
+        }
+    }
+
+    async function sincronizarAmazonFBA() {
+        try {
+            setSincronizando(true)
+            setStatus('carregando')
+            setMensagem('Sincronizando estoque Amazon FBA pela SP-API...')
+
+            const resultado = await sincronizarAmazonFBAEstoqueSnapshot()
+
+            await carregarSnapshot()
+
+            setStatus('sucesso')
+            setMensagem(montarMensagemSincronizacao(resultado))
+        } catch (error) {
+            setStatus('erro')
+
+            if (error instanceof Error) {
+                setMensagem(error.message)
+            } else {
+                setMensagem('Erro desconhecido ao sincronizar Amazon FBA.')
+            }
+        } finally {
+            setSincronizando(false)
         }
     }
 
@@ -228,7 +264,7 @@ export function AmazonFBA() {
                     item.sincronizado_em &&
                     (!total.ultimaSincronizacao ||
                         new Date(item.sincronizado_em).getTime() >
-                            new Date(total.ultimaSincronizacao).getTime())
+                        new Date(total.ultimaSincronizacao).getTime())
                 ) {
                     total.ultimaSincronizacao = item.sincronizado_em
                 }
@@ -270,17 +306,31 @@ export function AmazonFBA() {
                 <div className="mt-6 flex flex-wrap gap-3">
                     <button
                         type="button"
+                        onClick={sincronizarAmazonFBA}
+                        disabled={carregando || sincronizando}
+                        className="rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {sincronizando
+                            ? 'Sincronizando...'
+                            : 'Sincronizar Amazon FBA'}
+                    </button>
+
+                    <button
+                        type="button"
                         onClick={carregarSnapshot}
-                        disabled={carregando}
+                        disabled={carregando || sincronizando}
                         className="rounded-xl bg-cyan-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {carregando ? 'Atualizando...' : 'Atualizar tela'}
+                        {carregando && !sincronizando
+                            ? 'Atualizando...'
+                            : 'Atualizar tela'}
                     </button>
 
                     <button
                         type="button"
                         onClick={limparFiltros}
-                        className="rounded-xl border border-slate-700 px-5 py-3 font-semibold text-slate-200 transition hover:border-cyan-400 hover:text-cyan-300"
+                        disabled={sincronizando}
+                        className="rounded-xl border border-slate-700 px-5 py-3 font-semibold text-slate-200 transition hover:border-cyan-400 hover:text-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         Limpar filtros
                     </button>
@@ -572,8 +622,8 @@ export function AmazonFBA() {
                         status === 'erro'
                             ? 'mt-3 text-xl font-bold text-red-400'
                             : status === 'carregando'
-                              ? 'mt-3 text-xl font-bold text-yellow-300'
-                              : 'mt-3 text-xl font-bold text-emerald-300'
+                                ? 'mt-3 text-xl font-bold text-yellow-300'
+                                : 'mt-3 text-xl font-bold text-emerald-300'
                     }
                 >
                     {status}
