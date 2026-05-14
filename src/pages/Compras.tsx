@@ -149,6 +149,16 @@ function converterNumero(valor: string) {
     return numero
 }
 
+function converterNumeroSeguro(valor: string) {
+    const numero = converterNumero(valor)
+
+    if (Number.isNaN(numero)) {
+        return 0
+    }
+
+    return numero
+}
+
 function obterClasseStatus(status?: string) {
     const valor = status?.toLowerCase() ?? ''
 
@@ -169,6 +179,92 @@ function obterClasseStatus(status?: string) {
     }
 
     return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30'
+}
+
+function obterStatusRecebimentoItem(item: CompraItemDetalhado) {
+    const quantidade = Number(item.quantidade ?? 0)
+    const quantidadeRecebida = Number(item.quantidade_recebida ?? 0)
+    const pendente = quantidade - quantidadeRecebida
+
+    if (item.status === 'cancelado') {
+        return 'cancelado'
+    }
+
+    if (pendente <= 0 && quantidade > 0) {
+        return 'recebido'
+    }
+
+    if (quantidadeRecebida > 0 && pendente > 0) {
+        return 'parcialmente_recebido'
+    }
+
+    return 'pendente'
+}
+
+function obterRotuloStatusRecebimento(status: string) {
+    const rotulos: Record<string, string> = {
+        pendente: 'Pendente',
+        parcialmente_recebido: 'Parcial',
+        recebido: 'Recebido',
+        cancelado: 'Cancelado',
+    }
+
+    return rotulos[status] ?? status
+}
+
+function obterClasseStatusRecebimento(status: string) {
+    if (status === 'recebido') {
+        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+    }
+
+    if (status === 'parcialmente_recebido') {
+        return 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
+    }
+
+    if (status === 'pendente') {
+        return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30'
+    }
+
+    if (status === 'cancelado') {
+        return 'bg-red-500/10 text-red-300 border-red-500/30'
+    }
+
+    return 'bg-slate-800 text-slate-300 border-slate-700'
+}
+
+function obterClasseLinhaItemCompra(statusRecebimento: string, selecionado: boolean) {
+    if (selecionado) {
+        return 'bg-emerald-500/10 hover:bg-emerald-500/20'
+    }
+
+    if (statusRecebimento === 'recebido') {
+        return 'bg-emerald-500/5 hover:bg-emerald-500/10'
+    }
+
+    if (statusRecebimento === 'parcialmente_recebido') {
+        return 'bg-cyan-500/5 hover:bg-cyan-500/10'
+    }
+
+    if (statusRecebimento === 'pendente') {
+        return 'bg-yellow-500/5 hover:bg-yellow-500/10'
+    }
+
+    if (statusRecebimento === 'cancelado') {
+        return 'bg-red-500/5 hover:bg-red-500/10'
+    }
+
+    return 'hover:bg-slate-800/60'
+}
+
+function calcularPercentualRecebido(item: CompraItemDetalhado) {
+    const quantidade = Number(item.quantidade ?? 0)
+    const quantidadeRecebida = Number(item.quantidade_recebida ?? 0)
+
+    if (quantidade <= 0) {
+        return 0
+    }
+
+    return Math.min(100, Math.max(0, (quantidadeRecebida / quantidade) * 100))
 }
 
 function validarFormularioCompra(formulario: FormularioCompra) {
@@ -287,6 +383,8 @@ export function Compras() {
     const [salvandoCompra, setSalvandoCompra] = useState(false)
     const [salvandoItem, setSalvandoItem] = useState(false)
     const [recebendoItemId, setRecebendoItemId] = useState<string | null>(null)
+    const [itemSelecionadoParaReceber, setItemSelecionadoParaReceber] =
+        useState<CompraItemDetalhado | null>(null)
 
     const [formularioCompra, setFormularioCompra] =
         useState<FormularioCompra>(formularioInicial)
@@ -374,8 +472,39 @@ export function Compras() {
         })
     }
 
-    function limparFormularioItem() {
-        setFormularioItem(formularioItemInicial)
+    function limparFormularioItem(compraIdParaManter = '') {
+        setFormularioItem({
+            ...formularioItemInicial,
+            compra_id: compraIdParaManter,
+        })
+    }
+
+    function selecionarCompraParaItem(compra: CompraResumo) {
+        setFormularioItem((formularioAtual) => ({
+            ...formularioAtual,
+            compra_id: compra.compra_id,
+        }))
+
+        setStatus('sucesso')
+        setMensagem(
+            `Compra ${compra.numero_pedido ?? 'sem número'} selecionada para adicionar itens.`
+        )
+    }
+
+    function selecionarItemParaRecebimento(item: CompraItemDetalhado) {
+        const quantidadePendente = item.quantidade - item.quantidade_recebida
+
+        if (quantidadePendente <= 0 || item.status === 'cancelado') {
+            setStatus('erro')
+            setMensagem('Este item não possui quantidade pendente para receber.')
+            return
+        }
+
+        setItemSelecionadoParaReceber(item)
+        setStatus('sucesso')
+        setMensagem(
+            `Item ${item.produtos?.nome ?? item.produto_id} selecionado para conferência antes do recebimento.`
+        )
     }
 
     async function enviarFormularioCompra(event: FormEvent<HTMLFormElement>) {
@@ -414,13 +543,20 @@ export function Compras() {
             setSalvandoCompra(true)
             setMensagem('Cadastrando compra...')
 
-            await cadastrarCompra(novaCompra)
+            const compraCadastrada = await cadastrarCompra(novaCompra)
 
             limparFormularioCompra()
             await recarregarComprasEItens()
 
+            setFormularioItem((formularioAtual) => ({
+                ...formularioAtual,
+                compra_id: compraCadastrada.id,
+            }))
+
             setStatus('sucesso')
-            setMensagem('Compra cadastrada com sucesso.')
+            setMensagem(
+                'Compra cadastrada com sucesso. Ela já foi selecionada para receber itens.'
+            )
         } catch (error) {
             setStatus('erro')
 
@@ -444,6 +580,8 @@ export function Compras() {
             setMensagem(erroValidacao)
             return
         }
+
+        const compraSelecionadaParaManter = formularioItem.compra_id
 
         const novoItem: NovoCompraItem = {
             compra_id: formularioItem.compra_id,
@@ -473,11 +611,13 @@ export function Compras() {
 
             await cadastrarItemCompra(novoItem)
 
-            limparFormularioItem()
+            limparFormularioItem(compraSelecionadaParaManter)
             await recarregarComprasEItens()
 
             setStatus('sucesso')
-            setMensagem('Item adicionado à compra com sucesso.')
+            setMensagem(
+                'Item adicionado à compra com sucesso. A compra continua selecionada para adicionar novos itens.'
+            )
         } catch (error) {
             setStatus('erro')
 
@@ -507,6 +647,7 @@ export function Compras() {
             await receberItemCompra(item.id, quantidadePendente)
 
             await recarregarComprasEItens()
+            setItemSelecionadoParaReceber(null)
 
             setStatus('sucesso')
             setMensagem('Item recebido com sucesso. Estoque e lote atualizados pelo Supabase.')
@@ -534,6 +675,100 @@ export function Compras() {
     const comprasRecebidas = compras.filter(
         (compra) => compra.status === 'recebido'
     ).length
+
+    const resumoStatusItensCompra = itensCompras.reduce(
+        (resumo, item) => {
+            const statusRecebimento = obterStatusRecebimentoItem(item)
+            const pendente = Math.max(
+                0,
+                Number(item.quantidade ?? 0) - Number(item.quantidade_recebida ?? 0)
+            )
+
+            resumo.total += 1
+            resumo.quantidadeComprada += Number(item.quantidade ?? 0)
+            resumo.quantidadeRecebida += Number(item.quantidade_recebida ?? 0)
+            resumo.quantidadePendente += pendente
+
+            if (statusRecebimento === 'pendente') {
+                resumo.pendentes += 1
+            }
+
+            if (statusRecebimento === 'parcialmente_recebido') {
+                resumo.parciais += 1
+            }
+
+            if (statusRecebimento === 'recebido') {
+                resumo.recebidos += 1
+            }
+
+            if (statusRecebimento === 'cancelado') {
+                resumo.cancelados += 1
+            }
+
+            return resumo
+        },
+        {
+            total: 0,
+            pendentes: 0,
+            parciais: 0,
+            recebidos: 0,
+            cancelados: 0,
+            quantidadeComprada: 0,
+            quantidadeRecebida: 0,
+            quantidadePendente: 0,
+        }
+    )
+
+    const valorFreteFormulario = converterNumeroSeguro(formularioCompra.valor_frete)
+    const valorDescontoFormulario = converterNumeroSeguro(formularioCompra.valor_desconto)
+    const outrosCustosFormulario = converterNumeroSeguro(formularioCompra.outros_custos)
+    const valorAjustesCabecalho =
+        valorFreteFormulario + outrosCustosFormulario - valorDescontoFormulario
+
+    const compraSelecionada =
+        compras.find((compra) => compra.compra_id === formularioItem.compra_id) ?? null
+
+    const produtoSelecionado =
+        produtos.find((produto) => produto.id === formularioItem.produto_id) ?? null
+
+    const compraDoItemSelecionadoParaReceber = itemSelecionadoParaReceber
+        ? compras.find(
+            (compra) => compra.compra_id === itemSelecionadoParaReceber.compra_id
+        ) ?? null
+        : null
+
+    const quantidadePendenteItemSelecionado = itemSelecionadoParaReceber
+        ? itemSelecionadoParaReceber.quantidade - itemSelecionadoParaReceber.quantidade_recebida
+        : 0
+
+    const valorEstoqueAReceber = itemSelecionadoParaReceber
+        ? quantidadePendenteItemSelecionado * itemSelecionadoParaReceber.custo_unitario
+        : 0
+
+    const quantidadeItemFormulario = converterNumeroSeguro(formularioItem.quantidade)
+    const custoUnitarioFormulario = converterNumeroSeguro(formularioItem.custo_unitario)
+    const descontoItemFormulario = converterNumeroSeguro(
+        formularioItem.valor_desconto_item
+    )
+    const impostosItemFormulario = converterNumeroSeguro(
+        formularioItem.valor_impostos_item
+    )
+    const outrosCustosItemFormulario = converterNumeroSeguro(
+        formularioItem.outros_custos_item
+    )
+
+    const valorBrutoItemFormulario = quantidadeItemFormulario * custoUnitarioFormulario
+    const valorTotalItemFormulario =
+        valorBrutoItemFormulario -
+        descontoItemFormulario +
+        impostosItemFormulario +
+        outrosCustosItemFormulario
+
+    const valorTotalAtualCompraSelecionada = Number(
+        compraSelecionada?.valor_total_estimado ?? 0
+    )
+    const valorTotalSimuladoCompraSelecionada =
+        valorTotalAtualCompraSelecionada + valorTotalItemFormulario
 
     return (
         <div className="space-y-6">
@@ -752,6 +987,53 @@ export function Compras() {
                         />
                     </div>
 
+                    <div className="md:col-span-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-5">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <p className="text-sm font-semibold text-cyan-200">
+                                    Resumo financeiro do cabeçalho
+                                </p>
+
+                                <p className="mt-2 text-sm text-cyan-100/80">
+                                    Estes valores serão somados ao total dos itens da compra pela view de resumo do Supabase.
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl border border-slate-700 bg-slate-950 px-5 py-4 text-right">
+                                <p className="text-xs text-slate-400">
+                                    Ajuste do cabeçalho
+                                </p>
+
+                                <p className="mt-1 text-2xl font-bold text-cyan-300">
+                                    {formatarMoeda(valorAjustesCabecalho)}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 md:grid-cols-3">
+                            <div className="rounded-xl bg-slate-950 p-4">
+                                <p className="text-xs text-slate-400">Frete</p>
+                                <p className="mt-1 font-semibold text-slate-100">
+                                    {formatarMoeda(valorFreteFormulario)}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-950 p-4">
+                                <p className="text-xs text-slate-400">Desconto da compra</p>
+                                <p className="mt-1 font-semibold text-slate-100">
+                                    - {formatarMoeda(valorDescontoFormulario)}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-950 p-4">
+                                <p className="text-xs text-slate-400">Outros custos</p>
+                                <p className="mt-1 font-semibold text-slate-100">
+                                    {formatarMoeda(outrosCustosFormulario)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="md:col-span-2">
                         <label className="mb-2 block text-sm text-slate-300">
                             Observações
@@ -793,6 +1075,53 @@ export function Compras() {
                         Adicione produtos a uma compra já cadastrada. Para entrada no estoque, use o botão Receber pendente na lista de itens.
                     </p>
                 </div>
+
+                {compraSelecionada ? (
+                    <div className="mb-6 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-5">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <p className="text-sm font-semibold text-cyan-200">
+                                    Compra selecionada para adicionar itens
+                                </p>
+
+                                <p className="mt-2 text-lg font-bold text-slate-100">
+                                    {compraSelecionada.numero_pedido ?? 'Compra sem número'}
+                                </p>
+
+                                <p className="mt-1 text-sm text-cyan-100/80">
+                                    Fornecedor: {compraSelecionada.fornecedor_nome ?? 'não informado'} · Local: {compraSelecionada.local_destino_nome ?? 'não informado'}
+                                </p>
+                            </div>
+
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                <div className="rounded-xl border border-slate-700 bg-slate-950 px-5 py-4 text-right">
+                                    <p className="text-xs text-slate-400">Total atual</p>
+                                    <p className="mt-1 text-xl font-bold text-cyan-300">
+                                        {formatarMoeda(valorTotalAtualCompraSelecionada)}
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => limparFormularioItem()}
+                                    className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
+                                >
+                                    Limpar seleção
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="mb-6 rounded-xl border border-slate-700 bg-slate-950 p-5">
+                        <p className="text-sm font-semibold text-slate-200">
+                            Nenhuma compra selecionada
+                        </p>
+
+                        <p className="mt-2 text-sm text-slate-400">
+                            Selecione uma compra no campo abaixo ou clique em Usar compra na tabela de compras encontradas.
+                        </p>
+                    </div>
+                )}
 
                 <div className="grid gap-4 md:grid-cols-2">
                     <div>
@@ -999,6 +1328,99 @@ export function Compras() {
                         </select>
                     </div>
 
+                    <div className="md:col-span-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <p className="text-sm font-semibold text-emerald-200">
+                                    Cálculo automático do item
+                                </p>
+
+                                <p className="mt-2 text-sm text-emerald-100/80">
+                                    O sistema calcula o valor do item usando quantidade, custo unitário, desconto, impostos e outros custos.
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl border border-slate-700 bg-slate-950 px-5 py-4 text-right">
+                                <p className="text-xs text-slate-400">
+                                    Total estimado do item
+                                </p>
+
+                                <p className="mt-1 text-2xl font-bold text-emerald-300">
+                                    {formatarMoeda(valorTotalItemFormulario)}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 md:grid-cols-5">
+                            <div className="rounded-xl bg-slate-950 p-4">
+                                <p className="text-xs text-slate-400">Produto</p>
+                                <p className="mt-1 font-semibold text-slate-100">
+                                    {produtoSelecionado?.nome ?? 'Selecione um produto'}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-950 p-4">
+                                <p className="text-xs text-slate-400">Valor bruto</p>
+                                <p className="mt-1 font-semibold text-slate-100">
+                                    {formatarMoeda(valorBrutoItemFormulario)}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-950 p-4">
+                                <p className="text-xs text-slate-400">Desconto</p>
+                                <p className="mt-1 font-semibold text-slate-100">
+                                    - {formatarMoeda(descontoItemFormulario)}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-950 p-4">
+                                <p className="text-xs text-slate-400">Impostos</p>
+                                <p className="mt-1 font-semibold text-slate-100">
+                                    {formatarMoeda(impostosItemFormulario)}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-950 p-4">
+                                <p className="text-xs text-slate-400">Outros custos</p>
+                                <p className="mt-1 font-semibold text-slate-100">
+                                    {formatarMoeda(outrosCustosItemFormulario)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {compraSelecionada && (
+                        <div className="md:col-span-2 rounded-xl border border-slate-700 bg-slate-950 p-5">
+                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                    <p className="text-sm font-semibold text-slate-100">
+                                        Simulação da compra selecionada
+                                    </p>
+
+                                    <p className="mt-2 text-sm text-slate-400">
+                                        Este resumo mostra o total atual da compra e como ficaria depois de adicionar o item preenchido acima.
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <div className="rounded-xl border border-slate-800 bg-slate-900 px-5 py-4 text-right">
+                                        <p className="text-xs text-slate-400">Total atual</p>
+                                        <p className="mt-1 text-xl font-bold text-slate-100">
+                                            {formatarMoeda(valorTotalAtualCompraSelecionada)}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4 text-right">
+                                        <p className="text-xs text-emerald-100/80">Com este item</p>
+                                        <p className="mt-1 text-xl font-bold text-emerald-300">
+                                            {formatarMoeda(valorTotalSimuladoCompraSelecionada)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="md:col-span-2">
                         <label className="mb-2 block text-sm text-slate-300">
                             Observações do item
@@ -1078,6 +1500,168 @@ export function Compras() {
                     </span>
                 </div>
 
+                <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                        <p className="text-xs text-slate-400">Itens pendentes</p>
+                        <p className="mt-2 text-2xl font-bold text-yellow-300">
+                            {resumoStatusItensCompra.pendentes}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                        <p className="text-xs text-slate-400">Parciais</p>
+                        <p className="mt-2 text-2xl font-bold text-cyan-300">
+                            {resumoStatusItensCompra.parciais}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                        <p className="text-xs text-slate-400">Recebidos</p>
+                        <p className="mt-2 text-2xl font-bold text-emerald-300">
+                            {resumoStatusItensCompra.recebidos}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                        <p className="text-xs text-slate-400">Cancelados</p>
+                        <p className="mt-2 text-2xl font-bold text-red-300">
+                            {resumoStatusItensCompra.cancelados}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                        <p className="text-xs text-slate-400">Unidades recebidas</p>
+                        <p className="mt-2 text-2xl font-bold text-slate-100">
+                            {resumoStatusItensCompra.quantidadeRecebida}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                        <p className="text-xs text-slate-400">Unidades pendentes</p>
+                        <p className="mt-2 text-2xl font-bold text-yellow-300">
+                            {resumoStatusItensCompra.quantidadePendente}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="mb-6 rounded-xl border border-slate-800 bg-slate-950 p-4">
+                    <p className="text-sm font-semibold text-slate-200">
+                        Legenda dos itens de compra
+                    </p>
+
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                        <span className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-yellow-300">
+                            Pendente: nada recebido
+                        </span>
+                        <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-cyan-300">
+                            Parcial: parte recebida
+                        </span>
+                        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-emerald-300">
+                            Recebido: pendência zerada
+                        </span>
+                        <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-red-300">
+                            Cancelado: item não deve ser recebido
+                        </span>
+                    </div>
+                </div>
+
+                {itemSelecionadoParaReceber && (
+                    <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-5">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                            <div>
+                                <p className="text-sm font-semibold text-emerald-200">
+                                    Conferência antes de receber o item
+                                </p>
+
+                                <p className="mt-2 text-sm text-emerald-100/80">
+                                    Confira produto, compra, local de destino, quantidade pendente e lote antes de lançar a entrada no estoque.
+                                </p>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setItemSelecionadoParaReceber(null)}
+                                    className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+                                >
+                                    Cancelar
+                                </button>
+
+                                <button
+                                    type="button"
+                                    disabled={recebendoItemId === itemSelecionadoParaReceber.id}
+                                    onClick={() => receberItemPendente(itemSelecionadoParaReceber)}
+                                    className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {recebendoItemId === itemSelecionadoParaReceber.id
+                                        ? 'Recebendo...'
+                                        : 'Confirmar recebimento'}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="mt-5 grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+                            <div className="rounded-xl bg-slate-950 p-4">
+                                <p className="text-xs text-slate-400">Compra</p>
+                                <p className="mt-1 font-semibold text-slate-100">
+                                    {itemSelecionadoParaReceber.compras?.numero_pedido ?? '-'}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-950 p-4 lg:col-span-2">
+                                <p className="text-xs text-slate-400">Produto</p>
+                                <p className="mt-1 font-semibold text-slate-100">
+                                    {itemSelecionadoParaReceber.produtos?.nome ?? itemSelecionadoParaReceber.produto_id}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-950 p-4">
+                                <p className="text-xs text-slate-400">Local de destino</p>
+                                <p className="mt-1 font-semibold text-slate-100">
+                                    {compraDoItemSelecionadoParaReceber?.local_destino_nome ?? '-'}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-950 p-4">
+                                <p className="text-xs text-slate-400">Pendente</p>
+                                <p className="mt-1 font-semibold text-emerald-300">
+                                    {quantidadePendenteItemSelecionado}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-950 p-4">
+                                <p className="text-xs text-slate-400">Valor a receber</p>
+                                <p className="mt-1 font-semibold text-slate-100">
+                                    {formatarMoeda(valorEstoqueAReceber)}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="mt-3 grid gap-3 md:grid-cols-3">
+                            <div className="rounded-xl bg-slate-950 p-4">
+                                <p className="text-xs text-slate-400">Quantidade comprada</p>
+                                <p className="mt-1 font-semibold text-slate-100">
+                                    {itemSelecionadoParaReceber.quantidade}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-950 p-4">
+                                <p className="text-xs text-slate-400">Já recebida</p>
+                                <p className="mt-1 font-semibold text-slate-100">
+                                    {itemSelecionadoParaReceber.quantidade_recebida}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-950 p-4">
+                                <p className="text-xs text-slate-400">Lote</p>
+                                <p className="mt-1 font-semibold text-slate-100">
+                                    {itemSelecionadoParaReceber.lote ?? 'Sem lote informado'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {itensCompras.length === 0 ? (
                     <div className="rounded-xl border border-slate-700 bg-slate-950 p-5">
                         <p className="text-slate-300">
@@ -1086,7 +1670,7 @@ export function Compras() {
                     </div>
                 ) : (
                     <div className="overflow-x-auto rounded-xl border border-slate-700">
-                        <table className="w-full min-w-[1200px] border-collapse text-left text-sm">
+                        <table className="w-full min-w-[1350px] border-collapse text-left text-sm">
                             <thead className="bg-slate-950 text-slate-400">
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Compra</th>
@@ -1095,6 +1679,7 @@ export function Compras() {
                                     <th className="px-4 py-3 font-medium">Qtd.</th>
                                     <th className="px-4 py-3 font-medium">Recebida</th>
                                     <th className="px-4 py-3 font-medium">Pendente</th>
+                                    <th className="px-4 py-3 font-medium">Progresso</th>
                                     <th className="px-4 py-3 font-medium">Custo unit.</th>
                                     <th className="px-4 py-3 font-medium">Lote</th>
                                     <th className="px-4 py-3 font-medium">Status</th>
@@ -1104,12 +1689,23 @@ export function Compras() {
 
                             <tbody className="divide-y divide-slate-800 bg-slate-900">
                                 {itensCompras.map((item) => {
-                                    const pendente = item.quantidade - item.quantidade_recebida
+                                    const pendente = Math.max(
+                                        0,
+                                        Number(item.quantidade ?? 0) - Number(item.quantidade_recebida ?? 0)
+                                    )
+                                    const statusRecebimento = obterStatusRecebimentoItem(item)
+                                    const percentualRecebido = calcularPercentualRecebido(item)
                                     const podeReceber =
-                                        pendente > 0 && item.status !== 'cancelado'
+                                        pendente > 0 && statusRecebimento !== 'cancelado'
 
                                     return (
-                                        <tr key={item.id} className="hover:bg-slate-800/60">
+                                        <tr
+                                            key={item.id}
+                                            className={obterClasseLinhaItemCompra(
+                                                statusRecebimento,
+                                                itemSelecionadoParaReceber?.id === item.id
+                                            )}
+                                        >
                                             <td className="px-4 py-3 text-slate-100">
                                                 {item.compras?.numero_pedido ?? '-'}
                                             </td>
@@ -1122,16 +1718,39 @@ export function Compras() {
                                                 {item.produtos?.sku ?? '-'}
                                             </td>
 
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-4 py-3 font-semibold text-slate-100">
                                                 {item.quantidade}
                                             </td>
 
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-4 py-3 font-semibold text-emerald-300">
                                                 {item.quantidade_recebida}
                                             </td>
 
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td
+                                                className={
+                                                    pendente > 0
+                                                        ? 'px-4 py-3 font-semibold text-yellow-300'
+                                                        : 'px-4 py-3 font-semibold text-emerald-300'
+                                                }
+                                            >
                                                 {pendente}
+                                            </td>
+
+                                            <td className="px-4 py-3">
+                                                <div className="w-28">
+                                                    <div className="flex items-center justify-between text-xs text-slate-400">
+                                                        <span>{Math.round(percentualRecebido)}%</span>
+                                                        <span>
+                                                            {item.quantidade_recebida}/{item.quantidade}
+                                                        </span>
+                                                    </div>
+                                                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800">
+                                                        <div
+                                                            className="h-full rounded-full bg-emerald-400"
+                                                            style={{ width: `${percentualRecebido}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
                                             </td>
 
                                             <td className="px-4 py-3 text-slate-300">
@@ -1143,27 +1762,37 @@ export function Compras() {
                                             </td>
 
                                             <td className="px-4 py-3">
-                                                <span
-                                                    className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatus(
-                                                        item.status
-                                                    )}`}
-                                                >
-                                                    {item.status}
-                                                </span>
+                                                <div className="flex flex-col gap-2">
+                                                    <span
+                                                        className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatusRecebimento(
+                                                            statusRecebimento
+                                                        )}`}
+                                                    >
+                                                        {obterRotuloStatusRecebimento(statusRecebimento)}
+                                                    </span>
+
+                                                    {item.status !== statusRecebimento && (
+                                                        <span className="text-xs text-slate-500">
+                                                            Status original: {item.status}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
 
                                             <td className="px-4 py-3">
                                                 <button
                                                     type="button"
                                                     disabled={!podeReceber || recebendoItemId === item.id}
-                                                    onClick={() => receberItemPendente(item)}
+                                                    onClick={() => selecionarItemParaRecebimento(item)}
                                                     className="rounded-lg border border-emerald-500/40 px-3 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-500"
                                                 >
                                                     {recebendoItemId === item.id
                                                         ? 'Recebendo...'
                                                         : podeReceber
-                                                            ? 'Receber pendente'
-                                                            : 'Recebido'}
+                                                            ? 'Conferir recebimento'
+                                                            : statusRecebimento === 'cancelado'
+                                                                ? 'Cancelado'
+                                                                : 'Recebido'}
                                                 </button>
                                             </td>
                                         </tr>
@@ -1192,7 +1821,7 @@ export function Compras() {
                     </div>
                 ) : (
                     <div className="overflow-x-auto rounded-xl border border-slate-700">
-                        <table className="w-full min-w-[1300px] border-collapse text-left text-sm">
+                        <table className="w-full min-w-[1400px] border-collapse text-left text-sm">
                             <thead className="bg-slate-950 text-slate-400">
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Pedido</th>
@@ -1208,12 +1837,20 @@ export function Compras() {
                                     <th className="px-4 py-3 font-medium">Frete</th>
                                     <th className="px-4 py-3 font-medium">Total estimado</th>
                                     <th className="px-4 py-3 font-medium">Status</th>
+                                    <th className="px-4 py-3 font-medium">Ações</th>
                                 </tr>
                             </thead>
 
                             <tbody className="divide-y divide-slate-800 bg-slate-900">
                                 {compras.map((compra) => (
-                                    <tr key={compra.compra_id} className="hover:bg-slate-800/60">
+                                    <tr
+                                        key={compra.compra_id}
+                                        className={
+                                            compraSelecionada?.compra_id === compra.compra_id
+                                                ? 'bg-cyan-500/10 hover:bg-cyan-500/20'
+                                                : 'hover:bg-slate-800/60'
+                                        }
+                                    >
                                         <td className="px-4 py-3 text-slate-100">
                                             {compra.numero_pedido ?? '-'}
                                         </td>
@@ -1272,6 +1909,16 @@ export function Compras() {
                                             >
                                                 {compra.status}
                                             </span>
+                                        </td>
+
+                                        <td className="px-4 py-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => selecionarCompraParaItem(compra)}
+                                                className="rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10"
+                                            >
+                                                Usar compra
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
