@@ -9,6 +9,10 @@ const menuItems = [
     { label: 'Vendas', path: '/vendas' },
     { label: 'Estoque', path: '/estoque' },
     { label: 'Amazon FBA', path: '/amazon-fba' },
+    {
+        label: 'Conciliação Olist x Amazon',
+        path: '/conciliacao-olist-amazon',
+    },
     { label: 'Lotes', path: '/lotes' },
     { label: 'Movimentações', path: '/movimentacoes' },
     { label: 'Alertas', path: '/alertas' },
@@ -37,7 +41,7 @@ export function AppLayout() {
                         </h1>
                     </div>
 
-                    <nav className="mt-10 flex-1 space-y-2">
+                    <nav className="mt-10 flex-1 space-y-2 overflow-y-auto pr-1">
                         {menuItems.map((item) => (
                             <NavLink
                                 key={item.path}

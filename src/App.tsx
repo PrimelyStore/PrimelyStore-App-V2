@@ -13,6 +13,7 @@ import { useAuth } from './hooks/useAuth'
 import { Alertas } from './pages/Alertas'
 import { AmazonFBA } from './pages/AmazonFBA'
 import { Compras } from './pages/Compras'
+import { ConciliacaoOlistAmazon } from './pages/ConciliacaoOlistAmazon'
 import { Dashboard } from './pages/Dashboard'
 import { Estoque } from './pages/Estoque'
 import { Fornecedores } from './pages/Fornecedores'
@@ -67,6 +68,10 @@ function AppRoutes() {
           <Route path="/vendas" element={<Vendas />} />
           <Route path="/estoque" element={<Estoque />} />
           <Route path="/amazon-fba" element={<AmazonFBA />} />
+          <Route
+            path="/conciliacao-olist-amazon"
+            element={<ConciliacaoOlistAmazon />}
+          />
           <Route path="/lotes" element={<Lotes />} />
           <Route path="/movimentacoes" element={<Movimentacoes />} />
           <Route path="/alertas" element={<Alertas />} />
