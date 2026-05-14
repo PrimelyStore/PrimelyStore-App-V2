@@ -11,6 +11,7 @@ import { AppLayout } from './components/layout/AppLayout'
 import { AuthProvider } from './contexts/AuthContext'
 import { useAuth } from './hooks/useAuth'
 import { Alertas } from './pages/Alertas'
+import { AmazonFBA } from './pages/AmazonFBA'
 import { Compras } from './pages/Compras'
 import { Dashboard } from './pages/Dashboard'
 import { Estoque } from './pages/Estoque'
@@ -65,6 +66,7 @@ function AppRoutes() {
           <Route path="/compras" element={<Compras />} />
           <Route path="/vendas" element={<Vendas />} />
           <Route path="/estoque" element={<Estoque />} />
+          <Route path="/amazon-fba" element={<AmazonFBA />} />
           <Route path="/lotes" element={<Lotes />} />
           <Route path="/movimentacoes" element={<Movimentacoes />} />
           <Route path="/alertas" element={<Alertas />} />

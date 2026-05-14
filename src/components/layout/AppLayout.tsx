@@ -8,6 +8,7 @@ const menuItems = [
     { label: 'Compras', path: '/compras' },
     { label: 'Vendas', path: '/vendas' },
     { label: 'Estoque', path: '/estoque' },
+    { label: 'Amazon FBA', path: '/amazon-fba' },
     { label: 'Lotes', path: '/lotes' },
     { label: 'Movimentações', path: '/movimentacoes' },
     { label: 'Alertas', path: '/alertas' },
