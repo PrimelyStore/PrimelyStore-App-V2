@@ -426,3 +426,25 @@ entrypoint = "./functions/olist-oauth-callback/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/olist-oauth-callback/*.html" ]
+
+[functions.olist-health]
+enabled = true
+verify_jwt = true
+import_map = "./functions/olist-health/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/olist-health/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/olist-health/*.html" ]
+
+[functions.olist-token-refresh]
+enabled = true
+verify_jwt = true
+import_map = "./functions/olist-token-refresh/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/olist-token-refresh/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/olist-token-refresh/*.html" ]
