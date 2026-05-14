@@ -1,7 +1,9 @@
+import { createClient } from 'npm:@supabase/supabase-js@2'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type',
+    'authorization, x-client-info, apikey, content-type, x-primely-internal-token',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 }
 
@@ -15,6 +17,82 @@ type TemporaryAwsCredentials = {
 }
 
 type SignedHeaders = Record<string, string>
+
+type InventorySummary = {
+  asin?: string
+  fnSku?: string
+  sellerSku?: string
+  condition?: string
+  productName?: string
+  totalQuantity?: number
+  lastUpdatedTime?: string
+  inventoryDetails?: {
+    fulfillableQuantity?: number
+    inboundWorkingQuantity?: number
+    inboundShippedQuantity?: number
+    inboundReceivingQuantity?: number
+    reservedQuantity?: {
+      totalReservedQuantity?: number
+      pendingCustomerOrderQuantity?: number
+      pendingTransshipmentQuantity?: number
+      fcProcessingQuantity?: number
+    }
+    researchingQuantity?: {
+      totalResearchingQuantity?: number
+    }
+    unfulfillableQuantity?: {
+      totalUnfulfillableQuantity?: number
+      customerDamagedQuantity?: number
+      warehouseDamagedQuantity?: number
+      distributorDamagedQuantity?: number
+      carrierDamagedQuantity?: number
+      defectiveQuantity?: number
+      expiredQuantity?: number
+    }
+    futureSupplyQuantity?: {
+      reservedFutureSupplyQuantity?: number
+      futureSupplyBuyableQuantity?: number
+    }
+  }
+}
+
+type SnapshotRow = {
+  marketplace_id: string
+  asin: string | null
+  fn_sku: string | null
+  seller_sku: string
+  condition: string
+  product_name: string | null
+
+  fulfillable_quantity: number
+  inbound_working_quantity: number
+  inbound_shipped_quantity: number
+  inbound_receiving_quantity: number
+
+  reserved_total_quantity: number
+  reserved_pending_customer_order_quantity: number
+  reserved_pending_transshipment_quantity: number
+  reserved_fc_processing_quantity: number
+
+  researching_total_quantity: number
+
+  unfulfillable_total_quantity: number
+  unfulfillable_customer_damaged_quantity: number
+  unfulfillable_warehouse_damaged_quantity: number
+  unfulfillable_distributor_damaged_quantity: number
+  unfulfillable_carrier_damaged_quantity: number
+  unfulfillable_defective_quantity: number
+  unfulfillable_expired_quantity: number
+
+  future_supply_reserved_quantity: number
+  future_supply_buyable_quantity: number
+
+  total_quantity: number
+  last_updated_time: string | null
+  raw_data: InventorySummary
+  sincronizado_em: string
+  updated_at: string
+}
 
 function isConfigured(value: string | undefined) {
   return typeof value === 'string' && value.trim().length > 0
@@ -203,6 +281,81 @@ async function signAwsRequest(params: {
   }
 }
 
+function createSupabaseAdminClient() {
+  const supabaseUrl = getRequiredSecret('SUPABASE_URL')
+  const serviceRoleKey = getRequiredSecret('SUPABASE_SERVICE_ROLE_KEY')
+
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  })
+}
+
+async function isAuthorizedRequest(req: Request) {
+  const internalToken = Deno.env.get('PRIMELY_INTERNAL_FUNCTION_TOKEN')
+  const providedInternalToken = req.headers.get('x-primely-internal-token')
+
+  if (
+    isConfigured(internalToken) &&
+    providedInternalToken &&
+    providedInternalToken === internalToken
+  ) {
+    return {
+      authorized: true,
+      mode: 'internal_token',
+      user_id: null,
+      email: null,
+    }
+  }
+
+  const authorization = req.headers.get('authorization') ?? ''
+  const bearerToken = authorization.replace(/^Bearer\s+/i, '').trim()
+
+  if (!bearerToken) {
+    return {
+      authorized: false,
+      mode: 'none',
+      user_id: null,
+      email: null,
+    }
+  }
+
+  const supabaseUrl = getRequiredSecret('SUPABASE_URL')
+  const supabaseAnonKey = getRequiredSecret('SUPABASE_ANON_KEY')
+
+  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${bearerToken}`,
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  })
+
+  const { data, error } = await userClient.auth.getUser()
+
+  if (error || !data.user) {
+    return {
+      authorized: false,
+      mode: 'invalid_user_token',
+      user_id: null,
+      email: null,
+    }
+  }
+
+  return {
+    authorized: true,
+    mode: 'authenticated_user',
+    user_id: data.user.id,
+    email: data.user.email ?? null,
+  }
+}
+
 async function requestLwaAccessToken() {
   const clientId = getRequiredSecret('SPAPI_LWA_CLIENT_ID')
   const clientSecret = getRequiredSecret('SPAPI_LWA_CLIENT_SECRET')
@@ -362,33 +515,162 @@ function createInventoryUrl(req: Request) {
   }
 }
 
-function buildInventoryPreview(responseJson: Record<string, unknown>) {
+function safeNumber(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  return 0
+}
+
+function normalizeLastUpdatedTime(value: unknown) {
+  if (typeof value !== 'string' || !value.trim()) {
+    return null
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  return date.toISOString()
+}
+
+function mapSummaryToSnapshotRow(
+  summary: InventorySummary,
+  marketplaceId: string,
+  synchronizedAt: string
+): SnapshotRow | null {
+  const sellerSku = summary.sellerSku?.trim()
+
+  if (!sellerSku) {
+    return null
+  }
+
+  const details = summary.inventoryDetails ?? {}
+  const reserved = details.reservedQuantity ?? {}
+  const researching = details.researchingQuantity ?? {}
+  const unfulfillable = details.unfulfillableQuantity ?? {}
+  const futureSupply = details.futureSupplyQuantity ?? {}
+
+  return {
+    marketplace_id: marketplaceId,
+    asin: summary.asin ?? null,
+    fn_sku: summary.fnSku ?? null,
+    seller_sku: sellerSku,
+    condition: summary.condition ?? 'UNKNOWN',
+    product_name: summary.productName ?? null,
+
+    fulfillable_quantity: safeNumber(details.fulfillableQuantity),
+    inbound_working_quantity: safeNumber(details.inboundWorkingQuantity),
+    inbound_shipped_quantity: safeNumber(details.inboundShippedQuantity),
+    inbound_receiving_quantity: safeNumber(details.inboundReceivingQuantity),
+
+    reserved_total_quantity: safeNumber(reserved.totalReservedQuantity),
+    reserved_pending_customer_order_quantity: safeNumber(
+      reserved.pendingCustomerOrderQuantity
+    ),
+    reserved_pending_transshipment_quantity: safeNumber(
+      reserved.pendingTransshipmentQuantity
+    ),
+    reserved_fc_processing_quantity: safeNumber(reserved.fcProcessingQuantity),
+
+    researching_total_quantity: safeNumber(researching.totalResearchingQuantity),
+
+    unfulfillable_total_quantity: safeNumber(
+      unfulfillable.totalUnfulfillableQuantity
+    ),
+    unfulfillable_customer_damaged_quantity: safeNumber(
+      unfulfillable.customerDamagedQuantity
+    ),
+    unfulfillable_warehouse_damaged_quantity: safeNumber(
+      unfulfillable.warehouseDamagedQuantity
+    ),
+    unfulfillable_distributor_damaged_quantity: safeNumber(
+      unfulfillable.distributorDamagedQuantity
+    ),
+    unfulfillable_carrier_damaged_quantity: safeNumber(
+      unfulfillable.carrierDamagedQuantity
+    ),
+    unfulfillable_defective_quantity: safeNumber(
+      unfulfillable.defectiveQuantity
+    ),
+    unfulfillable_expired_quantity: safeNumber(unfulfillable.expiredQuantity),
+
+    future_supply_reserved_quantity: safeNumber(
+      futureSupply.reservedFutureSupplyQuantity
+    ),
+    future_supply_buyable_quantity: safeNumber(
+      futureSupply.futureSupplyBuyableQuantity
+    ),
+
+    total_quantity: safeNumber(summary.totalQuantity),
+    last_updated_time: normalizeLastUpdatedTime(summary.lastUpdatedTime),
+    raw_data: summary,
+    sincronizado_em: synchronizedAt,
+    updated_at: synchronizedAt,
+  }
+}
+
+function extractInventorySummaries(responseJson: Record<string, unknown>) {
   const payload = responseJson.payload
 
   if (!payload || typeof payload !== 'object') {
-    return {
-      inventory_summaries_count: 0,
-      next_token_present: false,
-      summaries_preview: [],
-      response_keys: Object.keys(responseJson),
-    }
+    return []
   }
 
   const payloadObject = payload as Record<string, unknown>
   const summaries = payloadObject.inventorySummaries
 
-  const summariesArray = Array.isArray(summaries) ? summaries : []
+  if (!Array.isArray(summaries)) {
+    return []
+  }
+
+  return summaries as InventorySummary[]
+}
+
+function getNextToken(responseJson: Record<string, unknown>) {
+  const payload = responseJson.payload
+
+  if (!payload || typeof payload !== 'object') {
+    return null
+  }
+
+  const payloadObject = payload as Record<string, unknown>
+
+  return typeof payloadObject.nextToken === 'string'
+    ? payloadObject.nextToken
+    : null
+}
+
+async function saveInventorySnapshot(rows: SnapshotRow[]) {
+  if (rows.length === 0) {
+    return {
+      saved_count: 0,
+      skipped_count: 0,
+    }
+  }
+
+  const supabaseAdmin = createSupabaseAdminClient()
+
+  const { error } = await supabaseAdmin
+    .from('amazon_fba_estoque_snapshot')
+    .upsert(rows, {
+      onConflict: 'marketplace_id,seller_sku,condition',
+    })
+
+  if (error) {
+    throw new Error(`Supabase snapshot upsert failed: ${error.message}`)
+  }
 
   return {
-    inventory_summaries_count: summariesArray.length,
-    next_token_present: typeof payloadObject.nextToken === 'string',
-    summaries_preview: summariesArray.slice(0, 10),
-    response_keys: Object.keys(responseJson),
-    payload_keys: Object.keys(payloadObject),
+    saved_count: rows.length,
+    skipped_count: 0,
   }
 }
 
-async function callFbaInventory(req: Request) {
+async function callFbaInventoryAndSave(req: Request) {
   const region = getRequiredSecret('SPAPI_REGION')
   const lwa = await requestLwaAccessToken()
   const awsCredentials = await assumeSpApiRole()
@@ -422,12 +704,47 @@ async function callFbaInventory(req: Request) {
     responseJson = {}
   }
 
+  if (!response.ok) {
+    return {
+      status: response.status,
+      ok: false,
+      marketplace_id: marketplaceId,
+      seller_skus_filter_count: sellerSkus.length,
+      details,
+      saved_count: 0,
+      skipped_without_seller_sku: 0,
+      next_token_present: false,
+      amazon_response: {
+        error_body_preview: responseText.slice(0, 1200),
+        response_keys: Object.keys(responseJson),
+      },
+    }
+  }
+
+  const synchronizedAt = new Date().toISOString()
+  const summaries = extractInventorySummaries(responseJson)
+
+  const rowsWithNulls = summaries.map((summary) =>
+    mapSummaryToSnapshotRow(summary, marketplaceId, synchronizedAt)
+  )
+
+  const rows = rowsWithNulls.filter((row): row is SnapshotRow => row !== null)
+  const skippedWithoutSellerSku = rowsWithNulls.length - rows.length
+
+  const saveResult = await saveInventorySnapshot(rows)
+  const nextToken = getNextToken(responseJson)
+
   return {
     status: response.status,
-    ok: response.ok,
+    ok: true,
     marketplace_id: marketplaceId,
     seller_skus_filter_count: sellerSkus.length,
     details,
+    received_count: summaries.length,
+    saved_count: saveResult.saved_count,
+    skipped_without_seller_sku: skippedWithoutSellerSku,
+    next_token_present: Boolean(nextToken),
+    synchronized_at: synchronizedAt,
     lwa: {
       token_received: true,
       token_type: lwa.tokenType,
@@ -442,12 +759,14 @@ async function callFbaInventory(req: Request) {
       path: url.pathname,
       query_keys: Array.from(url.searchParams.keys()),
     },
-    amazon_response: response.ok
-      ? buildInventoryPreview(responseJson)
-      : {
-          error_body_preview: responseText.slice(0, 1200),
-          response_keys: Object.keys(responseJson),
-        },
+    amazon_response_preview: {
+      summaries_preview: summaries.slice(0, 5),
+      response_keys: Object.keys(responseJson),
+      payload_keys:
+        responseJson.payload && typeof responseJson.payload === 'object'
+          ? Object.keys(responseJson.payload as Record<string, unknown>)
+          : [],
+    },
   }
 }
 
@@ -458,12 +777,12 @@ Deno.serve(async (req) => {
     })
   }
 
-  if (req.method !== 'GET') {
+  if (req.method !== 'GET' && req.method !== 'POST') {
     return new Response(
       JSON.stringify(
         {
           ok: false,
-          error: 'Method not allowed. Use GET.',
+          error: 'Method not allowed. Use GET or POST.',
         },
         null,
         2
@@ -479,7 +798,32 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const result = await callFbaInventory(req)
+    const authorization = await isAuthorizedRequest(req)
+
+    if (!authorization.authorized) {
+      return new Response(
+        JSON.stringify(
+          {
+            ok: false,
+            service: 'amazon-spapi-fba-inventory',
+            message:
+              'Unauthorized. Use an authenticated Supabase user token or the internal function token.',
+            authorization_mode: authorization.mode,
+          },
+          null,
+          2
+        ),
+        {
+          status: 401,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+
+    const result = await callFbaInventoryAndSave(req)
 
     return new Response(
       JSON.stringify(
@@ -487,11 +831,12 @@ Deno.serve(async (req) => {
           ok: result.ok,
           service: 'amazon-spapi-fba-inventory',
           message: result.ok
-            ? 'FBA Inventory request succeeded.'
+            ? 'FBA Inventory request succeeded and snapshot was saved.'
             : 'FBA Inventory request failed.',
           timestamp: new Date().toISOString(),
+          authorization_mode: authorization.mode,
           security_note:
-            'This function never returns LWA access token, refresh token, client secret, AWS secret, or temporary AWS credentials.',
+            'This function never returns LWA access token, refresh token, client secret, AWS secret, service role key, or temporary AWS credentials.',
           result,
         },
         null,
