@@ -14,6 +14,7 @@ import { Alertas } from './pages/Alertas'
 import { AmazonFBA } from './pages/AmazonFBA'
 import { Compras } from './pages/Compras'
 import { ConciliacaoOlistAmazon } from './pages/ConciliacaoOlistAmazon'
+import { ConciliacaoOlistPrimelyEstoque } from './pages/ConciliacaoOlistPrimelyEstoque'
 import { Dashboard } from './pages/Dashboard'
 import { Estoque } from './pages/Estoque'
 import { Fornecedores } from './pages/Fornecedores'
@@ -71,6 +72,10 @@ function AppRoutes() {
           <Route
             path="/conciliacao-olist-amazon"
             element={<ConciliacaoOlistAmazon />}
+          />
+          <Route
+            path="/conciliacao-olist-primely-estoque"
+            element={<ConciliacaoOlistPrimelyEstoque />}
           />
           <Route path="/lotes" element={<Lotes />} />
           <Route path="/movimentacoes" element={<Movimentacoes />} />

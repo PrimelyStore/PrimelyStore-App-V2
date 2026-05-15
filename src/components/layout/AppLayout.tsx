@@ -13,6 +13,10 @@ const menuItems = [
         label: 'Conciliação Olist x Amazon',
         path: '/conciliacao-olist-amazon',
     },
+    {
+        label: 'Conciliação Olist x Primely',
+        path: '/conciliacao-olist-primely-estoque',
+    },
     { label: 'Lotes', path: '/lotes' },
     { label: 'Movimentações', path: '/movimentacoes' },
     { label: 'Alertas', path: '/alertas' },
