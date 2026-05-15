@@ -17,6 +17,10 @@ const menuItems = [
         label: 'Conciliação Olist x Primely',
         path: '/conciliacao-olist-primely-estoque',
     },
+    {
+        label: 'Conciliação FBA 3 Pontas',
+        path: '/conciliacao-amazon-olist-primely-fba',
+    },
     { label: 'Lotes', path: '/lotes' },
     { label: 'Movimentações', path: '/movimentacoes' },
     { label: 'Alertas', path: '/alertas' },

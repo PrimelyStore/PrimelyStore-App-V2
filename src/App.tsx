@@ -12,6 +12,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { useAuth } from './hooks/useAuth'
 import { Alertas } from './pages/Alertas'
 import { AmazonFBA } from './pages/AmazonFBA'
+import { ConciliacaoAmazonOlistPrimelyFba } from './pages/ConciliacaoAmazonOlistPrimelyFba'
 import { Compras } from './pages/Compras'
 import { ConciliacaoOlistAmazon } from './pages/ConciliacaoOlistAmazon'
 import { ConciliacaoOlistPrimelyEstoque } from './pages/ConciliacaoOlistPrimelyEstoque'
@@ -76,6 +77,10 @@ function AppRoutes() {
           <Route
             path="/conciliacao-olist-primely-estoque"
             element={<ConciliacaoOlistPrimelyEstoque />}
+          />
+          <Route
+            path="/conciliacao-amazon-olist-primely-fba"
+            element={<ConciliacaoAmazonOlistPrimelyFba />}
           />
           <Route path="/lotes" element={<Lotes />} />
           <Route path="/movimentacoes" element={<Movimentacoes />} />
