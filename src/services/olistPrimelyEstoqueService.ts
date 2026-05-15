@@ -3,6 +3,9 @@ import { supabase } from '../lib/supabase'
 export type StatusConciliacaoOlistPrimely =
     | 'conciliado'
     | 'divergente'
+    | 'somente_olist_com_saldo'
+    | 'saldo_zero_olist'
+    | 'saldo_negativo_olist'
     | 'somente_olist'
     | 'somente_primely'
     | 'indefinido'
@@ -51,6 +54,9 @@ export type ResumoOlistPrimelyEstoqueConciliacao = {
     total_skus: number
     total_conciliado: number
     total_divergente: number
+    total_somente_olist_com_saldo: number
+    total_saldo_zero_olist: number
+    total_saldo_negativo_olist: number
     total_somente_olist: number
     total_somente_primely: number
     total_indefinido: number
@@ -105,6 +111,18 @@ export async function buscarResumoOlistPrimelyEstoqueConciliacao() {
                 resumo.total_divergente += 1
             }
 
+            if (item.status_conciliacao === 'somente_olist_com_saldo') {
+                resumo.total_somente_olist_com_saldo += 1
+            }
+
+            if (item.status_conciliacao === 'saldo_zero_olist') {
+                resumo.total_saldo_zero_olist += 1
+            }
+
+            if (item.status_conciliacao === 'saldo_negativo_olist') {
+                resumo.total_saldo_negativo_olist += 1
+            }
+
             if (item.status_conciliacao === 'somente_olist') {
                 resumo.total_somente_olist += 1
             }
@@ -135,6 +153,9 @@ export async function buscarResumoOlistPrimelyEstoqueConciliacao() {
             total_skus: 0,
             total_conciliado: 0,
             total_divergente: 0,
+            total_somente_olist_com_saldo: 0,
+            total_saldo_zero_olist: 0,
+            total_saldo_negativo_olist: 0,
             total_somente_olist: 0,
             total_somente_primely: 0,
             total_indefinido: 0,

@@ -62,6 +62,9 @@ function obterTextoStatus(status: StatusConciliacaoOlistPrimely) {
     const textos: Record<StatusConciliacaoOlistPrimely, string> = {
         conciliado: 'Conciliado',
         divergente: 'Divergente',
+        somente_olist_com_saldo: 'Somente Olist com saldo',
+        saldo_zero_olist: 'Saldo zero no Olist',
+        saldo_negativo_olist: 'Saldo negativo no Olist',
         somente_olist: 'Somente Olist',
         somente_primely: 'Somente Primely',
         indefinido: 'Indefinido',
@@ -76,6 +79,12 @@ function obterClasseStatus(status: StatusConciliacaoOlistPrimely) {
             'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
         divergente:
             'border-red-500/30 bg-red-500/10 text-red-300',
+        somente_olist_com_saldo:
+            'border-yellow-500/30 bg-yellow-500/10 text-yellow-300',
+        saldo_zero_olist:
+            'border-slate-600 bg-slate-800 text-slate-300',
+        saldo_negativo_olist:
+            'border-red-500/40 bg-red-500/15 text-red-200',
         somente_olist:
             'border-yellow-500/30 bg-yellow-500/10 text-yellow-300',
         somente_primely:
@@ -263,8 +272,19 @@ export function ConciliacaoOlistPrimelyEstoque() {
                     total.divergentes += 1
                 }
 
-                if (item.status_conciliacao === 'somente_olist') {
-                    total.somenteOlist += 1
+                if (
+                    item.status_conciliacao === 'somente_olist_com_saldo' ||
+                    item.status_conciliacao === 'somente_olist'
+                ) {
+                    total.somenteOlistComSaldo += 1
+                }
+
+                if (item.status_conciliacao === 'saldo_zero_olist') {
+                    total.saldoZeroOlist += 1
+                }
+
+                if (item.status_conciliacao === 'saldo_negativo_olist') {
+                    total.saldoNegativoOlist += 1
                 }
 
                 if (item.status_conciliacao === 'somente_primely') {
@@ -282,7 +302,9 @@ export function ConciliacaoOlistPrimelyEstoque() {
                 totalSkus: 0,
                 conciliados: 0,
                 divergentes: 0,
-                somenteOlist: 0,
+                somenteOlistComSaldo: 0,
+                saldoZeroOlist: 0,
+                saldoNegativoOlist: 0,
                 somentePrimely: 0,
                 alertas: 0,
                 saldoOlist: 0,
@@ -376,12 +398,53 @@ export function ConciliacaoOlistPrimelyEstoque() {
 
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
-                    <p className="text-sm text-slate-400">Somente Olist</p>
+                    <p className="text-sm text-slate-400">
+                        Somente Olist com saldo
+                    </p>
                     <p className="mt-4 text-3xl font-bold text-yellow-300">
-                        {formatarNumero(resumo.somenteOlist)}
+                        {formatarNumero(resumo.somenteOlistComSaldo)}
+                    </p>
+                    <p className="mt-2 text-xs text-slate-500">
+                        Precisa virar lote interno se for saldo positivo.
                     </p>
                 </div>
 
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+                    <p className="text-sm text-slate-400">
+                        Saldo negativo no Olist
+                    </p>
+                    <p className="mt-4 text-3xl font-bold text-red-300">
+                        {formatarNumero(resumo.saldoNegativoOlist)}
+                    </p>
+                    <p className="mt-2 text-xs text-slate-500">
+                        Deve ser investigado no Olist.
+                    </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+                    <p className="text-sm text-slate-400">
+                        Saldo zero no Olist
+                    </p>
+                    <p className="mt-4 text-3xl font-bold text-slate-300">
+                        {formatarNumero(resumo.saldoZeroOlist)}
+                    </p>
+                    <p className="mt-2 text-xs text-slate-500">
+                        Sem necessidade de carga inicial.
+                    </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+                    <p className="text-sm text-slate-400">Somente Primely</p>
+                    <p className="mt-4 text-3xl font-bold text-blue-300">
+                        {formatarNumero(resumo.somentePrimely)}
+                    </p>
+                    <p className="mt-2 text-xs text-slate-500">
+                        Existe no Primely sem par no snapshot Olist.
+                    </p>
+                </div>
+            </section>
+
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
                     <p className="text-sm text-slate-400">Divergentes</p>
                     <p className="mt-4 text-3xl font-bold text-red-300">
@@ -443,7 +506,15 @@ export function ConciliacaoOlistPrimelyEstoque() {
                             className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
                         >
                             <option value="todos">Todos</option>
-                            <option value="somente_olist">Somente Olist</option>
+                            <option value="somente_olist_com_saldo">
+                                Somente Olist com saldo
+                            </option>
+                            <option value="saldo_negativo_olist">
+                                Saldo negativo no Olist
+                            </option>
+                            <option value="saldo_zero_olist">
+                                Saldo zero no Olist
+                            </option>
                             <option value="somente_primely">
                                 Somente Primely
                             </option>
@@ -514,8 +585,9 @@ export function ConciliacaoOlistPrimelyEstoque() {
                             Resultado da conciliação
                         </h2>
                         <p className="mt-2 text-sm text-slate-400">
-                            Nesta fase, é esperado aparecer “Somente Olist”, porque
-                            ainda não criamos os lotes internos reais no Primely.
+                            Após a carga inicial, os saldos positivos devem aparecer
+                            como conciliados. Saldos zero e negativos do Olist ficam
+                            separados para facilitar a análise.
                         </p>
                     </div>
 
