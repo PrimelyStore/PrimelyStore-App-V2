@@ -497,10 +497,6 @@ export function Vendas() {
         })
     }
 
-    function limparFormularioItem() {
-        setFormularioItem(formularioItemInicial)
-    }
-
     function limparFormularioItemMantendoVenda(vendaId: string) {
         setFormularioItem({
             ...formularioItemInicial,
