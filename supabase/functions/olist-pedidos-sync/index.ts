@@ -863,16 +863,45 @@ async function atualizarSyncLog(params: {
   }
 }
 
+type PedidoSnapshotEstadoExistente = {
+  id_pedido_olist: number
+  venda_id: string | null
+  status_processamento: string | null
+  mensagem_erro: string | null
+  processado_em: string | null
+}
+
+type ItemSnapshotEstadoExistente = {
+  pedido_snapshot_id: string
+  ordem_item: number
+  venda_item_id: string | null
+  status_processamento: string | null
+  mensagem_erro: string | null
+}
+
+function devePreservarProcessamentoSnapshot(row: {
+  venda_id?: string | null
+  status_processamento?: string | null
+}) {
+  return (
+    Boolean(row.venda_id) ||
+    row.status_processamento === 'processado' ||
+    row.status_processamento === 'ignorado'
+  )
+}
+
 async function buscarPedidosExistentes(ids: number[]) {
   if (ids.length === 0) {
-    return new Set<number>()
+    return new Map<number, PedidoSnapshotEstadoExistente>()
   }
 
   const supabaseAdmin = createSupabaseAdminClient()
 
   const { data, error } = await supabaseAdmin
     .from('olist_pedidos_snapshot')
-    .select('id_pedido_olist')
+    .select(
+      'id_pedido_olist, venda_id, status_processamento, mensagem_erro, processado_em'
+    )
     .eq('provider', 'olist_tiny')
     .in('id_pedido_olist', ids)
 
@@ -880,23 +909,59 @@ async function buscarPedidosExistentes(ids: number[]) {
     throw new Error(`Supabase existing orders lookup failed: ${error.message}`)
   }
 
-  return new Set(
-    (data ?? [])
-      .map((row) => safeInteger(row.id_pedido_olist))
-      .filter((value): value is number => value !== null)
-  )
+  const map = new Map<number, PedidoSnapshotEstadoExistente>()
+
+  for (const row of data ?? []) {
+    const idPedido = safeInteger(row.id_pedido_olist)
+
+    if (idPedido !== null) {
+      map.set(idPedido, {
+        id_pedido_olist: idPedido,
+        venda_id: typeof row.venda_id === 'string' ? row.venda_id : null,
+        status_processamento:
+          typeof row.status_processamento === 'string'
+            ? row.status_processamento
+            : null,
+        mensagem_erro:
+          typeof row.mensagem_erro === 'string' ? row.mensagem_erro : null,
+        processado_em:
+          typeof row.processado_em === 'string' ? row.processado_em : null,
+      })
+    }
+  }
+
+  return map
 }
 
-async function salvarPedidosSnapshot(rows: PedidoSnapshotRow[]) {
-  if (rows.length === 0) {
+async function salvarPedidosSnapshot(params: {
+  rows: PedidoSnapshotRow[]
+  estadosExistentes: Map<number, PedidoSnapshotEstadoExistente>
+}) {
+  if (params.rows.length === 0) {
     return [] as Array<{ id: string; id_pedido_olist: number }>
   }
+
+  const rowsPreservandoProcessamento = params.rows.map((row) => {
+    const existente = params.estadosExistentes.get(row.id_pedido_olist)
+
+    if (existente && devePreservarProcessamentoSnapshot(existente)) {
+      return {
+        ...row,
+        venda_id: existente.venda_id,
+        status_processamento:
+          existente.status_processamento as PedidoSnapshotRow['status_processamento'],
+        mensagem_erro: existente.mensagem_erro,
+      }
+    }
+
+    return row
+  })
 
   const supabaseAdmin = createSupabaseAdminClient()
 
   const { data, error } = await supabaseAdmin
     .from('olist_pedidos_snapshot')
-    .upsert(rows, {
+    .upsert(rowsPreservandoProcessamento, {
       onConflict: 'provider,id_pedido_olist',
     })
     .select('id, id_pedido_olist')
@@ -978,6 +1043,54 @@ function mapItensToSnapshotRows(params: {
   })
 }
 
+async function buscarItensExistentesPorPedidoOrdem(pedidoSnapshotIds: string[]) {
+  const ids = Array.from(new Set(pedidoSnapshotIds.filter(Boolean)))
+
+  if (ids.length === 0) {
+    return new Map<string, ItemSnapshotEstadoExistente>()
+  }
+
+  const supabaseAdmin = createSupabaseAdminClient()
+
+  const { data, error } = await supabaseAdmin
+    .from('olist_pedidos_itens_snapshot')
+    .select(
+      'pedido_snapshot_id, ordem_item, venda_item_id, status_processamento, mensagem_erro'
+    )
+    .in('pedido_snapshot_id', ids)
+
+  if (error) {
+    throw new Error(
+      `Supabase existing order items lookup failed: ${error.message}`
+    )
+  }
+
+  const map = new Map<string, ItemSnapshotEstadoExistente>()
+
+  for (const row of data ?? []) {
+    const pedidoSnapshotId =
+      typeof row.pedido_snapshot_id === 'string' ? row.pedido_snapshot_id : null
+    const ordemItem = safeInteger(row.ordem_item)
+
+    if (pedidoSnapshotId && ordemItem !== null) {
+      map.set(`${pedidoSnapshotId}:${ordemItem}`, {
+        pedido_snapshot_id: pedidoSnapshotId,
+        ordem_item: ordemItem,
+        venda_item_id:
+          typeof row.venda_item_id === 'string' ? row.venda_item_id : null,
+        status_processamento:
+          typeof row.status_processamento === 'string'
+            ? row.status_processamento
+            : null,
+        mensagem_erro:
+          typeof row.mensagem_erro === 'string' ? row.mensagem_erro : null,
+      })
+    }
+  }
+
+  return map
+}
+
 async function salvarItensSnapshot(rows: ItemSnapshotRow[]) {
   if (rows.length === 0) {
     return {
@@ -985,11 +1098,31 @@ async function salvarItensSnapshot(rows: ItemSnapshotRow[]) {
     }
   }
 
+  const existentes = await buscarItensExistentesPorPedidoOrdem(
+    rows.map((row) => row.pedido_snapshot_id)
+  )
+
+  const rowsPreservandoProcessamento = rows.map((row) => {
+    const existente = existentes.get(`${row.pedido_snapshot_id}:${row.ordem_item}`)
+
+    if (existente && devePreservarProcessamentoSnapshot(existente)) {
+      return {
+        ...row,
+        venda_item_id: existente.venda_item_id,
+        status_processamento:
+          existente.status_processamento as ItemSnapshotRow['status_processamento'],
+        mensagem_erro: existente.mensagem_erro,
+      }
+    }
+
+    return row
+  })
+
   const supabaseAdmin = createSupabaseAdminClient()
 
   const { error } = await supabaseAdmin
     .from('olist_pedidos_itens_snapshot')
-    .upsert(rows, {
+    .upsert(rowsPreservandoProcessamento, {
       onConflict: 'pedido_snapshot_id,ordem_item',
     })
 
@@ -1149,9 +1282,10 @@ async function sincronizarPedidos(req: Request, accessToken: string) {
       const ids = preparation.preparados.map((pedido) => pedido.id_pedido_olist)
       const existentes = await buscarPedidosExistentes(ids)
 
-      const savedOrders = await salvarPedidosSnapshot(
-        preparation.preparados.map((pedido) => pedido.row)
-      )
+      const savedOrders = await salvarPedidosSnapshot({
+        rows: preparation.preparados.map((pedido) => pedido.row),
+        estadosExistentes: existentes,
+      })
 
       saved_orders_count += savedOrders.length
       inserted_count += ids.filter((id) => !existentes.has(id)).length
@@ -1316,6 +1450,33 @@ async function sincronizarPedidos(req: Request, accessToken: string) {
   }
 }
 
+async function processarPendentesComBaixaFifo(params: {
+  limit: number
+  executarBaixaFifo: boolean
+}) {
+  const supabaseAdmin = createSupabaseAdminClient()
+
+  const { data, error } = await supabaseAdmin.rpc(
+    'processar_olist_pedidos_pendentes_com_baixa_fifo',
+    {
+      p_limit: params.limit,
+      p_executar_baixa: params.executarBaixaFifo,
+    }
+  )
+
+  if (error) {
+    throw new Error(
+      `Supabase pending Olist orders processing failed: ${error.message}`
+    )
+  }
+
+  if (Array.isArray(data)) {
+    return data[0] ?? null
+  }
+
+  return data ?? null
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
@@ -1370,18 +1531,50 @@ Deno.serve(async (req) => {
       )
     }
 
+    const requestUrl = new URL(req.url)
+    const searchParams = requestUrl.searchParams
+    const processarPedidos = parseBooleanParam(searchParams, 'processar', false)
+    const executarBaixaFifo = parseBooleanParam(
+      searchParams,
+      'baixar_fifo',
+      parseBooleanParam(searchParams, 'baixarFifo', false)
+    )
+    const syncLimit = parseIntegerParam(searchParams, 'limit', 20, 1, 100)
+    const processarLimit = parseIntegerParam(
+      searchParams,
+      'processarLimit',
+      syncLimit,
+      1,
+      500
+    )
+
     const tokenResult = await obterTokenValido()
     const syncResult = await sincronizarPedidos(req, tokenResult.token.access_token)
+
+    const processamentoResult = processarPedidos
+      ? await processarPendentesComBaixaFifo({
+          limit: processarLimit,
+          executarBaixaFifo,
+        })
+      : null
 
     return new Response(
       JSON.stringify(
         {
           ok: true,
           service: 'olist-pedidos-sync',
-          message: 'Olist orders synchronized into snapshot.',
+          message: processarPedidos
+            ? 'Olist orders synchronized and pending snapshots processed.'
+            : 'Olist orders synchronized into snapshot.',
           authorization_mode: authorization.mode,
           token_refreshed_before_sync: tokenResult.refreshed,
+          options: {
+            processar: processarPedidos,
+            baixar_fifo: executarBaixaFifo,
+            processar_limit: processarLimit,
+          },
           result: syncResult,
+          processamento: processamentoResult,
           security_note:
             'This function never returns access token, refresh token, client secret, or service role key.',
         },
