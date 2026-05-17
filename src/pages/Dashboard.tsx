@@ -2,15 +2,19 @@ import { useEffect, useState } from 'react'
 import {
     buscarDashboardAlertasOperacionais,
     buscarDashboardAlertasResumo,
+    buscarDashboardAlertasVendasPendentesBaixa,
     buscarDashboardComprasRecentes,
     buscarDashboardKpisGerais,
     buscarDashboardSaldosEstoque,
+    buscarDashboardVendasPendentesBaixaFIFO,
     buscarDashboardVendasRecentes,
     type DashboardAlertaOperacional,
     type DashboardAlertasResumo,
+    type DashboardAlertasVendasPendentesBaixa,
     type DashboardCompraRecente,
     type DashboardKpisGerais,
     type DashboardSaldoEstoque,
+    type DashboardVendaPendenteBaixaFifo,
     type DashboardVendaRecente,
 } from '../services/dashboardService'
 
@@ -171,6 +175,10 @@ export function Dashboard() {
     const [alertasResumo, setAlertasResumo] =
         useState<DashboardAlertasResumo | null>(null)
     const [alertas, setAlertas] = useState<DashboardAlertaOperacional[]>([])
+    const [alertasVendasPendentes, setAlertasVendasPendentes] =
+        useState<DashboardAlertasVendasPendentesBaixa | null>(null)
+    const [vendasPendentesBaixa, setVendasPendentesBaixa] =
+        useState<DashboardVendaPendenteBaixaFifo[]>([])
     const [compras, setCompras] = useState<DashboardCompraRecente[]>([])
     const [vendas, setVendas] = useState<DashboardVendaRecente[]>([])
     const [estoque, setEstoque] = useState<DashboardSaldoEstoque[]>([])
@@ -181,6 +189,8 @@ export function Dashboard() {
                 dadosKpis,
                 dadosAlertasResumo,
                 dadosAlertas,
+                dadosAlertasVendasPendentes,
+                dadosVendasPendentesBaixa,
                 dadosCompras,
                 dadosVendas,
                 dadosEstoque,
@@ -188,6 +198,8 @@ export function Dashboard() {
                 buscarDashboardKpisGerais(),
                 buscarDashboardAlertasResumo(),
                 buscarDashboardAlertasOperacionais(),
+                buscarDashboardAlertasVendasPendentesBaixa(),
+                buscarDashboardVendasPendentesBaixaFIFO(),
                 buscarDashboardComprasRecentes(),
                 buscarDashboardVendasRecentes(),
                 buscarDashboardSaldosEstoque(),
@@ -196,6 +208,8 @@ export function Dashboard() {
             setKpis(dadosKpis)
             setAlertasResumo(dadosAlertasResumo)
             setAlertas(dadosAlertas)
+            setAlertasVendasPendentes(dadosAlertasVendasPendentes)
+            setVendasPendentesBaixa(dadosVendasPendentesBaixa)
             setCompras(dadosCompras)
             setVendas(dadosVendas)
             setEstoque(dadosEstoque)
@@ -348,6 +362,127 @@ export function Dashboard() {
                     valor={formatarNumero(alertasResumo?.alertas_baixos)}
                     destaque="azul"
                 />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-4">
+                <CardResumo
+                    titulo="Vendas pendentes FIFO"
+                    valor={formatarNumero(alertasVendasPendentes?.total_pendencias)}
+                    subtitulo="Vendas importadas sem baixa completa"
+                    destaque={numero(alertasVendasPendentes?.total_pendencias) > 0 ? 'vermelho' : 'verde'}
+                />
+
+                <CardResumo
+                    titulo="Estoque insuficiente"
+                    valor={formatarNumero(alertasVendasPendentes?.total_estoque_insuficiente)}
+                    subtitulo="Bloqueadas por falta de saldo"
+                    destaque={numero(alertasVendasPendentes?.total_estoque_insuficiente) > 0 ? 'vermelho' : 'normal'}
+                />
+
+                <CardResumo
+                    titulo="Aptas para baixa"
+                    valor={formatarNumero(alertasVendasPendentes?.total_aptas_para_baixa)}
+                    subtitulo="Já têm saldo para baixar FIFO"
+                    destaque={numero(alertasVendasPendentes?.total_aptas_para_baixa) > 0 ? 'amarelo' : 'normal'}
+                />
+
+                <CardResumo
+                    titulo="Unidades pendentes"
+                    valor={formatarNumero(alertasVendasPendentes?.total_unidades_pendentes)}
+                    subtitulo={`${formatarNumero(alertasVendasPendentes?.total_pedidos_afetados)} pedido(s) afetado(s)`}
+                    destaque={numero(alertasVendasPendentes?.total_unidades_pendentes) > 0 ? 'amarelo' : 'normal'}
+                />
+            </div>
+
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="mb-4 flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">Vendas pendentes de baixa FIFO</h2>
+
+                    <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                        Total exibido: {vendasPendentesBaixa.length}
+                    </span>
+                </div>
+
+                {vendasPendentesBaixa.length === 0 ? (
+                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-5">
+                        <p className="font-semibold text-emerald-300">
+                            Nenhuma venda pendente de baixa FIFO no momento.
+                        </p>
+                        <p className="mt-2 text-sm text-slate-300">
+                            As vendas importadas até agora estão com estoque regularizado ou já foram baixadas.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto rounded-xl border border-slate-700">
+                        <table className="w-full min-w-[1200px] border-collapse text-left text-sm">
+                            <thead className="bg-slate-950 text-slate-400">
+                                <tr>
+                                    <th className="px-4 py-3 font-medium">Pedido</th>
+                                    <th className="px-4 py-3 font-medium">Severidade</th>
+                                    <th className="px-4 py-3 font-medium">Canal</th>
+                                    <th className="px-4 py-3 font-medium">Local</th>
+                                    <th className="px-4 py-3 font-medium">Produto</th>
+                                    <th className="px-4 py-3 font-medium">SKU</th>
+                                    <th className="px-4 py-3 font-medium">Pendente</th>
+                                    <th className="px-4 py-3 font-medium">Saldo</th>
+                                    <th className="px-4 py-3 font-medium">Decisão</th>
+                                    <th className="px-4 py-3 font-medium">Descrição</th>
+                                </tr>
+                            </thead>
+
+                            <tbody className="divide-y divide-slate-800 bg-slate-900">
+                                {vendasPendentesBaixa.map((item) => (
+                                    <tr key={`${item.venda_id}-${item.produto_id}`} className="hover:bg-slate-800/60">
+                                        <td className="px-4 py-3 text-slate-100">
+                                            <div>{item.numero_pedido ?? '-'}</div>
+                                            <div className="mt-1 text-xs text-slate-500">
+                                                Marketplace: {item.numero_pedido_marketplace ?? '-'}
+                                            </div>
+                                        </td>
+
+                                        <td className="px-4 py-3">
+                                            <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${classeSeveridade(item.severidade)}`}>
+                                                {item.severidade ?? '-'}
+                                            </span>
+                                        </td>
+
+                                        <td className="px-4 py-3 text-slate-300">
+                                            {item.canal_venda_nome ?? item.ecommerce_nome ?? '-'}
+                                        </td>
+
+                                        <td className="px-4 py-3 text-slate-300">
+                                            {item.local_saida_nome ?? '-'}
+                                        </td>
+
+                                        <td className="px-4 py-3 text-slate-100">
+                                            {item.produto_nome ?? '-'}
+                                        </td>
+
+                                        <td className="px-4 py-3 text-slate-300">
+                                            {item.sku_vendido ?? '-'}
+                                        </td>
+
+                                        <td className="px-4 py-3 font-semibold text-yellow-300">
+                                            {formatarNumero(item.quantidade_pendente_baixa)}
+                                        </td>
+
+                                        <td className="px-4 py-3 text-slate-300">
+                                            {formatarNumero(item.saldo_atual)}
+                                        </td>
+
+                                        <td className="px-4 py-3 text-slate-300">
+                                            {item.decisao ?? '-'}
+                                        </td>
+
+                                        <td className="px-4 py-3 text-slate-300">
+                                            {item.descricao_alerta ?? item.olist_mensagem_erro ?? '-'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
 
             <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
@@ -600,6 +735,8 @@ export function Dashboard() {
                                 kpis,
                                 alertasResumo,
                                 alertas,
+                                alertasVendasPendentes,
+                                vendasPendentesBaixa,
                                 compras,
                                 vendas,
                                 estoque,
