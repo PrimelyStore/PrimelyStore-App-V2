@@ -2,40 +2,70 @@ import { useEffect, useState } from 'react'
 import {
     buscarAlertasOperacionais,
     buscarResumoAlertas,
+    buscarResumoVendasPendentesBaixa,
+    buscarVendasPendentesBaixaFIFO,
     type AlertaOperacional,
     type AlertasResumo,
+    type AlertasVendasPendentesBaixa,
+    type AlertaVendaPendenteBaixaFIFO,
 } from '../services/alertasService'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
+type ValorNumerico = number | string | null | undefined
 
-function formatarNumero(valor?: number) {
-    if (typeof valor !== 'number') {
-        return 0
+function normalizarNumero(valor?: ValorNumerico) {
+    if (typeof valor === 'number') {
+        return valor
     }
 
-    return valor
+    if (typeof valor === 'string') {
+        const numero = Number(valor.replace(',', '.'))
+
+        if (!Number.isNaN(numero)) {
+            return numero
+        }
+    }
+
+    return null
 }
 
-function formatarMoeda(valor?: number) {
-    if (typeof valor !== 'number') {
+function formatarNumero(valor?: ValorNumerico) {
+    return normalizarNumero(valor) ?? 0
+}
+
+function formatarQuantidade(valor?: ValorNumerico) {
+    const numero = normalizarNumero(valor) ?? 0
+
+    return new Intl.NumberFormat('pt-BR', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    }).format(numero)
+}
+
+function formatarMoeda(valor?: ValorNumerico) {
+    const numero = normalizarNumero(valor)
+
+    if (numero === null) {
         return '-'
     }
 
     return new Intl.NumberFormat('pt-BR', {
         style: 'currency',
         currency: 'BRL',
-    }).format(valor)
+    }).format(numero)
 }
 
-function formatarPercentual(valor?: number) {
-    if (typeof valor !== 'number') {
+function formatarPercentual(valor?: ValorNumerico) {
+    const numero = normalizarNumero(valor)
+
+    if (numero === null) {
         return '-'
     }
 
-    return `${valor.toFixed(2).replace('.', ',')}%`
+    return `${numero.toFixed(2).replace('.', ',')}%`
 }
 
-function formatarDataHora(data?: string) {
+function formatarDataHora(data?: string | null) {
     if (!data) {
         return '-'
     }
@@ -52,7 +82,7 @@ function formatarDataHora(data?: string) {
     }).format(dataConvertida)
 }
 
-function obterClasseSeveridade(severidade?: string) {
+function obterClasseSeveridade(severidade?: string | null) {
     const valor = severidade?.toLowerCase() ?? ''
 
     if (valor.includes('alto') || valor.includes('critico') || valor.includes('crítico')) {
@@ -70,28 +100,71 @@ function obterClasseSeveridade(severidade?: string) {
     return 'bg-slate-800 text-slate-300 border-slate-700'
 }
 
+function obterClasseDecisao(decisao?: string | null) {
+    if (decisao === 'nao_pode_baixar_estoque_insuficiente') {
+        return 'bg-red-500/10 text-red-300 border-red-500/30'
+    }
+
+    if (decisao === 'pode_baixar') {
+        return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30'
+    }
+
+    if (decisao === 'nao_precisa_baixar') {
+        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+    }
+
+    return 'bg-slate-800 text-slate-300 border-slate-700'
+}
+
+function formatarDecisao(decisao?: string | null) {
+    if (decisao === 'nao_pode_baixar_estoque_insuficiente') {
+        return 'Estoque insuficiente'
+    }
+
+    if (decisao === 'pode_baixar') {
+        return 'Apta para baixa'
+    }
+
+    if (decisao === 'nao_precisa_baixar') {
+        return 'Já baixada'
+    }
+
+    return decisao ?? '-'
+}
+
 export function Alertas() {
     const [status, setStatus] = useState<StatusCarregamento>('carregando')
     const [mensagem, setMensagem] = useState('Carregando alertas...')
     const [resumo, setResumo] = useState<AlertasResumo | null>(null)
+    const [resumoVendasPendentes, setResumoVendasPendentes] = useState<AlertasVendasPendentesBaixa | null>(null)
     const [alertas, setAlertas] = useState<AlertaOperacional[]>([])
+    const [vendasPendentes, setVendasPendentes] = useState<AlertaVendaPendenteBaixaFIFO[]>([])
 
     useEffect(() => {
         async function carregarAlertas() {
             try {
-                const [dadosResumo, dadosAlertas] = await Promise.all([
+                const [dadosResumo, dadosAlertas, dadosResumoVendas, dadosVendasPendentes] = await Promise.all([
                     buscarResumoAlertas(),
                     buscarAlertasOperacionais(),
+                    buscarResumoVendasPendentesBaixa(),
+                    buscarVendasPendentesBaixaFIFO(),
                 ])
 
                 setResumo(dadosResumo)
                 setAlertas(dadosAlertas)
+                setResumoVendasPendentes(dadosResumoVendas)
+                setVendasPendentes(dadosVendasPendentes)
                 setStatus('sucesso')
 
-                if ((dadosResumo?.total_alertas ?? 0) === 0 && dadosAlertas.length === 0) {
+                const totalAlertasOperacionais = formatarNumero(dadosResumo?.total_alertas ?? dadosAlertas.length)
+                const totalVendasPendentes = formatarNumero(dadosResumoVendas?.total_pendencias ?? dadosVendasPendentes.length)
+
+                if (totalAlertasOperacionais === 0 && totalVendasPendentes === 0) {
                     setMensagem('Consulta realizada com sucesso. Nenhum alerta ativo no momento.')
                 } else {
-                    setMensagem(`${dadosResumo?.total_alertas ?? dadosAlertas.length} alerta(s) encontrado(s).`)
+                    setMensagem(
+                        `${totalAlertasOperacionais} alerta(s) operacional(is) e ${totalVendasPendentes} pendência(s) de baixa FIFO encontrada(s).`
+                    )
                 }
             } catch (error) {
                 setStatus('erro')
@@ -112,6 +185,11 @@ export function Alertas() {
     const alertasMedios = formatarNumero(resumo?.alertas_medios)
     const alertasBaixos = formatarNumero(resumo?.alertas_baixos)
 
+    const totalPendenciasFIFO = formatarNumero(resumoVendasPendentes?.total_pendencias)
+    const pendenciasEstoqueInsuficiente = formatarNumero(resumoVendasPendentes?.total_estoque_insuficiente)
+    const pendenciasAptasParaBaixa = formatarNumero(resumoVendasPendentes?.total_aptas_para_baixa)
+    const unidadesPendentesFIFO = formatarQuantidade(resumoVendasPendentes?.total_unidades_pendentes)
+
     return (
         <div className="space-y-6">
             <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
@@ -125,7 +203,7 @@ export function Alertas() {
 
                 <p className="mt-4 max-w-3xl text-slate-300">
                     Painel de alertas inteligentes da operação, incluindo estoque, produtos, custo real,
-                    divergências entre movimentações e lotes, além de revisão de lucro.
+                    divergências entre movimentações e lotes, revisão de lucro e vendas importadas com baixa FIFO pendente.
                 </p>
             </div>
 
@@ -148,6 +226,40 @@ export function Alertas() {
                 <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
                     <p className="text-sm text-slate-400">Alertas baixos</p>
                     <p className="mt-3 text-3xl font-bold text-emerald-300">{alertasBaixos}</p>
+                </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-4">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                    <p className="text-sm text-slate-400">Vendas pendentes FIFO</p>
+                    <p className={`mt-3 text-3xl font-bold ${totalPendenciasFIFO > 0 ? 'text-yellow-300' : 'text-emerald-300'}`}>
+                        {totalPendenciasFIFO}
+                    </p>
+                    <p className="mt-3 text-xs text-slate-500">Vendas importadas sem baixa completa</p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                    <p className="text-sm text-slate-400">Estoque insuficiente</p>
+                    <p className={`mt-3 text-3xl font-bold ${pendenciasEstoqueInsuficiente > 0 ? 'text-red-300' : 'text-slate-100'}`}>
+                        {pendenciasEstoqueInsuficiente}
+                    </p>
+                    <p className="mt-3 text-xs text-slate-500">Bloqueadas por falta de saldo</p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                    <p className="text-sm text-slate-400">Aptas para baixa</p>
+                    <p className={`mt-3 text-3xl font-bold ${pendenciasAptasParaBaixa > 0 ? 'text-yellow-300' : 'text-slate-100'}`}>
+                        {pendenciasAptasParaBaixa}
+                    </p>
+                    <p className="mt-3 text-xs text-slate-500">Já têm saldo para baixar FIFO</p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                    <p className="text-sm text-slate-400">Unidades pendentes</p>
+                    <p className="mt-3 text-3xl font-bold text-slate-100">{unidadesPendentesFIFO}</p>
+                    <p className="mt-3 text-xs text-slate-500">
+                        {formatarNumero(resumoVendasPendentes?.total_pedidos_afetados)} pedido(s) afetado(s)
+                    </p>
                 </div>
             </div>
 
@@ -207,6 +319,119 @@ export function Alertas() {
             </div>
 
             <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h2 className="text-xl font-semibold">
+                            Vendas pendentes de baixa FIFO
+                        </h2>
+                        <p className="mt-1 text-sm text-slate-400">
+                            Pedidos importados que ainda precisam baixar estoque ou que ficaram bloqueados por falta de saldo.
+                        </p>
+                    </div>
+
+                    <span className="w-fit rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                        Total: {vendasPendentes.length}
+                    </span>
+                </div>
+
+                {vendasPendentes.length === 0 ? (
+                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-5">
+                        <p className="font-semibold text-emerald-300">
+                            Nenhuma venda pendente de baixa FIFO no momento.
+                        </p>
+                        <p className="mt-2 text-sm text-slate-200">
+                            As vendas importadas estão com estoque regularizado ou já foram baixadas.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto rounded-xl border border-slate-700">
+                        <table className="min-w-[1100px] w-full border-collapse text-left text-sm">
+                            <thead className="bg-slate-950 text-slate-400">
+                                <tr>
+                                    <th className="px-4 py-3 font-medium">Pedido</th>
+                                    <th className="px-4 py-3 font-medium">Severidade</th>
+                                    <th className="px-4 py-3 font-medium">Produto</th>
+                                    <th className="px-4 py-3 font-medium">Canal / Local</th>
+                                    <th className="px-4 py-3 font-medium">Pendente</th>
+                                    <th className="px-4 py-3 font-medium">Saldo</th>
+                                    <th className="px-4 py-3 font-medium">Decisão</th>
+                                    <th className="px-4 py-3 font-medium">Descrição</th>
+                                </tr>
+                            </thead>
+
+                            <tbody className="divide-y divide-slate-800 bg-slate-900">
+                                {vendasPendentes.map((venda) => (
+                                    <tr
+                                        key={`${venda.venda_id}-${venda.produto_id ?? venda.sku_vendido}`}
+                                        className="hover:bg-slate-800/60"
+                                    >
+                                        <td className="px-4 py-3 text-slate-100">
+                                            <div className="font-semibold">{venda.numero_pedido ?? '-'}</div>
+                                            <div className="mt-1 text-xs text-slate-500">
+                                                Marketplace: {venda.numero_pedido_marketplace ?? '-'}
+                                            </div>
+                                            <div className="mt-1 text-xs text-slate-500">
+                                                Origem: {venda.origem_integracao ?? '-'}
+                                            </div>
+                                        </td>
+
+                                        <td className="px-4 py-3">
+                                            <span
+                                                className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseSeveridade(
+                                                    venda.severidade
+                                                )}`}
+                                            >
+                                                {venda.severidade ?? '-'}
+                                            </span>
+                                        </td>
+
+                                        <td className="px-4 py-3 text-slate-100">
+                                            <div>{venda.produto_nome ?? '-'}</div>
+                                            <div className="mt-1 text-xs text-slate-500">
+                                                SKU: {venda.sku_vendido ?? '-'}
+                                            </div>
+                                        </td>
+
+                                        <td className="px-4 py-3 text-slate-300">
+                                            <div>{venda.canal_venda_nome ?? '-'}</div>
+                                            <div className="mt-1 text-xs text-slate-500">
+                                                Local: {venda.local_saida_nome ?? '-'}
+                                            </div>
+                                            <div className="mt-1 text-xs text-slate-500">
+                                                Olist: {venda.ecommerce_nome ?? '-'}
+                                            </div>
+                                        </td>
+
+                                        <td className="px-4 py-3 text-slate-300">
+                                            {formatarQuantidade(venda.quantidade_pendente_baixa)}
+                                        </td>
+
+                                        <td className="px-4 py-3 text-slate-300">
+                                            {formatarQuantidade(venda.saldo_atual)}
+                                        </td>
+
+                                        <td className="px-4 py-3">
+                                            <span
+                                                className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseDecisao(
+                                                    venda.decisao
+                                                )}`}
+                                            >
+                                                {formatarDecisao(venda.decisao)}
+                                            </span>
+                                        </td>
+
+                                        <td className="px-4 py-3 text-slate-300">
+                                            {venda.descricao_alerta ?? venda.olist_mensagem_erro ?? '-'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
                 <h2 className="text-xl font-semibold">
                     Resumo por tipo de alerta
                 </h2>
@@ -260,8 +485,8 @@ export function Alertas() {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-hidden rounded-xl border border-slate-700">
-                        <table className="w-full border-collapse text-left text-sm">
+                    <div className="overflow-x-auto rounded-xl border border-slate-700">
+                        <table className="min-w-[1100px] w-full border-collapse text-left text-sm">
                             <thead className="bg-slate-950 text-slate-400">
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Categoria</th>
@@ -334,7 +559,7 @@ export function Alertas() {
                     </p>
 
                     <pre className="max-h-80 overflow-auto rounded-lg bg-black p-4 text-xs text-slate-200">
-                        {JSON.stringify({ resumo, alertas }, null, 2)}
+                        {JSON.stringify({ resumo, resumoVendasPendentes, vendasPendentes, alertas }, null, 2)}
                     </pre>
                 </div>
             </div>
