@@ -181,6 +181,58 @@ function obterClasseStatus(status?: string) {
     return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30'
 }
 
+function compraBloqueiaRecebimento(compra?: CompraResumo | null) {
+    return compra?.bloqueia_recebimento === true
+}
+
+function obterRotuloClassificacaoRecebimento(compra?: CompraResumo | null) {
+    if (!compra?.classificacao_operacional_recebimento) {
+        return 'Recebimento normal'
+    }
+
+    const rotulos: Record<string, string> = {
+        recebimento_real: 'Recebimento real',
+        historico_fiscal_sem_entrada_estoque:
+            'Histórico fiscal — sem entrada de estoque',
+        pendente_conferencia_operacional: 'Pendente de conferência operacional',
+    }
+
+    return (
+        rotulos[compra.classificacao_operacional_recebimento] ??
+        compra.classificacao_operacional_recebimento
+    )
+}
+
+function obterClasseClassificacaoRecebimento(compra?: CompraResumo | null) {
+    if (compraBloqueiaRecebimento(compra)) {
+        return 'bg-red-500/10 text-red-300 border-red-500/30'
+    }
+
+    if (
+        compra?.classificacao_operacional_recebimento ===
+        'pendente_conferencia_operacional'
+    ) {
+        return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30'
+    }
+
+    if (compra?.classificacao_operacional_recebimento === 'recebimento_real') {
+        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+    }
+
+    return 'bg-slate-800 text-slate-300 border-slate-700'
+}
+
+function obterMensagemBloqueioCompra(compra?: CompraResumo | null) {
+    if (!compraBloqueiaRecebimento(compra)) {
+        return null
+    }
+
+    return (
+        compra?.motivo_bloqueio_recebimento ??
+        'Esta compra está bloqueada para recebimento.'
+    )
+}
+
 function obterStatusRecebimentoItem(item: CompraItemDetalhado) {
     const quantidade = Number(item.quantidade ?? 0)
     const quantidadeRecebida = Number(item.quantidade_recebida ?? 0)
@@ -480,6 +532,14 @@ export function Compras() {
     }
 
     function selecionarCompraParaItem(compra: CompraResumo) {
+        if (compraBloqueiaRecebimento(compra)) {
+            setStatus('erro')
+            setMensagem(
+                `Compra ${compra.numero_pedido ?? compra.numero_nota_fiscal ?? 'sem número'} bloqueada para recebimento: ${obterMensagemBloqueioCompra(compra)}`
+            )
+            return
+        }
+
         setFormularioItem((formularioAtual) => ({
             ...formularioAtual,
             compra_id: compra.compra_id,
@@ -493,6 +553,20 @@ export function Compras() {
 
     function selecionarItemParaRecebimento(item: CompraItemDetalhado) {
         const quantidadePendente = item.quantidade - item.quantidade_recebida
+        const compraDoItem =
+            compras.find((compra) => compra.compra_id === item.compra_id) ?? null
+
+        if (compraBloqueiaRecebimento(compraDoItem) || item.bloqueia_recebimento) {
+            setStatus('erro')
+            setMensagem(
+                `Recebimento bloqueado para esta compra: ${
+                    obterMensagemBloqueioCompra(compraDoItem) ??
+                    item.motivo_bloqueio_recebimento ??
+                    'Esta compra está bloqueada para recebimento.'
+                }`
+            )
+            return
+        }
 
         if (quantidadePendente <= 0 || item.status === 'cancelado') {
             setStatus('erro')
@@ -581,6 +655,18 @@ export function Compras() {
             return
         }
 
+        const compraDoFormulario =
+            compras.find((compra) => compra.compra_id === formularioItem.compra_id) ??
+            null
+
+        if (compraBloqueiaRecebimento(compraDoFormulario)) {
+            setStatus('erro')
+            setMensagem(
+                `Não é possível adicionar item nesta compra: ${obterMensagemBloqueioCompra(compraDoFormulario)}`
+            )
+            return
+        }
+
         const compraSelecionadaParaManter = formularioItem.compra_id
 
         const novoItem: NovoCompraItem = {
@@ -633,6 +719,20 @@ export function Compras() {
 
     async function receberItemPendente(item: CompraItemDetalhado) {
         const quantidadePendente = item.quantidade - item.quantidade_recebida
+        const compraDoItem =
+            compras.find((compra) => compra.compra_id === item.compra_id) ?? null
+
+        if (compraBloqueiaRecebimento(compraDoItem) || item.bloqueia_recebimento) {
+            setStatus('erro')
+            setMensagem(
+                `Recebimento bloqueado para esta compra: ${
+                    obterMensagemBloqueioCompra(compraDoItem) ??
+                    item.motivo_bloqueio_recebimento ??
+                    'Esta compra está bloqueada para recebimento.'
+                }`
+            )
+            return
+        }
 
         if (quantidadePendente <= 0) {
             setStatus('erro')
@@ -736,6 +836,10 @@ export function Compras() {
             (compra) => compra.compra_id === itemSelecionadoParaReceber.compra_id
         ) ?? null
         : null
+
+    const recebimentoBloqueadoItemSelecionado =
+        compraBloqueiaRecebimento(compraDoItemSelecionadoParaReceber) ||
+        itemSelecionadoParaReceber?.bloqueia_recebimento === true
 
     const quantidadePendenteItemSelecionado = itemSelecionadoParaReceber
         ? itemSelecionadoParaReceber.quantidade - itemSelecionadoParaReceber.quantidade_recebida
@@ -1091,6 +1195,22 @@ export function Compras() {
                                 <p className="mt-1 text-sm text-cyan-100/80">
                                     Fornecedor: {compraSelecionada.fornecedor_nome ?? 'não informado'} · Local: {compraSelecionada.local_destino_nome ?? 'não informado'}
                                 </p>
+
+                                <div className="mt-3 flex flex-col gap-2">
+                                    <span
+                                        className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseClassificacaoRecebimento(
+                                            compraSelecionada
+                                        )}`}
+                                    >
+                                        {obterRotuloClassificacaoRecebimento(compraSelecionada)}
+                                    </span>
+
+                                    {compraBloqueiaRecebimento(compraSelecionada) && (
+                                        <p className="max-w-2xl text-sm text-red-200">
+                                            {obterMensagemBloqueioCompra(compraSelecionada)}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -1139,9 +1259,16 @@ export function Compras() {
                             <option value="">Selecione a compra</option>
 
                             {compras.map((compra) => (
-                                <option key={compra.compra_id} value={compra.compra_id}>
+                                <option
+                                    key={compra.compra_id}
+                                    value={compra.compra_id}
+                                    disabled={compraBloqueiaRecebimento(compra)}
+                                >
                                     {compra.numero_pedido ?? 'Compra sem número'} —{' '}
                                     {compra.fornecedor_nome ?? 'Fornecedor não informado'}
+                                    {compraBloqueiaRecebimento(compra)
+                                        ? ' — histórico fiscal sem entrada'
+                                        : ''}
                                 </option>
                             ))}
                         </select>
@@ -1441,10 +1568,14 @@ export function Compras() {
                 <div className="mt-6 flex justify-end">
                     <button
                         type="submit"
-                        disabled={salvandoItem}
+                        disabled={salvandoItem || compraBloqueiaRecebimento(compraSelecionada)}
                         className="rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {salvandoItem ? 'Adicionando...' : 'Adicionar item à compra'}
+                        {salvandoItem
+                            ? 'Adicionando...'
+                            : compraBloqueiaRecebimento(compraSelecionada)
+                                ? 'Compra bloqueada'
+                                : 'Adicionar item à compra'}
                     </button>
                 </div>
             </form>
@@ -1578,6 +1709,21 @@ export function Compras() {
                                 </p>
                             </div>
 
+                            {recebimentoBloqueadoItemSelecionado && (
+                                <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+                                    <p className="font-semibold">
+                                        Recebimento bloqueado para esta compra.
+                                    </p>
+                                    <p className="mt-1">
+                                        {obterMensagemBloqueioCompra(
+                                            compraDoItemSelecionadoParaReceber
+                                        ) ??
+                                            itemSelecionadoParaReceber.motivo_bloqueio_recebimento ??
+                                            'Esta compra está bloqueada para recebimento.'}
+                                    </p>
+                                </div>
+                            )}
+
                             <div className="flex gap-3">
                                 <button
                                     type="button"
@@ -1589,13 +1735,18 @@ export function Compras() {
 
                                 <button
                                     type="button"
-                                    disabled={recebendoItemId === itemSelecionadoParaReceber.id}
+                                    disabled={
+                                        recebendoItemId === itemSelecionadoParaReceber.id ||
+                                        recebimentoBloqueadoItemSelecionado
+                                    }
                                     onClick={() => receberItemPendente(itemSelecionadoParaReceber)}
                                     className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {recebendoItemId === itemSelecionadoParaReceber.id
                                         ? 'Recebendo...'
-                                        : 'Confirmar recebimento'}
+                                        : recebimentoBloqueadoItemSelecionado
+                                            ? 'Recebimento bloqueado'
+                                            : 'Confirmar recebimento'}
                                 </button>
                             </div>
                         </div>
@@ -1670,7 +1821,7 @@ export function Compras() {
                     </div>
                 ) : (
                     <div className="overflow-x-auto rounded-xl border border-slate-700">
-                        <table className="w-full min-w-[1350px] border-collapse text-left text-sm">
+                        <table className="w-full min-w-[1500px] border-collapse text-left text-sm">
                             <thead className="bg-slate-950 text-slate-400">
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Compra</th>
@@ -1695,8 +1846,16 @@ export function Compras() {
                                     )
                                     const statusRecebimento = obterStatusRecebimentoItem(item)
                                     const percentualRecebido = calcularPercentualRecebido(item)
+                                    const compraDoItem =
+                                        compras.find((compra) => compra.compra_id === item.compra_id) ??
+                                        null
+                                    const recebimentoBloqueado =
+                                        compraBloqueiaRecebimento(compraDoItem) ||
+                                        item.bloqueia_recebimento === true
                                     const podeReceber =
-                                        pendente > 0 && statusRecebimento !== 'cancelado'
+                                        pendente > 0 &&
+                                        statusRecebimento !== 'cancelado' &&
+                                        !recebimentoBloqueado
 
                                     return (
                                         <tr
@@ -1776,6 +1935,12 @@ export function Compras() {
                                                             Status original: {item.status}
                                                         </span>
                                                     )}
+
+                                                    {recebimentoBloqueado && (
+                                                        <span className="text-xs font-medium text-red-300">
+                                                            Histórico fiscal sem entrada de estoque
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </td>
 
@@ -1788,11 +1953,13 @@ export function Compras() {
                                                 >
                                                     {recebendoItemId === item.id
                                                         ? 'Recebendo...'
-                                                        : podeReceber
-                                                            ? 'Conferir recebimento'
-                                                            : statusRecebimento === 'cancelado'
-                                                                ? 'Cancelado'
-                                                                : 'Recebido'}
+                                                        : recebimentoBloqueado
+                                                            ? 'Bloqueado'
+                                                            : podeReceber
+                                                                ? 'Conferir recebimento'
+                                                                : statusRecebimento === 'cancelado'
+                                                                    ? 'Cancelado'
+                                                                    : 'Recebido'}
                                                 </button>
                                             </td>
                                         </tr>
@@ -1837,20 +2004,27 @@ export function Compras() {
                                     <th className="px-4 py-3 font-medium">Frete</th>
                                     <th className="px-4 py-3 font-medium">Total estimado</th>
                                     <th className="px-4 py-3 font-medium">Status</th>
+                                    <th className="px-4 py-3 font-medium">Recebimento</th>
                                     <th className="px-4 py-3 font-medium">Ações</th>
                                 </tr>
                             </thead>
 
                             <tbody className="divide-y divide-slate-800 bg-slate-900">
-                                {compras.map((compra) => (
-                                    <tr
-                                        key={compra.compra_id}
-                                        className={
-                                            compraSelecionada?.compra_id === compra.compra_id
-                                                ? 'bg-cyan-500/10 hover:bg-cyan-500/20'
-                                                : 'hover:bg-slate-800/60'
-                                        }
-                                    >
+                                {compras.map((compra) => {
+                                    const recebimentoBloqueado =
+                                        compraBloqueiaRecebimento(compra)
+
+                                    return (
+                                        <tr
+                                            key={compra.compra_id}
+                                            className={
+                                                compraSelecionada?.compra_id === compra.compra_id
+                                                    ? 'bg-cyan-500/10 hover:bg-cyan-500/20'
+                                                    : recebimentoBloqueado
+                                                        ? 'bg-red-500/5 hover:bg-red-500/10'
+                                                        : 'hover:bg-slate-800/60'
+                                            }
+                                        >
                                         <td className="px-4 py-3 text-slate-100">
                                             {compra.numero_pedido ?? '-'}
                                         </td>
@@ -1912,16 +2086,37 @@ export function Compras() {
                                         </td>
 
                                         <td className="px-4 py-3">
+                                            <div className="flex max-w-[260px] flex-col gap-2">
+                                                <span
+                                                    className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseClassificacaoRecebimento(
+                                                        compra
+                                                    )}`}
+                                                >
+                                                    {obterRotuloClassificacaoRecebimento(compra)}
+                                                </span>
+
+                                                {recebimentoBloqueado && (
+                                                    <span className="text-xs text-red-200">
+                                                        {compra.motivo_bloqueio_recebimento ??
+                                                            'Recebimento bloqueado para esta compra.'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
+
+                                        <td className="px-4 py-3">
                                             <button
                                                 type="button"
+                                                disabled={recebimentoBloqueado}
                                                 onClick={() => selecionarCompraParaItem(compra)}
-                                                className="rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10"
+                                                className="rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-500"
                                             >
-                                                Usar compra
+                                                {recebimentoBloqueado ? 'Bloqueada' : 'Usar compra'}
                                             </button>
                                         </td>
-                                    </tr>
-                                ))}
+                                        </tr>
+                                    )
+                                })}
                             </tbody>
                         </table>
                     </div>

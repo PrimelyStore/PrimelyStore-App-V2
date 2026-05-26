@@ -24,6 +24,17 @@ export type CompraResumo = {
     valor_total_estimado: number | null
     created_at: string
     updated_at: string
+    classificacao_operacional_recebimento: string | null
+    bloqueia_recebimento: boolean
+    motivo_bloqueio_recebimento: string | null
+}
+
+export type CompraControleRecebimento = {
+    compra_id: string
+    classificacao_operacional: string
+    bloqueia_recebimento: boolean
+    motivo: string | null
+    origem: string | null
 }
 
 export type Compra = {
@@ -88,6 +99,9 @@ export type CompraItemDetalhado = CompraItem & {
         sku: string
         asin: string | null
     } | null
+    classificacao_operacional_recebimento: string | null
+    bloqueia_recebimento: boolean
+    motivo_bloqueio_recebimento: string | null
 }
 
 export type NovoCompraItem = {
@@ -117,7 +131,48 @@ export async function buscarComprasResumo() {
         throw new Error(error.message)
     }
 
-    return data as CompraResumo[]
+    const compras = (data ?? []) as Omit<
+        CompraResumo,
+        | 'classificacao_operacional_recebimento'
+        | 'bloqueia_recebimento'
+        | 'motivo_bloqueio_recebimento'
+    >[]
+
+    const compraIds = compras
+        .map((compra) => compra.compra_id)
+        .filter((compraId): compraId is string => Boolean(compraId))
+
+    if (compraIds.length === 0) {
+        return []
+    }
+
+    const { data: controles, error: controlesError } = await supabase
+        .from('compras_controle_recebimento_publico')
+        .select('compra_id, classificacao_operacional, bloqueia_recebimento, motivo, origem')
+        .in('compra_id', compraIds)
+
+    if (controlesError) {
+        throw new Error(controlesError.message)
+    }
+
+    const controlesPorCompra = new Map(
+        ((controles ?? []) as CompraControleRecebimento[]).map((controle) => [
+            controle.compra_id,
+            controle,
+        ])
+    )
+
+    return compras.map((compra) => {
+        const controle = controlesPorCompra.get(compra.compra_id)
+
+        return {
+            ...compra,
+            classificacao_operacional_recebimento:
+                controle?.classificacao_operacional ?? null,
+            bloqueia_recebimento: controle?.bloqueia_recebimento ?? false,
+            motivo_bloqueio_recebimento: controle?.motivo ?? null,
+        }
+    }) as CompraResumo[]
 }
 
 export async function buscarItensCompras() {
@@ -142,7 +197,52 @@ export async function buscarItensCompras() {
         throw new Error(error.message)
     }
 
-    return data as CompraItemDetalhado[]
+    const itens = (data ?? []) as Omit<
+        CompraItemDetalhado,
+        | 'classificacao_operacional_recebimento'
+        | 'bloqueia_recebimento'
+        | 'motivo_bloqueio_recebimento'
+    >[]
+
+    const compraIds = Array.from(
+        new Set(
+            itens
+                .map((item) => item.compra_id)
+                .filter((compraId): compraId is string => Boolean(compraId))
+        )
+    )
+
+    if (compraIds.length === 0) {
+        return []
+    }
+
+    const { data: controles, error: controlesError } = await supabase
+        .from('compras_controle_recebimento_publico')
+        .select('compra_id, classificacao_operacional, bloqueia_recebimento, motivo, origem')
+        .in('compra_id', compraIds)
+
+    if (controlesError) {
+        throw new Error(controlesError.message)
+    }
+
+    const controlesPorCompra = new Map(
+        ((controles ?? []) as CompraControleRecebimento[]).map((controle) => [
+            controle.compra_id,
+            controle,
+        ])
+    )
+
+    return itens.map((item) => {
+        const controle = controlesPorCompra.get(item.compra_id)
+
+        return {
+            ...item,
+            classificacao_operacional_recebimento:
+                controle?.classificacao_operacional ?? null,
+            bloqueia_recebimento: controle?.bloqueia_recebimento ?? false,
+            motivo_bloqueio_recebimento: controle?.motivo ?? null,
+        }
+    }) as CompraItemDetalhado[]
 }
 
 export async function cadastrarCompra(compra: NovaCompra) {
