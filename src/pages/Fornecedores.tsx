@@ -560,7 +560,7 @@ export function Fornecedores() {
                     </div>
                 ) : (
                     <div className="overflow-x-auto rounded-xl border border-slate-700">
-                        <table className="w-full min-w-[1200px] border-collapse text-left text-sm">
+                        <table className="w-full min-w-[1040px] border-collapse text-left text-sm">
                             <thead className="bg-slate-950 text-slate-400">
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Nome</th>
@@ -579,7 +579,7 @@ export function Fornecedores() {
                             <tbody className="divide-y divide-slate-800 bg-slate-900">
                                 {fornecedores.map((fornecedor) => (
                                     <tr key={fornecedor.id} className="hover:bg-slate-800/60">
-                                        <td className="px-4 py-3 text-slate-100">
+                                        <td className="max-w-[260px] px-4 py-3 font-medium text-slate-100">
                                             {fornecedor.nome}
                                         </td>
 
@@ -599,8 +599,8 @@ export function Fornecedores() {
                                             {fornecedor.contato_nome ?? '-'}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
-                                            {fornecedor.email ?? '-'}
+                                        <td className="max-w-[220px] px-4 py-3 text-slate-300">
+                                            <span className="break-all">{fornecedor.email ?? '-'}</span>
                                         </td>
 
                                         <td className="px-4 py-3 text-slate-300">
@@ -633,15 +633,6 @@ export function Fornecedores() {
                     </div>
                 )}
 
-                <div className="mt-6 rounded-xl border border-slate-700 bg-slate-950 p-5">
-                    <p className="mb-3 text-sm text-slate-400">
-                        Retorno bruto do Supabase:
-                    </p>
-
-                    <pre className="max-h-80 overflow-auto rounded-lg bg-black p-4 text-xs text-slate-200">
-                        {JSON.stringify(fornecedores, null, 2)}
-                    </pre>
-                </div>
             </div>
         </div>
     )
