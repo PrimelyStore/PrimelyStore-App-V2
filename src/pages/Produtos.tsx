@@ -202,8 +202,8 @@ export function Produtos() {
     const estaEditando = produtoEditandoId !== null
 
     return (
-        <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+        <div className="mx-auto w-full max-w-full space-y-6">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <p className="text-sm uppercase tracking-widest text-cyan-400">
                     Módulo
                 </p>
@@ -219,7 +219,7 @@ export function Produtos() {
 
             <form
                 onSubmit={enviarFormulario}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg"
+                className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6"
             >
                 <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
@@ -243,7 +243,7 @@ export function Produtos() {
                     )}
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 lg:grid-cols-2">
                     <div>
                         <label className="mb-2 block text-sm text-slate-300">
                             Nome do produto *
@@ -343,7 +343,7 @@ export function Produtos() {
                     </div>
                 </div>
 
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex flex-col justify-end gap-3 sm:flex-row">
                     <button
                         type="submit"
                         disabled={salvando}
@@ -360,7 +360,7 @@ export function Produtos() {
                 </div>
             </form>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <p className="text-sm text-slate-400">
                     Status da consulta:
                 </p>
@@ -382,7 +382,7 @@ export function Produtos() {
                 </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">
                         Produtos encontrados
@@ -400,57 +400,57 @@ export function Produtos() {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
-                        <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+                    <div className="max-w-full overflow-x-auto rounded-xl border border-slate-700">
+                        <table className="w-full min-w-[880px] border-collapse text-left text-xs sm:text-sm">
                             <thead className="bg-slate-950 text-slate-400">
                                 <tr>
-                                    <th className="px-4 py-3 font-medium">Nome</th>
-                                    <th className="px-4 py-3 font-medium">SKU</th>
-                                    <th className="px-4 py-3 font-medium">ASIN</th>
-                                    <th className="px-4 py-3 font-medium">EAN</th>
-                                    <th className="px-4 py-3 font-medium">Marca</th>
-                                    <th className="px-4 py-3 font-medium">Categoria</th>
-                                    <th className="px-4 py-3 font-medium">Status</th>
-                                    <th className="px-4 py-3 font-medium">Ações</th>
+                                    <th className="w-[260px] px-3 py-3 font-medium sm:px-4">Nome</th>
+                                    <th className="w-[170px] px-3 py-3 font-medium sm:px-4">SKU</th>
+                                    <th className="w-[120px] px-3 py-3 font-medium sm:px-4">ASIN</th>
+                                    <th className="w-[140px] px-3 py-3 font-medium sm:px-4">EAN</th>
+                                    <th className="w-[130px] px-3 py-3 font-medium sm:px-4">Marca</th>
+                                    <th className="w-[150px] px-3 py-3 font-medium sm:px-4">Categoria</th>
+                                    <th className="w-[100px] px-3 py-3 font-medium sm:px-4">Status</th>
+                                    <th className="w-[100px] px-3 py-3 font-medium sm:px-4">Ações</th>
                                 </tr>
                             </thead>
 
                             <tbody className="divide-y divide-slate-800 bg-slate-900">
                                 {produtos.map((produto) => (
                                     <tr key={produto.id} className="hover:bg-slate-800/60">
-                                        <td className="px-4 py-3 text-slate-100">
+                                        <td className="max-w-[260px] px-3 py-3 font-medium text-slate-100 sm:px-4">
                                             {produto.nome}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
-                                            {produto.sku}
+                                        <td className="max-w-[170px] px-3 py-3 text-slate-300 sm:px-4">
+                                            <span className="break-words">{produto.sku}</span>
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
                                             {produto.asin ?? '-'}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
                                             {produto.ean ?? '-'}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="max-w-[130px] px-3 py-3 text-slate-300 sm:px-4">
                                             {produto.marca ?? '-'}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="max-w-[150px] px-3 py-3 text-slate-300 sm:px-4">
                                             {produto.categoria ?? '-'}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
                                             {produto.status}
                                         </td>
 
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 py-3 sm:px-4">
                                             <button
                                                 type="button"
                                                 onClick={() => iniciarEdicao(produto)}
-                                                className="rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10"
+                                                className="whitespace-nowrap rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10"
                                             >
                                                 Editar
                                             </button>
