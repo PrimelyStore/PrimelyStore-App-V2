@@ -26,6 +26,18 @@ const menuItems = [
     { label: 'Alertas', path: '/alertas' },
 ]
 
+function obterClasseLink(isActive: boolean, compacto = false) {
+    const base = compacto
+        ? 'shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition'
+        : 'block rounded-xl px-4 py-3 text-sm font-semibold transition'
+
+    if (isActive) {
+        return `${base} border-cyan-500/40 bg-cyan-500/10 text-cyan-300`
+    }
+
+    return `${base} border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-800`
+}
+
 export function AppLayout() {
     const { user, logout } = useAuth()
     const navigate = useNavigate()
@@ -36,37 +48,37 @@ export function AppLayout() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100">
-            <div className="flex min-h-screen">
-                <aside className="hidden w-72 border-r border-slate-800 bg-slate-900 p-6 md:flex md:flex-col">
+        <div className="min-h-dvh overflow-x-hidden bg-slate-950 text-slate-100">
+            <div className="flex min-h-dvh w-full">
+                <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 border-r border-slate-800 bg-slate-900/95 p-5 lg:flex lg:flex-col">
                     <div>
                         <p className="text-xs uppercase tracking-[0.3em] text-cyan-400">
                             Primely Store
                         </p>
 
-                        <h1 className="mt-3 text-xl font-bold">
+                        <h1 className="mt-3 text-lg font-bold leading-tight">
                             Agentes Primely Store
                         </h1>
+
+                        <p className="mt-2 text-xs text-slate-500">
+                            Operação Amazon FBA / FBM
+                        </p>
                     </div>
 
-                    <nav className="mt-10 flex-1 space-y-2 overflow-y-auto pr-1">
+                    <nav className="mt-8 flex-1 space-y-1 overflow-y-auto pr-1">
                         {menuItems.map((item) => (
                             <NavLink
                                 key={item.path}
                                 to={item.path}
                                 end={item.path === '/'}
-                                className={({ isActive }) =>
-                                    isActive
-                                        ? 'block rounded-xl bg-cyan-500/10 px-4 py-3 text-cyan-300'
-                                        : 'block rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800'
-                                }
+                                className={({ isActive }) => obterClasseLink(isActive)}
                             >
                                 {item.label}
                             </NavLink>
                         ))}
                     </nav>
 
-                    <div className="mt-8 rounded-2xl border border-slate-800 bg-slate-950 p-4">
+                    <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-950 p-4">
                         <p className="text-xs uppercase tracking-widest text-slate-500">
                             Usuário logado
                         </p>
@@ -85,36 +97,51 @@ export function AppLayout() {
                     </div>
                 </aside>
 
-                <main className="flex-1">
-                    <header className="border-b border-slate-800 bg-slate-900/70 px-6 py-5">
-                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                            <div>
-                                <p className="text-sm text-slate-400">
-                                    Sistema de gestão para operação Amazon FBA / FBM
-                                </p>
+                <main className="flex min-h-dvh min-w-0 flex-1 flex-col">
+                    <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/95 px-3 py-4 shadow-lg shadow-black/10 backdrop-blur sm:px-5 lg:px-6 xl:px-8">
+                        <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4">
+                            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                <div className="min-w-0">
+                                    <p className="text-xs text-slate-400 sm:text-sm">
+                                        Sistema de gestão para operação Amazon FBA / FBM
+                                    </p>
 
-                                <h2 className="mt-1 text-2xl font-bold">
-                                    Painel principal
-                                </h2>
+                                    <h2 className="mt-1 text-xl font-bold sm:text-2xl">
+                                        Painel principal
+                                    </h2>
+                                </div>
+
+                                <div className="flex flex-col gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-300 lg:hidden">
+                                    <p className="break-words">
+                                        {user?.email ?? 'Usuário autenticado'}
+                                    </p>
+
+                                    <button
+                                        type="button"
+                                        onClick={sair}
+                                        className="w-fit rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300"
+                                    >
+                                        Sair
+                                    </button>
+                                </div>
                             </div>
 
-                            <div className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-300 md:hidden">
-                                <p className="break-words">
-                                    {user?.email ?? 'Usuário autenticado'}
-                                </p>
-
-                                <button
-                                    type="button"
-                                    onClick={sair}
-                                    className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300"
-                                >
-                                    Sair
-                                </button>
-                            </div>
+                            <nav className="flex max-w-full gap-2 overflow-x-auto pb-1 lg:hidden">
+                                {menuItems.map((item) => (
+                                    <NavLink
+                                        key={item.path}
+                                        to={item.path}
+                                        end={item.path === '/'}
+                                        className={({ isActive }) => obterClasseLink(isActive, true)}
+                                    >
+                                        {item.label}
+                                    </NavLink>
+                                ))}
+                            </nav>
                         </div>
                     </header>
 
-                    <section className="p-6">
+                    <section className="mx-auto w-full max-w-[1600px] min-w-0 flex-1 px-3 py-4 sm:px-5 lg:px-6 xl:px-8">
                         <Outlet />
                     </section>
                 </main>

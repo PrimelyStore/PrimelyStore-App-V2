@@ -181,58 +181,6 @@ function obterClasseStatus(status?: string) {
     return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30'
 }
 
-function compraBloqueiaRecebimento(compra?: CompraResumo | null) {
-    return compra?.bloqueia_recebimento === true
-}
-
-function obterRotuloClassificacaoRecebimento(compra?: CompraResumo | null) {
-    if (!compra?.classificacao_operacional_recebimento) {
-        return 'Recebimento normal'
-    }
-
-    const rotulos: Record<string, string> = {
-        recebimento_real: 'Recebimento real',
-        historico_fiscal_sem_entrada_estoque:
-            'Histórico fiscal — sem entrada de estoque',
-        pendente_conferencia_operacional: 'Pendente de conferência operacional',
-    }
-
-    return (
-        rotulos[compra.classificacao_operacional_recebimento] ??
-        compra.classificacao_operacional_recebimento
-    )
-}
-
-function obterClasseClassificacaoRecebimento(compra?: CompraResumo | null) {
-    if (compraBloqueiaRecebimento(compra)) {
-        return 'bg-red-500/10 text-red-300 border-red-500/30'
-    }
-
-    if (
-        compra?.classificacao_operacional_recebimento ===
-        'pendente_conferencia_operacional'
-    ) {
-        return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30'
-    }
-
-    if (compra?.classificacao_operacional_recebimento === 'recebimento_real') {
-        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-    }
-
-    return 'bg-slate-800 text-slate-300 border-slate-700'
-}
-
-function obterMensagemBloqueioCompra(compra?: CompraResumo | null) {
-    if (!compraBloqueiaRecebimento(compra)) {
-        return null
-    }
-
-    return (
-        compra?.motivo_bloqueio_recebimento ??
-        'Esta compra está bloqueada para recebimento.'
-    )
-}
-
 function obterStatusRecebimentoItem(item: CompraItemDetalhado) {
     const quantidade = Number(item.quantidade ?? 0)
     const quantidadeRecebida = Number(item.quantidade_recebida ?? 0)
@@ -282,6 +230,51 @@ function obterClasseStatusRecebimento(status: string) {
     }
 
     return 'bg-slate-800 text-slate-300 border-slate-700'
+}
+
+
+function obterRotuloClassificacaoOperacional(classificacao?: string | null) {
+    if (classificacao === 'historico_fiscal_sem_entrada_estoque') {
+        return 'Histórico fiscal sem entrada estoque'
+    }
+
+    if (classificacao === 'pendente_conferencia_operacional') {
+        return 'Pendente de conferência operacional'
+    }
+
+    if (classificacao === 'recebimento_real') {
+        return 'Recebimento real liberado'
+    }
+
+    return null
+}
+
+function obterClasseClassificacaoOperacional(classificacao?: string | null) {
+    if (classificacao === 'historico_fiscal_sem_entrada_estoque') {
+        return 'text-red-300'
+    }
+
+    if (classificacao === 'pendente_conferencia_operacional') {
+        return 'text-yellow-300'
+    }
+
+    if (classificacao === 'recebimento_real') {
+        return 'text-emerald-300'
+    }
+
+    return 'text-slate-400'
+}
+
+function compraBloqueadaParaRecebimento(
+    compra?: Pick<CompraResumo, 'bloqueia_recebimento'> | null
+) {
+    return compra?.bloqueia_recebimento === true
+}
+
+function itemBloqueadoParaRecebimento(
+    item?: Pick<CompraItemDetalhado, 'bloqueia_recebimento'> | null
+) {
+    return item?.bloqueia_recebimento === true
 }
 
 function obterClasseLinhaItemCompra(statusRecebimento: string, selecionado: boolean) {
@@ -532,10 +525,11 @@ export function Compras() {
     }
 
     function selecionarCompraParaItem(compra: CompraResumo) {
-        if (compraBloqueiaRecebimento(compra)) {
+        if (compraBloqueadaParaRecebimento(compra)) {
             setStatus('erro')
             setMensagem(
-                `Compra ${compra.numero_pedido ?? compra.numero_nota_fiscal ?? 'sem número'} bloqueada para recebimento: ${obterMensagemBloqueioCompra(compra)}`
+                compra.motivo_bloqueio_recebimento ??
+                'Esta compra está bloqueada para recebimento e inclusão operacional de itens.'
             )
             return
         }
@@ -552,21 +546,16 @@ export function Compras() {
     }
 
     function selecionarItemParaRecebimento(item: CompraItemDetalhado) {
-        const quantidadePendente = item.quantidade - item.quantidade_recebida
-        const compraDoItem =
-            compras.find((compra) => compra.compra_id === item.compra_id) ?? null
-
-        if (compraBloqueiaRecebimento(compraDoItem) || item.bloqueia_recebimento) {
+        if (itemBloqueadoParaRecebimento(item)) {
             setStatus('erro')
             setMensagem(
-                `Recebimento bloqueado para esta compra: ${
-                    obterMensagemBloqueioCompra(compraDoItem) ??
-                    item.motivo_bloqueio_recebimento ??
-                    'Esta compra está bloqueada para recebimento.'
-                }`
+                item.motivo_bloqueio_recebimento ??
+                'Este item pertence a uma compra bloqueada para recebimento.'
             )
             return
         }
+
+        const quantidadePendente = item.quantidade - item.quantidade_recebida
 
         if (quantidadePendente <= 0 || item.status === 'cancelado') {
             setStatus('erro')
@@ -655,14 +644,15 @@ export function Compras() {
             return
         }
 
-        const compraDoFormulario =
-            compras.find((compra) => compra.compra_id === formularioItem.compra_id) ??
-            null
+        const compraSelecionadaAtual = compras.find(
+            (compra) => compra.compra_id === formularioItem.compra_id
+        )
 
-        if (compraBloqueiaRecebimento(compraDoFormulario)) {
+        if (compraBloqueadaParaRecebimento(compraSelecionadaAtual)) {
             setStatus('erro')
             setMensagem(
-                `Não é possível adicionar item nesta compra: ${obterMensagemBloqueioCompra(compraDoFormulario)}`
+                compraSelecionadaAtual?.motivo_bloqueio_recebimento ??
+                'Esta compra está bloqueada para inclusão de itens e recebimento.'
             )
             return
         }
@@ -718,21 +708,16 @@ export function Compras() {
     }
 
     async function receberItemPendente(item: CompraItemDetalhado) {
-        const quantidadePendente = item.quantidade - item.quantidade_recebida
-        const compraDoItem =
-            compras.find((compra) => compra.compra_id === item.compra_id) ?? null
-
-        if (compraBloqueiaRecebimento(compraDoItem) || item.bloqueia_recebimento) {
+        if (itemBloqueadoParaRecebimento(item)) {
             setStatus('erro')
             setMensagem(
-                `Recebimento bloqueado para esta compra: ${
-                    obterMensagemBloqueioCompra(compraDoItem) ??
-                    item.motivo_bloqueio_recebimento ??
-                    'Esta compra está bloqueada para recebimento.'
-                }`
+                item.motivo_bloqueio_recebimento ??
+                'Este item pertence a uma compra bloqueada para recebimento.'
             )
             return
         }
+
+        const quantidadePendente = item.quantidade - item.quantidade_recebida
 
         if (quantidadePendente <= 0) {
             setStatus('erro')
@@ -837,10 +822,6 @@ export function Compras() {
         ) ?? null
         : null
 
-    const recebimentoBloqueadoItemSelecionado =
-        compraBloqueiaRecebimento(compraDoItemSelecionadoParaReceber) ||
-        itemSelecionadoParaReceber?.bloqueia_recebimento === true
-
     const quantidadePendenteItemSelecionado = itemSelecionadoParaReceber
         ? itemSelecionadoParaReceber.quantidade - itemSelecionadoParaReceber.quantidade_recebida
         : 0
@@ -875,8 +856,8 @@ export function Compras() {
         valorTotalAtualCompraSelecionada + valorTotalItemFormulario
 
     return (
-        <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+        <div className="w-full min-w-0 space-y-5">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6">
                 <p className="text-sm uppercase tracking-widest text-cyan-400">
                     Módulo
                 </p>
@@ -892,7 +873,7 @@ export function Compras() {
 
             <form
                 onSubmit={enviarFormularioCompra}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg"
+                className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6"
             >
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold">
@@ -904,7 +885,7 @@ export function Compras() {
                     </p>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 lg:grid-cols-2">
                     <div>
                         <label className="mb-2 block text-sm text-slate-300">
                             Fornecedor *
@@ -1091,7 +1072,7 @@ export function Compras() {
                         />
                     </div>
 
-                    <div className="md:col-span-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-5">
+                    <div className="lg:col-span-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-5">
                         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div>
                                 <p className="text-sm font-semibold text-cyan-200">
@@ -1114,7 +1095,7 @@ export function Compras() {
                             </div>
                         </div>
 
-                        <div className="mt-4 grid gap-3 md:grid-cols-3">
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                             <div className="rounded-xl bg-slate-950 p-4">
                                 <p className="text-xs text-slate-400">Frete</p>
                                 <p className="mt-1 font-semibold text-slate-100">
@@ -1138,7 +1119,7 @@ export function Compras() {
                         </div>
                     </div>
 
-                    <div className="md:col-span-2">
+                    <div className="lg:col-span-2">
                         <label className="mb-2 block text-sm text-slate-300">
                             Observações
                         </label>
@@ -1155,7 +1136,7 @@ export function Compras() {
                     </div>
                 </div>
 
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
                     <button
                         type="submit"
                         disabled={salvandoCompra}
@@ -1168,7 +1149,7 @@ export function Compras() {
 
             <form
                 onSubmit={enviarFormularioItem}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg"
+                className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6"
             >
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold">
@@ -1196,21 +1177,13 @@ export function Compras() {
                                     Fornecedor: {compraSelecionada.fornecedor_nome ?? 'não informado'} · Local: {compraSelecionada.local_destino_nome ?? 'não informado'}
                                 </p>
 
-                                <div className="mt-3 flex flex-col gap-2">
-                                    <span
-                                        className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseClassificacaoRecebimento(
-                                            compraSelecionada
-                                        )}`}
-                                    >
-                                        {obterRotuloClassificacaoRecebimento(compraSelecionada)}
-                                    </span>
-
-                                    {compraBloqueiaRecebimento(compraSelecionada) && (
-                                        <p className="max-w-2xl text-sm text-red-200">
-                                            {obterMensagemBloqueioCompra(compraSelecionada)}
-                                        </p>
-                                    )}
-                                </div>
+                                {compraBloqueadaParaRecebimento(compraSelecionada) && (
+                                    <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-200">
+                                        {obterRotuloClassificacaoOperacional(
+                                            compraSelecionada.classificacao_operacional_recebimento
+                                        ) ?? 'Compra bloqueada para recebimento'}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -1243,7 +1216,7 @@ export function Compras() {
                     </div>
                 )}
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 lg:grid-cols-2">
                     <div>
                         <label className="mb-2 block text-sm text-slate-300">
                             Compra *
@@ -1262,12 +1235,12 @@ export function Compras() {
                                 <option
                                     key={compra.compra_id}
                                     value={compra.compra_id}
-                                    disabled={compraBloqueiaRecebimento(compra)}
+                                    disabled={compraBloqueadaParaRecebimento(compra)}
                                 >
                                     {compra.numero_pedido ?? 'Compra sem número'} —{' '}
                                     {compra.fornecedor_nome ?? 'Fornecedor não informado'}
-                                    {compraBloqueiaRecebimento(compra)
-                                        ? ' — histórico fiscal sem entrada'
+                                    {compraBloqueadaParaRecebimento(compra)
+                                        ? ' — bloqueada'
                                         : ''}
                                 </option>
                             ))}
@@ -1455,7 +1428,7 @@ export function Compras() {
                         </select>
                     </div>
 
-                    <div className="md:col-span-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5">
+                    <div className="lg:col-span-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5">
                         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div>
                                 <p className="text-sm font-semibold text-emerald-200">
@@ -1478,7 +1451,7 @@ export function Compras() {
                             </div>
                         </div>
 
-                        <div className="mt-4 grid gap-3 md:grid-cols-5">
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                             <div className="rounded-xl bg-slate-950 p-4">
                                 <p className="text-xs text-slate-400">Produto</p>
                                 <p className="mt-1 font-semibold text-slate-100">
@@ -1517,7 +1490,7 @@ export function Compras() {
                     </div>
 
                     {compraSelecionada && (
-                        <div className="md:col-span-2 rounded-xl border border-slate-700 bg-slate-950 p-5">
+                        <div className="lg:col-span-2 rounded-xl border border-slate-700 bg-slate-950 p-5">
                             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                                 <div>
                                     <p className="text-sm font-semibold text-slate-100">
@@ -1548,7 +1521,7 @@ export function Compras() {
                         </div>
                     )}
 
-                    <div className="md:col-span-2">
+                    <div className="lg:col-span-2">
                         <label className="mb-2 block text-sm text-slate-300">
                             Observações do item
                         </label>
@@ -1565,38 +1538,38 @@ export function Compras() {
                     </div>
                 </div>
 
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
                     <button
                         type="submit"
-                        disabled={salvandoItem || compraBloqueiaRecebimento(compraSelecionada)}
+                        disabled={salvandoItem || compraBloqueadaParaRecebimento(compraSelecionada)}
                         className="rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {salvandoItem
-                            ? 'Adicionando...'
-                            : compraBloqueiaRecebimento(compraSelecionada)
-                                ? 'Compra bloqueada'
+                        {compraBloqueadaParaRecebimento(compraSelecionada)
+                            ? 'Compra bloqueada'
+                            : salvandoItem
+                                ? 'Adicionando...'
                                 : 'Adicionar item à compra'}
                     </button>
                 </div>
             </form>
 
-            <div className="grid gap-4 md:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6">
                     <p className="text-sm text-slate-400">Compras encontradas</p>
                     <p className="mt-3 text-3xl font-bold">{compras.length}</p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6">
                     <p className="text-sm text-slate-400">Compras recebidas</p>
                     <p className="mt-3 text-3xl font-bold">{comprasRecebidas}</p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6">
                     <p className="text-sm text-slate-400">Unidades compradas</p>
                     <p className="mt-3 text-3xl font-bold">{quantidadeTotalUnidades}</p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6">
                     <p className="text-sm text-slate-400">Valor total estimado</p>
                     <p className="mt-3 text-3xl font-bold">
                         {formatarMoeda(valorTotalEstimado)}
@@ -1604,7 +1577,7 @@ export function Compras() {
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6">
                 <p className="text-sm text-slate-400">Status da consulta:</p>
 
                 <p
@@ -1622,8 +1595,8 @@ export function Compras() {
                 <p className="mt-3 text-slate-300">{mensagem}</p>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
-                <div className="mb-4 flex items-center justify-between">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-xl font-semibold">Itens das compras</h2>
 
                     <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
@@ -1631,7 +1604,7 @@ export function Compras() {
                     </span>
                 </div>
 
-                <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
                         <p className="text-xs text-slate-400">Itens pendentes</p>
                         <p className="mt-2 text-2xl font-bold text-yellow-300">
@@ -1709,21 +1682,6 @@ export function Compras() {
                                 </p>
                             </div>
 
-                            {recebimentoBloqueadoItemSelecionado && (
-                                <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-                                    <p className="font-semibold">
-                                        Recebimento bloqueado para esta compra.
-                                    </p>
-                                    <p className="mt-1">
-                                        {obterMensagemBloqueioCompra(
-                                            compraDoItemSelecionadoParaReceber
-                                        ) ??
-                                            itemSelecionadoParaReceber.motivo_bloqueio_recebimento ??
-                                            'Esta compra está bloqueada para recebimento.'}
-                                    </p>
-                                </div>
-                            )}
-
                             <div className="flex gap-3">
                                 <button
                                     type="button"
@@ -1737,21 +1695,19 @@ export function Compras() {
                                     type="button"
                                     disabled={
                                         recebendoItemId === itemSelecionadoParaReceber.id ||
-                                        recebimentoBloqueadoItemSelecionado
+                                        itemBloqueadoParaRecebimento(itemSelecionadoParaReceber)
                                     }
                                     onClick={() => receberItemPendente(itemSelecionadoParaReceber)}
                                     className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {recebendoItemId === itemSelecionadoParaReceber.id
                                         ? 'Recebendo...'
-                                        : recebimentoBloqueadoItemSelecionado
-                                            ? 'Recebimento bloqueado'
-                                            : 'Confirmar recebimento'}
+                                        : 'Confirmar recebimento'}
                                 </button>
                             </div>
                         </div>
 
-                        <div className="mt-5 grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+                        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
                             <div className="rounded-xl bg-slate-950 p-4">
                                 <p className="text-xs text-slate-400">Compra</p>
                                 <p className="mt-1 font-semibold text-slate-100">
@@ -1788,7 +1744,7 @@ export function Compras() {
                             </div>
                         </div>
 
-                        <div className="mt-3 grid gap-3 md:grid-cols-3">
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                             <div className="rounded-xl bg-slate-950 p-4">
                                 <p className="text-xs text-slate-400">Quantidade comprada</p>
                                 <p className="mt-1 font-semibold text-slate-100">
@@ -1820,8 +1776,8 @@ export function Compras() {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
-                        <table className="w-full min-w-[1500px] border-collapse text-left text-sm">
+                    <div className="max-w-full overflow-x-auto rounded-xl border border-slate-700">
+                        <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
                             <thead className="bg-slate-950 text-slate-400">
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Compra</th>
@@ -1846,16 +1802,16 @@ export function Compras() {
                                     )
                                     const statusRecebimento = obterStatusRecebimentoItem(item)
                                     const percentualRecebido = calcularPercentualRecebido(item)
-                                    const compraDoItem =
-                                        compras.find((compra) => compra.compra_id === item.compra_id) ??
-                                        null
-                                    const recebimentoBloqueado =
-                                        compraBloqueiaRecebimento(compraDoItem) ||
-                                        item.bloqueia_recebimento === true
+                                    const bloqueadoParaRecebimento =
+                                        itemBloqueadoParaRecebimento(item)
+                                    const rotuloClassificacao =
+                                        obterRotuloClassificacaoOperacional(
+                                            item.classificacao_operacional_recebimento
+                                        )
                                     const podeReceber =
+                                        !bloqueadoParaRecebimento &&
                                         pendente > 0 &&
-                                        statusRecebimento !== 'cancelado' &&
-                                        !recebimentoBloqueado
+                                        statusRecebimento !== 'cancelado'
 
                                     return (
                                         <tr
@@ -1869,8 +1825,8 @@ export function Compras() {
                                                 {item.compras?.numero_pedido ?? '-'}
                                             </td>
 
-                                            <td className="px-4 py-3 text-slate-300">
-                                                {item.produtos?.nome ?? item.produto_id}
+                                            <td className="max-w-[420px] px-4 py-3 text-slate-300">
+                                                <span className="line-clamp-2 break-words">{item.produtos?.nome ?? item.produto_id}</span>
                                             </td>
 
                                             <td className="px-4 py-3 text-slate-300">
@@ -1936,9 +1892,14 @@ export function Compras() {
                                                         </span>
                                                     )}
 
-                                                    {recebimentoBloqueado && (
-                                                        <span className="text-xs font-medium text-red-300">
-                                                            Histórico fiscal sem entrada de estoque
+                                                    {bloqueadoParaRecebimento && (
+                                                        <span
+                                                            className={`text-xs font-semibold ${obterClasseClassificacaoOperacional(
+                                                                item.classificacao_operacional_recebimento
+                                                            )}`}
+                                                            title={item.motivo_bloqueio_recebimento ?? undefined}
+                                                        >
+                                                            {rotuloClassificacao ?? 'Compra bloqueada para recebimento'}
                                                         </span>
                                                     )}
                                                 </div>
@@ -1951,10 +1912,10 @@ export function Compras() {
                                                     onClick={() => selecionarItemParaRecebimento(item)}
                                                     className="rounded-lg border border-emerald-500/40 px-3 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-500"
                                                 >
-                                                    {recebendoItemId === item.id
-                                                        ? 'Recebendo...'
-                                                        : recebimentoBloqueado
-                                                            ? 'Bloqueado'
+                                                    {bloqueadoParaRecebimento
+                                                        ? 'Bloqueado'
+                                                        : recebendoItemId === item.id
+                                                            ? 'Recebendo...'
                                                             : podeReceber
                                                                 ? 'Conferir recebimento'
                                                                 : statusRecebimento === 'cancelado'
@@ -1971,8 +1932,8 @@ export function Compras() {
                 )}
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
-                <div className="mb-4 flex items-center justify-between">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-xl font-semibold">Compras encontradas</h2>
 
                     <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
@@ -1987,8 +1948,8 @@ export function Compras() {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
-                        <table className="w-full min-w-[1400px] border-collapse text-left text-sm">
+                    <div className="max-w-full overflow-x-auto rounded-xl border border-slate-700">
+                        <table className="w-full min-w-[1180px] border-collapse text-left text-sm">
                             <thead className="bg-slate-950 text-slate-400">
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Pedido</th>
@@ -2004,27 +1965,20 @@ export function Compras() {
                                     <th className="px-4 py-3 font-medium">Frete</th>
                                     <th className="px-4 py-3 font-medium">Total estimado</th>
                                     <th className="px-4 py-3 font-medium">Status</th>
-                                    <th className="px-4 py-3 font-medium">Recebimento</th>
                                     <th className="px-4 py-3 font-medium">Ações</th>
                                 </tr>
                             </thead>
 
                             <tbody className="divide-y divide-slate-800 bg-slate-900">
-                                {compras.map((compra) => {
-                                    const recebimentoBloqueado =
-                                        compraBloqueiaRecebimento(compra)
-
-                                    return (
-                                        <tr
-                                            key={compra.compra_id}
-                                            className={
-                                                compraSelecionada?.compra_id === compra.compra_id
-                                                    ? 'bg-cyan-500/10 hover:bg-cyan-500/20'
-                                                    : recebimentoBloqueado
-                                                        ? 'bg-red-500/5 hover:bg-red-500/10'
-                                                        : 'hover:bg-slate-800/60'
-                                            }
-                                        >
+                                {compras.map((compra) => (
+                                    <tr
+                                        key={compra.compra_id}
+                                        className={
+                                            compraSelecionada?.compra_id === compra.compra_id
+                                                ? 'bg-cyan-500/10 hover:bg-cyan-500/20'
+                                                : 'hover:bg-slate-800/60'
+                                        }
+                                    >
                                         <td className="px-4 py-3 text-slate-100">
                                             {compra.numero_pedido ?? '-'}
                                         </td>
@@ -2076,29 +2030,25 @@ export function Compras() {
                                         </td>
 
                                         <td className="px-4 py-3">
-                                            <span
-                                                className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatus(
-                                                    compra.status
-                                                )}`}
-                                            >
-                                                {compra.status}
-                                            </span>
-                                        </td>
-
-                                        <td className="px-4 py-3">
-                                            <div className="flex max-w-[260px] flex-col gap-2">
+                                            <div className="flex flex-col gap-2">
                                                 <span
-                                                    className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseClassificacaoRecebimento(
-                                                        compra
+                                                    className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatus(
+                                                        compra.status
                                                     )}`}
                                                 >
-                                                    {obterRotuloClassificacaoRecebimento(compra)}
+                                                    {compra.status}
                                                 </span>
 
-                                                {recebimentoBloqueado && (
-                                                    <span className="text-xs text-red-200">
-                                                        {compra.motivo_bloqueio_recebimento ??
-                                                            'Recebimento bloqueado para esta compra.'}
+                                                {compra.bloqueia_recebimento && (
+                                                    <span
+                                                        className={`text-xs font-semibold ${obterClasseClassificacaoOperacional(
+                                                            compra.classificacao_operacional_recebimento
+                                                        )}`}
+                                                        title={compra.motivo_bloqueio_recebimento ?? undefined}
+                                                    >
+                                                        {obterRotuloClassificacaoOperacional(
+                                                            compra.classificacao_operacional_recebimento
+                                                        ) ?? 'Compra bloqueada'}
                                                     </span>
                                                 )}
                                             </div>
@@ -2107,30 +2057,21 @@ export function Compras() {
                                         <td className="px-4 py-3">
                                             <button
                                                 type="button"
-                                                disabled={recebimentoBloqueado}
+                                                disabled={compraBloqueadaParaRecebimento(compra)}
                                                 onClick={() => selecionarCompraParaItem(compra)}
                                                 className="rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-500"
                                             >
-                                                {recebimentoBloqueado ? 'Bloqueada' : 'Usar compra'}
+                                                {compraBloqueadaParaRecebimento(compra)
+                                                    ? 'Bloqueada'
+                                                    : 'Usar compra'}
                                             </button>
                                         </td>
-                                        </tr>
-                                    )
-                                })}
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
                     </div>
                 )}
-
-                <div className="mt-6 rounded-xl border border-slate-700 bg-slate-950 p-5">
-                    <p className="mb-3 text-sm text-slate-400">
-                        Retorno bruto do Supabase:
-                    </p>
-
-                    <pre className="max-h-80 overflow-auto rounded-lg bg-black p-4 text-xs text-slate-200">
-                        {JSON.stringify({ compras, itensCompras }, null, 2)}
-                    </pre>
-                </div>
             </div>
         </div>
     )

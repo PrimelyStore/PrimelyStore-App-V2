@@ -1,5 +1,10 @@
 import { supabase } from '../lib/supabase'
 
+export type ClassificacaoOperacionalRecebimento =
+    | 'recebimento_real'
+    | 'historico_fiscal_sem_entrada_estoque'
+    | 'pendente_conferencia_operacional'
+
 export type CompraResumo = {
     compra_id: string
     fornecedor_id: string | null
@@ -24,17 +29,28 @@ export type CompraResumo = {
     valor_total_estimado: number | null
     created_at: string
     updated_at: string
-    classificacao_operacional_recebimento: string | null
+    classificacao_operacional_recebimento: ClassificacaoOperacionalRecebimento | string | null
     bloqueia_recebimento: boolean
     motivo_bloqueio_recebimento: string | null
 }
 
 export type CompraControleRecebimento = {
     compra_id: string
-    classificacao_operacional: string
+    classificacao_operacional: ClassificacaoOperacionalRecebimento | string
     bloqueia_recebimento: boolean
     motivo: string | null
     origem: string | null
+}
+
+export type ControleRecebimentoResultado = {
+    compra_id: string
+    numero_pedido: string | null
+    numero_nota_fiscal: string | null
+    classificacao_operacional: ClassificacaoOperacionalRecebimento | string
+    bloqueia_recebimento: boolean
+    motivo: string | null
+    origem: string | null
+    status_validacao: string
 }
 
 export type Compra = {
@@ -99,7 +115,7 @@ export type CompraItemDetalhado = CompraItem & {
         sku: string
         asin: string | null
     } | null
-    classificacao_operacional_recebimento: string | null
+    classificacao_operacional_recebimento: ClassificacaoOperacionalRecebimento | string | null
     bloqueia_recebimento: boolean
     motivo_bloqueio_recebimento: string | null
 }
@@ -120,6 +136,30 @@ export type NovoCompraItem = {
     observacoes: string | null
 }
 
+async function buscarControlesRecebimento(compraIds: string[]) {
+    const idsUnicos = Array.from(new Set(compraIds.filter(Boolean)))
+
+    if (idsUnicos.length === 0) {
+        return new Map<string, CompraControleRecebimento>()
+    }
+
+    const { data, error } = await supabase
+        .from('compras_controle_recebimento_publico')
+        .select('compra_id, classificacao_operacional, bloqueia_recebimento, motivo, origem')
+        .in('compra_id', idsUnicos)
+
+    if (error) {
+        throw new Error(error.message)
+    }
+
+    return new Map(
+        ((data ?? []) as CompraControleRecebimento[]).map((controle) => [
+            controle.compra_id,
+            controle,
+        ])
+    )
+}
+
 export async function buscarComprasResumo() {
     const { data, error } = await supabase
         .from('compras_resumo')
@@ -138,28 +178,8 @@ export async function buscarComprasResumo() {
         | 'motivo_bloqueio_recebimento'
     >[]
 
-    const compraIds = compras
-        .map((compra) => compra.compra_id)
-        .filter((compraId): compraId is string => Boolean(compraId))
-
-    if (compraIds.length === 0) {
-        return []
-    }
-
-    const { data: controles, error: controlesError } = await supabase
-        .from('compras_controle_recebimento_publico')
-        .select('compra_id, classificacao_operacional, bloqueia_recebimento, motivo, origem')
-        .in('compra_id', compraIds)
-
-    if (controlesError) {
-        throw new Error(controlesError.message)
-    }
-
-    const controlesPorCompra = new Map(
-        ((controles ?? []) as CompraControleRecebimento[]).map((controle) => [
-            controle.compra_id,
-            controle,
-        ])
+    const controlesPorCompra = await buscarControlesRecebimento(
+        compras.map((compra) => compra.compra_id)
     )
 
     return compras.map((compra) => {
@@ -204,32 +224,8 @@ export async function buscarItensCompras() {
         | 'motivo_bloqueio_recebimento'
     >[]
 
-    const compraIds = Array.from(
-        new Set(
-            itens
-                .map((item) => item.compra_id)
-                .filter((compraId): compraId is string => Boolean(compraId))
-        )
-    )
-
-    if (compraIds.length === 0) {
-        return []
-    }
-
-    const { data: controles, error: controlesError } = await supabase
-        .from('compras_controle_recebimento_publico')
-        .select('compra_id, classificacao_operacional, bloqueia_recebimento, motivo, origem')
-        .in('compra_id', compraIds)
-
-    if (controlesError) {
-        throw new Error(controlesError.message)
-    }
-
-    const controlesPorCompra = new Map(
-        ((controles ?? []) as CompraControleRecebimento[]).map((controle) => [
-            controle.compra_id,
-            controle,
-        ])
+    const controlesPorCompra = await buscarControlesRecebimento(
+        itens.map((item) => item.compra_id)
     )
 
     return itens.map((item) => {
@@ -287,4 +283,27 @@ export async function receberItemCompra(
     }
 
     return data
+}
+
+export async function definirControleRecebimentoCompra(
+    compraId: string,
+    classificacaoOperacional: ClassificacaoOperacionalRecebimento,
+    motivo: string,
+    origem = 'tela_compras'
+) {
+    const { data, error } = await supabase.rpc(
+        'definir_controle_recebimento_compra',
+        {
+            p_compra_id: compraId,
+            p_classificacao_operacional: classificacaoOperacional,
+            p_motivo: motivo,
+            p_origem: origem,
+        }
+    )
+
+    if (error) {
+        throw new Error(error.message)
+    }
+
+    return (data ?? []) as ControleRecebimentoResultado[]
 }
