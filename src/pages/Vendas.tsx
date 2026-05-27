@@ -754,8 +754,8 @@ export function Vendas() {
         saldoInsuficiente
 
     return (
-        <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+        <div className="mx-auto w-full max-w-full space-y-6">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <p className="text-sm uppercase tracking-widest text-cyan-400">
                     Módulo
                 </p>
@@ -771,7 +771,7 @@ export function Vendas() {
 
             <form
                 onSubmit={enviarVenda}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg"
+                className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6"
             >
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold">
@@ -783,7 +783,7 @@ export function Vendas() {
                     </p>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 lg:grid-cols-2">
                     <div>
                         <label className="mb-2 block text-sm text-slate-300">
                             Canal de venda *
@@ -1056,7 +1056,7 @@ export function Vendas() {
 
             <form
                 onSubmit={enviarItemVenda}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg"
+                className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6"
             >
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold">
@@ -1068,7 +1068,7 @@ export function Vendas() {
                     </p>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 lg:grid-cols-2">
                     <div>
                         <label className="mb-2 block text-sm text-slate-300">
                             Venda *
@@ -1085,7 +1085,7 @@ export function Vendas() {
 
                             {vendas.map((venda) => (
                                 <option key={venda.venda_id} value={venda.venda_id}>
-                                    {venda.numero_pedido ?? 'Venda sem número'} — {venda.canal_venda_nome ?? '-'}
+                                    {venda.numero_pedido ?? 'Venda sem número'} — <span className="block max-w-[140px]">{venda.canal_venda_nome ?? '-'}</span>
                                 </option>
                             ))}
                         </select>
@@ -1126,7 +1126,7 @@ export function Vendas() {
                                     </p>
                                 </div>
 
-                                <div className="grid gap-2 text-sm md:grid-cols-3">
+                                <div className="grid gap-2 text-sm lg:grid-cols-3">
                                     <div className="rounded-lg bg-slate-900 px-3 py-2">
                                         <p className="text-slate-500">Local de saída</p>
                                         <p className="text-slate-200">
@@ -1174,7 +1174,7 @@ export function Vendas() {
                         </div>
 
                         {saldoPodeSerExibido ? (
-                            <div className="mt-4 grid gap-3 text-sm md:grid-cols-5">
+                            <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-5">
                                 <div className="rounded-lg bg-slate-950/70 p-3">
                                     <p className="text-slate-500">Produto</p>
                                     <p className="mt-1 text-slate-200">
@@ -1434,29 +1434,29 @@ export function Vendas() {
                 </div>
             </form>
 
-            <div className="grid gap-4 md:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">Vendas encontradas</p>
                     <p className="mt-3 text-3xl font-bold">{vendas.length}</p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">Unidades vendidas</p>
                     <p className="mt-3 text-3xl font-bold">{quantidadeTotalVendida}</p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">Receita líquida</p>
                     <p className="mt-3 text-3xl font-bold">{formatarMoeda(receitaLiquida)}</p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">Lucro estimado</p>
                     <p className="mt-3 text-3xl font-bold">{formatarMoeda(lucroEstimado)}</p>
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <p className="text-sm text-slate-400">Status da consulta:</p>
 
                 <p
@@ -1474,7 +1474,7 @@ export function Vendas() {
                 <p className="mt-3 text-slate-300">{mensagem}</p>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">Itens das vendas</h2>
 
@@ -1490,19 +1490,19 @@ export function Vendas() {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
-                        <table className="w-full min-w-[1200px] border-collapse text-left text-sm">
+                    <div className="max-w-full overflow-x-auto rounded-xl border border-slate-700">
+                        <table className="w-full min-w-[1040px] border-collapse text-left text-xs sm:text-sm">
                             <thead className="bg-slate-950 text-slate-400">
                                 <tr>
-                                    <th className="px-4 py-3 font-medium">Venda</th>
-                                    <th className="px-4 py-3 font-medium">Produto</th>
-                                    <th className="px-4 py-3 font-medium">SKU</th>
-                                    <th className="px-4 py-3 font-medium">Qtd.</th>
-                                    <th className="px-4 py-3 font-medium">Baixado</th>
-                                    <th className="px-4 py-3 font-medium">Pendente</th>
-                                    <th className="px-4 py-3 font-medium">Valor unit.</th>
-                                    <th className="px-4 py-3 font-medium">Status</th>
-                                    <th className="px-4 py-3 font-medium">Ações</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Venda</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Produto</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">SKU</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Qtd.</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Baixado</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Pendente</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Valor unit.</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Status</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Ações</th>
                                 </tr>
                             </thead>
 
@@ -1524,35 +1524,35 @@ export function Vendas() {
                                                     : 'border-l-4 border-emerald-500/50 hover:bg-slate-800/60'
                                             }
                                         >
-                                            <td className="px-4 py-3 text-slate-100">
+                                            <td className="px-3 py-3 text-slate-100 sm:px-4">
                                                 {item.vendas?.numero_pedido ?? '-'}
                                             </td>
 
-                                            <td className="px-4 py-3 text-slate-300">
-                                                {item.produtos?.nome ?? item.produto_id}
+                                            <td className="px-3 py-3 text-slate-300 sm:px-4">
+                                                <span className="block max-w-[220px]">{item.produtos?.nome ?? item.produto_id}</span>
                                             </td>
 
-                                            <td className="px-4 py-3 text-slate-300">
-                                                {item.sku_vendido ?? item.produtos?.sku ?? '-'}
+                                            <td className="px-3 py-3 text-slate-300 sm:px-4">
+                                                <span className="block max-w-[150px] break-words">{item.sku_vendido ?? item.produtos?.sku ?? '-'}</span>
                                             </td>
 
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-3 text-slate-300 sm:px-4">
                                                 {item.quantidade}
                                             </td>
 
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-3 text-slate-300 sm:px-4">
                                                 {quantidadeConsumida}
                                             </td>
 
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-3 text-slate-300 sm:px-4">
                                                 {pendente}
                                             </td>
 
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-3 text-slate-300 sm:px-4">
                                                 {formatarMoeda(item.valor_unitario)}
                                             </td>
 
-                                            <td className="px-4 py-3">
+                                            <td className="px-3 py-3 sm:px-4">
                                                 <span
                                                     className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatus(
                                                         item.status
@@ -1562,12 +1562,12 @@ export function Vendas() {
                                                 </span>
                                             </td>
 
-                                            <td className="px-4 py-3">
+                                            <td className="px-3 py-3 sm:px-4">
                                                 <button
                                                     type="button"
                                                     disabled={!podeBaixar || baixandoVendaId === item.venda_id}
                                                     onClick={() => baixarVendaFIFO(item.venda_id)}
-                                                    className="rounded-lg border border-orange-500/40 px-3 py-2 text-xs font-semibold text-orange-300 hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-500"
+                                                    className="whitespace-nowrap rounded-lg border border-orange-500/40 px-3 py-2 text-xs font-semibold text-orange-300 hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-500"
                                                 >
                                                     {baixandoVendaId === item.venda_id
                                                         ? 'Baixando...'
@@ -1585,7 +1585,7 @@ export function Vendas() {
                 )}
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">Vendas encontradas</h2>
 
@@ -1601,71 +1601,71 @@ export function Vendas() {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
-                        <table className="w-full min-w-[1400px] border-collapse text-left text-sm">
+                    <div className="max-w-full overflow-x-auto rounded-xl border border-slate-700">
+                        <table className="w-full min-w-[1160px] border-collapse text-left text-xs sm:text-sm">
                             <thead className="bg-slate-950 text-slate-400">
                                 <tr>
-                                    <th className="px-4 py-3 font-medium">Pedido</th>
-                                    <th className="px-4 py-3 font-medium">Marketplace</th>
-                                    <th className="px-4 py-3 font-medium">Canal</th>
-                                    <th className="px-4 py-3 font-medium">Local saída</th>
-                                    <th className="px-4 py-3 font-medium">Data venda</th>
-                                    <th className="px-4 py-3 font-medium">Unidades</th>
-                                    <th className="px-4 py-3 font-medium">Receita líquida</th>
-                                    <th className="px-4 py-3 font-medium">Custos variáveis</th>
-                                    <th className="px-4 py-3 font-medium">Lucro</th>
-                                    <th className="px-4 py-3 font-medium">Margem</th>
-                                    <th className="px-4 py-3 font-medium">Status</th>
-                                    <th className="px-4 py-3 font-medium">Ações</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Pedido</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Marketplace</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Canal</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Local saída</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Data venda</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Unidades</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Receita líquida</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Custos variáveis</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Lucro</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Margem</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Status</th>
+                                    <th className="px-3 py-3 font-medium sm:px-4">Ações</th>
                                 </tr>
                             </thead>
 
                             <tbody className="divide-y divide-slate-800 bg-slate-900">
                                 {vendas.map((venda) => (
                                     <tr key={venda.venda_id} className="hover:bg-slate-800/60">
-                                        <td className="px-4 py-3 text-slate-100">
+                                        <td className="px-3 py-3 text-slate-100 sm:px-4">
                                             {venda.numero_pedido ?? '-'}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
-                                            {venda.numero_pedido_marketplace ?? '-'}
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
+                                            <span className="block max-w-[150px] break-words">{venda.numero_pedido_marketplace ?? '-'}</span>
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
-                                            {venda.canal_venda_nome ?? '-'}
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
+                                            <span className="block max-w-[140px]">{venda.canal_venda_nome ?? '-'}</span>
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
-                                            {venda.local_saida_nome ?? '-'}
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
+                                            <span className="block max-w-[140px]">{venda.local_saida_nome ?? '-'}</span>
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
                                             {formatarData(venda.data_venda)}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
                                             {venda.quantidade_total_unidades ?? 0}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
                                             {formatarMoeda(venda.receita_liquida_calculada)}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
                                             {formatarMoeda(venda.custos_variaveis_calculados)}
                                         </td>
 
-                                        <td className="px-4 py-3 font-semibold text-slate-100">
+                                        <td className="px-3 py-3 font-semibold text-slate-100 sm:px-4">
                                             {formatarMoeda(venda.lucro_estimado)}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
                                             {typeof venda.margem_percentual_estimada === 'number'
                                                 ? `${venda.margem_percentual_estimada.toFixed(2)}%`
                                                 : '-'}
                                         </td>
 
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 py-3 sm:px-4">
                                             <span
                                                 className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatus(
                                                     venda.status
@@ -1675,11 +1675,11 @@ export function Vendas() {
                                             </span>
                                         </td>
 
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 py-3 sm:px-4">
                                             <button
                                                 type="button"
                                                 onClick={() => selecionarVendaParaItem(venda.venda_id)}
-                                                className="rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10"
+                                                className="whitespace-nowrap rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10"
                                             >
                                                 Usar venda
                                             </button>
