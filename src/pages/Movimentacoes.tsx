@@ -347,8 +347,8 @@ export function Movimentacoes() {
     const carregando = status === 'carregando'
 
     return (
-        <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+        <div className="mx-auto w-full max-w-full space-y-6">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <p className="text-sm uppercase tracking-widest text-cyan-400">
                     Auditoria
                 </p>
@@ -384,7 +384,7 @@ export function Movimentacoes() {
             </div>
 
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:p-6">
                     <p className="text-sm text-slate-400">
                         Movimentações
                     </p>
@@ -398,7 +398,7 @@ export function Movimentacoes() {
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:p-6">
                     <p className="text-sm text-slate-400">
                         Entradas
                     </p>
@@ -412,7 +412,7 @@ export function Movimentacoes() {
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:p-6">
                     <p className="text-sm text-slate-400">
                         Saídas
                     </p>
@@ -426,7 +426,7 @@ export function Movimentacoes() {
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:p-6">
                     <p className="text-sm text-slate-400">
                         Transferências
                     </p>
@@ -441,7 +441,7 @@ export function Movimentacoes() {
                 </div>
             </section>
 
-            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold">
                         Filtros
@@ -452,8 +452,8 @@ export function Movimentacoes() {
                     </p>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-                    <div className="xl:col-span-2">
+                <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-6">
+                    <div className="md:col-span-2 2xl:col-span-2">
                         <label className="mb-2 block text-sm text-slate-300">
                             Buscar
                         </label>
@@ -566,7 +566,7 @@ export function Movimentacoes() {
                 </div>
             </section>
 
-            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h2 className="text-xl font-semibold">
@@ -588,19 +588,19 @@ export function Movimentacoes() {
                         Nenhuma movimentação encontrada com os filtros atuais.
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
-                        <table className="min-w-[1450px] w-full border-collapse text-left text-sm">
+                    <div className="max-w-full overflow-x-auto rounded-xl border border-slate-700">
+                        <table className="w-full min-w-[1180px] border-collapse text-left text-xs sm:text-sm">
                             <thead className="bg-slate-950 text-slate-300">
                                 <tr>
-                                    <th className="px-4 py-3">Data</th>
-                                    <th className="px-4 py-3">Produto</th>
-                                    <th className="px-4 py-3">Tipo</th>
-                                    <th className="px-4 py-3">Direção</th>
-                                    <th className="px-4 py-3">Origem</th>
-                                    <th className="px-4 py-3">Destino</th>
-                                    <th className="px-4 py-3">Qtd.</th>
-                                    <th className="px-4 py-3">Documento</th>
-                                    <th className="px-4 py-3">Observações</th>
+                                    <th className="w-[130px] px-3 py-3 sm:px-4">Data</th>
+                                    <th className="w-[260px] px-3 py-3 sm:px-4">Produto</th>
+                                    <th className="w-[150px] px-3 py-3 sm:px-4">Tipo</th>
+                                    <th className="w-[130px] px-3 py-3 sm:px-4">Direção</th>
+                                    <th className="w-[150px] px-3 py-3 sm:px-4">Origem</th>
+                                    <th className="w-[150px] px-3 py-3 sm:px-4">Destino</th>
+                                    <th className="w-[80px] px-3 py-3 sm:px-4">Qtd.</th>
+                                    <th className="w-[150px] px-3 py-3 sm:px-4">Documento</th>
+                                    <th className="w-[240px] px-3 py-3 sm:px-4">Observações</th>
                                 </tr>
                             </thead>
 
@@ -610,15 +610,15 @@ export function Movimentacoes() {
                                         key={movimentacao.movimentacao_id}
                                         className="border-t border-slate-800 hover:bg-slate-800/40"
                                     >
-                                        <td className="px-4 py-4 align-top text-slate-300">
+                                        <td className="px-3 py-4 align-top sm:px-4 text-slate-300">
                                             {formatarDataHora(
                                                 movimentacao.data_movimentacao ??
                                                 movimentacao.created_at
                                             )}
                                         </td>
 
-                                        <td className="px-4 py-4 align-top">
-                                            <p className="font-semibold text-slate-100">
+                                        <td className="px-3 py-4 align-top sm:px-4">
+                                            <p className="max-w-[240px] font-semibold text-slate-100">
                                                 {movimentacao.produto_nome}
                                             </p>
 
@@ -635,7 +635,7 @@ export function Movimentacoes() {
                                             </p>
                                         </td>
 
-                                        <td className="px-4 py-4 align-top">
+                                        <td className="px-3 py-4 align-top sm:px-4">
                                             <span
                                                 className={`rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseTipo(
                                                     movimentacao.tipo
@@ -645,7 +645,7 @@ export function Movimentacoes() {
                                             </span>
                                         </td>
 
-                                        <td className="px-4 py-4 align-top">
+                                        <td className="px-3 py-4 align-top sm:px-4">
                                             <span
                                                 className={`rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseDirecao(
                                                     movimentacao.direcao_movimento
@@ -657,7 +657,7 @@ export function Movimentacoes() {
                                             </span>
                                         </td>
 
-                                        <td className="px-4 py-4 align-top">
+                                        <td className="px-3 py-4 align-top sm:px-4">
                                             <p className="text-slate-100">
                                                 {movimentacao.local_origem_nome ?? '-'}
                                             </p>
@@ -666,7 +666,7 @@ export function Movimentacoes() {
                                             </p>
                                         </td>
 
-                                        <td className="px-4 py-4 align-top">
+                                        <td className="px-3 py-4 align-top sm:px-4">
                                             <p className="text-slate-100">
                                                 {movimentacao.local_destino_nome ?? '-'}
                                             </p>
@@ -675,18 +675,18 @@ export function Movimentacoes() {
                                             </p>
                                         </td>
 
-                                        <td className="px-4 py-4 align-top text-lg font-bold text-cyan-300">
+                                        <td className="px-3 py-4 align-top sm:px-4 text-lg font-bold text-cyan-300">
                                             {formatarNumero(movimentacao.quantidade)}
                                         </td>
 
-                                        <td className="px-4 py-4 align-top">
-                                            <p className="font-mono text-xs text-slate-200">
+                                        <td className="px-3 py-4 align-top sm:px-4">
+                                            <p className="max-w-[150px] break-words font-mono text-xs text-slate-200">
                                                 {movimentacao.documento_origem ?? '-'}
                                             </p>
                                         </td>
 
-                                        <td className="px-4 py-4 align-top">
-                                            <p className="max-w-md text-slate-300">
+                                        <td className="px-3 py-4 align-top sm:px-4">
+                                            <p className="max-w-[240px] text-slate-300">
                                                 {movimentacao.observacoes ?? '-'}
                                             </p>
                                         </td>
@@ -698,7 +698,7 @@ export function Movimentacoes() {
                 )}
             </section>
 
-            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <p className="text-sm text-slate-400">
                     Status da consulta:
                 </p>
