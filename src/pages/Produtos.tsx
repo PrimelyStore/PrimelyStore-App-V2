@@ -462,15 +462,6 @@ export function Produtos() {
                     </div>
                 )}
 
-                <div className="mt-6 rounded-xl border border-slate-700 bg-slate-950 p-5">
-                    <p className="mb-3 text-sm text-slate-400">
-                        Retorno bruto do Supabase:
-                    </p>
-
-                    <pre className="max-h-80 overflow-auto rounded-lg bg-black p-4 text-xs text-slate-200">
-                        {JSON.stringify(produtos, null, 2)}
-                    </pre>
-                </div>
             </div>
         </div>
     )

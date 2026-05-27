@@ -1691,19 +1691,6 @@ export function Vendas() {
                     </div>
                 )}
 
-                <details className="mt-6 rounded-xl border border-slate-700 bg-slate-950 p-5">
-                    <summary className="cursor-pointer text-sm font-semibold text-slate-300">
-                        Ver retorno bruto do Supabase
-                    </summary>
-
-                    <p className="mt-3 text-xs text-slate-500">
-                        Área técnica para conferência durante o desenvolvimento. Em produção, este bloco pode ser removido.
-                    </p>
-
-                    <pre className="mt-4 max-h-80 overflow-auto rounded-lg bg-black p-4 text-xs text-slate-200">
-                        {JSON.stringify({ vendas, itensVendas }, null, 2)}
-                    </pre>
-                </details>
             </div>
         </div>
     )
