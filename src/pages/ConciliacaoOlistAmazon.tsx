@@ -457,7 +457,7 @@ export function ConciliacaoOlistAmazon() {
                         </p>
                     </div>
 
-                    <span className="w-fit rounded-full bg-slate-800 px-4 py-2 text-sm text-slate-300">
+                    <span className="w-fit inline-flex whitespace-nowrap items-center rounded-full bg-slate-800 px-4 py-2 text-sm text-slate-300">
                         Total filtrado: {itensFiltrados.length}
                     </span>
                 </div>
@@ -502,7 +502,7 @@ export function ConciliacaoOlistAmazon() {
                                     >
                                         <td className="px-4 py-4 align-top">
                                             <span
-                                                className={`rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseStatus(
+                                                className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseStatus(
                                                     item.status_conciliacao
                                                 )}`}
                                             >
@@ -588,11 +588,11 @@ export function ConciliacaoOlistAmazon() {
 
                                         <td className="px-4 py-4 align-top">
                                             {item.alerta_amazon_com_estoque_sem_olist ? (
-                                                <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-300">
+                                                <span className="inline-flex w-max whitespace-nowrap items-center rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-300">
                                                     Crítico
                                                 </span>
                                             ) : (
-                                                <span className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-300">
+                                                <span className="inline-flex w-max whitespace-nowrap items-center rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-300">
                                                     Normal
                                                 </span>
                                             )}

@@ -578,7 +578,7 @@ export function Movimentacoes() {
                         </p>
                     </div>
 
-                    <span className="w-fit rounded-full bg-slate-800 px-4 py-2 text-sm text-slate-300">
+                    <span className="w-fit inline-flex whitespace-nowrap items-center rounded-full bg-slate-800 px-4 py-2 text-sm text-slate-300">
                         Total filtrado: {movimentacoesFiltradas.length}
                     </span>
                 </div>
@@ -637,7 +637,7 @@ export function Movimentacoes() {
 
                                         <td className="px-3 py-4 align-top sm:px-4">
                                             <span
-                                                className={`rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseTipo(
+                                                className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseTipo(
                                                     movimentacao.tipo
                                                 )}`}
                                             >
@@ -647,7 +647,7 @@ export function Movimentacoes() {
 
                                         <td className="px-3 py-4 align-top sm:px-4">
                                             <span
-                                                className={`rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseDirecao(
+                                                className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseDirecao(
                                                     movimentacao.direcao_movimento
                                                 )}`}
                                             >

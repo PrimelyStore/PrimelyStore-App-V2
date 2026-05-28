@@ -639,7 +639,7 @@ export function Estoque() {
                         Saldos de estoque encontrados
                     </h2>
 
-                    <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                    <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
                         Total: {estoque.length}
                     </span>
                 </div>
@@ -700,7 +700,7 @@ export function Estoque() {
 
                                             <td className="px-3 py-3 sm:px-4">
                                                 <span
-                                                    className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseSaldo(
+                                                    className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseSaldo(
                                                         item.saldo_atual
                                                     )}`}
                                                 >
@@ -764,7 +764,7 @@ export function Estoque() {
                         Histórico de movimentações
                     </h2>
 
-                    <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                    <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
                         Últimas {movimentacoes.length}
                     </span>
                 </div>
@@ -814,7 +814,7 @@ export function Estoque() {
 
                                         <td className="px-3 py-3 sm:px-4">
                                             <span
-                                                className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseTipoMovimentacao(
+                                                className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseTipoMovimentacao(
                                                     movimento.tipo
                                                 )}`}
                                             >

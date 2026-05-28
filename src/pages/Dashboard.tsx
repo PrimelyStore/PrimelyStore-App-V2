@@ -398,7 +398,7 @@ export function Dashboard() {
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">Vendas pendentes de baixa FIFO</h2>
 
-                    <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                    <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
                         Total exibido: {vendasPendentesBaixa.length}
                     </span>
                 </div>
@@ -441,7 +441,7 @@ export function Dashboard() {
                                         </td>
 
                                         <td className="px-4 py-3">
-                                            <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${classeSeveridade(item.severidade)}`}>
+                                            <span className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${classeSeveridade(item.severidade)}`}>
                                                 {item.severidade ?? '-'}
                                             </span>
                                         </td>
@@ -507,7 +507,7 @@ export function Dashboard() {
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">Alertas operacionais</h2>
 
-                    <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                    <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
                         Total exibido: {alertas.length}
                     </span>
                 </div>
@@ -539,7 +539,7 @@ export function Dashboard() {
                                 {alertas.map((alerta, index) => (
                                     <tr key={`${alerta.tipo_alerta}-${alerta.produto_id}-${index}`} className="hover:bg-slate-800/60">
                                         <td className="px-4 py-3">
-                                            <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${classeSeveridade(alerta.severidade)}`}>
+                                            <span className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${classeSeveridade(alerta.severidade)}`}>
                                                 {alerta.severidade ?? '-'}
                                             </span>
                                         </td>
@@ -588,7 +588,7 @@ export function Dashboard() {
                     <div className="mb-4 flex items-center justify-between">
                         <h2 className="text-xl font-semibold">Compras recentes</h2>
 
-                        <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                        <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
                             Total: {compras.length}
                         </span>
                     </div>
@@ -620,7 +620,7 @@ export function Dashboard() {
                                             <td className="px-4 py-3 text-slate-300">{formatarNumero(compra.quantidade_total_unidades)}</td>
                                             <td className="px-4 py-3 text-slate-300">{formatarMoeda(compra.valor_total_estimado)}</td>
                                             <td className="px-4 py-3">
-                                                <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${classeStatus(compra.status)}`}>
+                                                <span className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${classeStatus(compra.status)}`}>
                                                     {compra.status ?? '-'}
                                                 </span>
                                             </td>
@@ -636,7 +636,7 @@ export function Dashboard() {
                     <div className="mb-4 flex items-center justify-between">
                         <h2 className="text-xl font-semibold">Vendas recentes</h2>
 
-                        <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                        <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
                             Total: {vendas.length}
                         </span>
                     </div>
@@ -670,7 +670,7 @@ export function Dashboard() {
                                             <td className="px-4 py-3 text-slate-300">{formatarMoeda(venda.receita_liquida_calculada)}</td>
                                             <td className="px-4 py-3 font-semibold text-slate-100">{formatarMoeda(venda.lucro_estimado)}</td>
                                             <td className="px-4 py-3">
-                                                <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${classeStatus(venda.status)}`}>
+                                                <span className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${classeStatus(venda.status)}`}>
                                                     {venda.status ?? '-'}
                                                 </span>
                                             </td>
@@ -687,7 +687,7 @@ export function Dashboard() {
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">Saldos de estoque</h2>
 
-                    <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                    <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
                         Total exibido: {estoque.length}
                     </span>
                 </div>

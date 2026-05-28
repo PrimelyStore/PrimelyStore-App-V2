@@ -1478,7 +1478,7 @@ export function Vendas() {
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">Itens das vendas</h2>
 
-                    <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                    <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
                         Total: {itensVendas.length}
                     </span>
                 </div>
@@ -1501,7 +1501,7 @@ export function Vendas() {
                                     <th className="px-3 py-3 font-medium sm:px-4">Baixado</th>
                                     <th className="px-3 py-3 font-medium sm:px-4">Pendente</th>
                                     <th className="px-3 py-3 font-medium sm:px-4">Valor unit.</th>
-                                    <th className="px-3 py-3 font-medium sm:px-4">Status</th>
+                                    <th className="w-[150px] px-3 py-3 font-medium sm:px-4">Status</th>
                                     <th className="px-3 py-3 font-medium sm:px-4">Ações</th>
                                 </tr>
                             </thead>
@@ -1554,7 +1554,7 @@ export function Vendas() {
 
                                             <td className="px-3 py-3 sm:px-4">
                                                 <span
-                                                    className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatus(
+                                                    className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatus(
                                                         item.status
                                                     )}`}
                                                 >
@@ -1589,7 +1589,7 @@ export function Vendas() {
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">Vendas encontradas</h2>
 
-                    <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                    <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
                         Total: {vendas.length}
                     </span>
                 </div>
@@ -1615,7 +1615,7 @@ export function Vendas() {
                                     <th className="px-3 py-3 font-medium sm:px-4">Custos variáveis</th>
                                     <th className="px-3 py-3 font-medium sm:px-4">Lucro</th>
                                     <th className="px-3 py-3 font-medium sm:px-4">Margem</th>
-                                    <th className="px-3 py-3 font-medium sm:px-4">Status</th>
+                                    <th className="w-[150px] px-3 py-3 font-medium sm:px-4">Status</th>
                                     <th className="px-3 py-3 font-medium sm:px-4">Ações</th>
                                 </tr>
                             </thead>
@@ -1667,7 +1667,7 @@ export function Vendas() {
 
                                         <td className="px-3 py-3 sm:px-4">
                                             <span
-                                                className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatus(
+                                                className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatus(
                                                     venda.status
                                                 )}`}
                                             >

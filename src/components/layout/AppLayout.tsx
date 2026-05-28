@@ -1,34 +1,38 @@
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router'
 import { useAuth } from '../../hooks/useAuth'
 
 const menuItems = [
-    { label: 'Dashboard', path: '/' },
-    { label: 'Produtos', path: '/produtos' },
-    { label: 'Fornecedores', path: '/fornecedores' },
-    { label: 'Compras', path: '/compras' },
-    { label: 'Vendas', path: '/vendas' },
-    { label: 'Estoque', path: '/estoque' },
-    { label: 'Amazon FBA', path: '/amazon-fba' },
+    { label: 'Dashboard', shortLabel: 'DB', path: '/' },
+    { label: 'Produtos', shortLabel: 'PR', path: '/produtos' },
+    { label: 'Fornecedores', shortLabel: 'FN', path: '/fornecedores' },
+    { label: 'Compras', shortLabel: 'CP', path: '/compras' },
+    { label: 'Vendas', shortLabel: 'VD', path: '/vendas' },
+    { label: 'Estoque', shortLabel: 'ES', path: '/estoque' },
+    { label: 'Amazon FBA', shortLabel: 'FBA', path: '/amazon-fba' },
     {
         label: 'Conciliação Olist x Amazon',
+        shortLabel: 'OA',
         path: '/conciliacao-olist-amazon',
     },
     {
         label: 'Conciliação Olist x Primely',
+        shortLabel: 'OP',
         path: '/conciliacao-olist-primely-estoque',
     },
     {
         label: 'Conciliação FBA 3 Pontas',
+        shortLabel: '3P',
         path: '/conciliacao-amazon-olist-primely-fba',
     },
-    { label: 'Lotes', path: '/lotes' },
-    { label: 'Movimentações', path: '/movimentacoes' },
-    { label: 'Alertas', path: '/alertas' },
+    { label: 'Lotes', shortLabel: 'LT', path: '/lotes' },
+    { label: 'Movimentações', shortLabel: 'MV', path: '/movimentacoes' },
+    { label: 'Alertas', shortLabel: 'AL', path: '/alertas' },
 ]
 
 function obterClasseLink(isActive: boolean, compacto = false) {
     const base = compacto
-        ? 'shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition'
+        ? 'flex shrink-0 items-center justify-center rounded-xl border px-3 py-2 text-xs font-semibold transition'
         : 'block rounded-xl px-4 py-3 text-sm font-semibold transition'
 
     if (isActive) {
@@ -42,6 +46,21 @@ export function AppLayout() {
     const { user, logout } = useAuth()
     const navigate = useNavigate()
 
+    const [menuRecolhido, setMenuRecolhido] = useState(() => {
+        if (typeof window === 'undefined') {
+            return false
+        }
+
+        return window.localStorage.getItem('primely.sidebar.recolhida') === 'true'
+    })
+
+    useEffect(() => {
+        window.localStorage.setItem(
+            'primely.sidebar.recolhida',
+            String(menuRecolhido),
+        )
+    }, [menuRecolhido])
+
     async function sair() {
         await logout()
         navigate('/login', { replace: true })
@@ -50,19 +69,45 @@ export function AppLayout() {
     return (
         <div className="min-h-dvh overflow-x-hidden bg-slate-950 text-slate-100">
             <div className="flex min-h-dvh w-full">
-                <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 border-r border-slate-800 bg-slate-900/95 p-5 lg:flex lg:flex-col">
-                    <div>
-                        <p className="text-xs uppercase tracking-[0.3em] text-cyan-400">
-                            Primely Store
-                        </p>
+                <aside
+                    className={`sticky top-0 hidden h-dvh shrink-0 border-r border-slate-800 bg-slate-900/95 transition-all duration-300 lg:flex lg:flex-col ${
+                        menuRecolhido ? 'w-20 p-3' : 'w-64 p-5'
+                    }`}
+                >
+                    <div
+                        className={`flex items-start gap-3 ${
+                            menuRecolhido ? 'justify-center' : 'justify-between'
+                        }`}
+                    >
+                        {!menuRecolhido ? (
+                            <div className="min-w-0">
+                                <p className="text-xs uppercase tracking-[0.3em] text-cyan-400">
+                                    Primely Store
+                                </p>
 
-                        <h1 className="mt-3 text-lg font-bold leading-tight">
-                            Agentes Primely Store
-                        </h1>
+                                <h1 className="mt-3 text-lg font-bold leading-tight">
+                                    Agentes Primely Store
+                                </h1>
 
-                        <p className="mt-2 text-xs text-slate-500">
-                            Operação Amazon FBA / FBM
-                        </p>
+                                <p className="mt-2 text-xs text-slate-500">
+                                    Operação Amazon FBA / FBM
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-sm font-bold text-cyan-300">
+                                PS
+                            </div>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={() => setMenuRecolhido((valor) => !valor)}
+                            className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:border-cyan-500/40 hover:text-cyan-300"
+                            title={menuRecolhido ? 'Expandir menu' : 'Recolher menu'}
+                            aria-label={menuRecolhido ? 'Expandir menu lateral' : 'Recolher menu lateral'}
+                        >
+                            {menuRecolhido ? '»' : '«'}
+                        </button>
                     </div>
 
                     <nav className="mt-8 flex-1 space-y-1 overflow-y-auto pr-1">
@@ -71,35 +116,49 @@ export function AppLayout() {
                                 key={item.path}
                                 to={item.path}
                                 end={item.path === '/'}
-                                className={({ isActive }) => obterClasseLink(isActive)}
+                                title={menuRecolhido ? item.label : undefined}
+                                className={({ isActive }) =>
+                                    obterClasseLink(isActive, menuRecolhido)
+                                }
                             >
-                                {item.label}
+                                {menuRecolhido ? item.shortLabel : item.label}
                             </NavLink>
                         ))}
                     </nav>
 
-                    <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-950 p-4">
-                        <p className="text-xs uppercase tracking-widest text-slate-500">
-                            Usuário logado
-                        </p>
+                    {!menuRecolhido ? (
+                        <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-950 p-4">
+                            <p className="text-xs uppercase tracking-widest text-slate-500">
+                                Usuário logado
+                            </p>
 
-                        <p className="mt-2 break-words text-sm text-slate-200">
-                            {user?.email ?? 'Usuário autenticado'}
-                        </p>
+                            <p className="mt-2 break-words text-sm text-slate-200">
+                                {user?.email ?? 'Usuário autenticado'}
+                            </p>
 
+                            <button
+                                type="button"
+                                onClick={sair}
+                                className="mt-4 w-full rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-500/20"
+                            >
+                                Sair
+                            </button>
+                        </div>
+                    ) : (
                         <button
                             type="button"
                             onClick={sair}
-                            className="mt-4 w-full rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-500/20"
+                            className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-2 py-3 text-xs font-semibold text-red-300 transition hover:bg-red-500/20"
+                            title={user?.email ?? 'Sair'}
                         >
                             Sair
                         </button>
-                    </div>
+                    )}
                 </aside>
 
-                <main className="flex min-h-dvh min-w-0 flex-1 flex-col">
+                <main className="flex min-h-dvh min-w-0 flex-1 flex-col overflow-x-hidden">
                     <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/95 px-3 py-4 shadow-lg shadow-black/10 backdrop-blur sm:px-5 lg:px-6 xl:px-8">
-                        <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4">
+                        <div className="flex w-full flex-col gap-4">
                             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                 <div className="min-w-0">
                                     <p className="text-xs text-slate-400 sm:text-sm">
@@ -141,7 +200,7 @@ export function AppLayout() {
                         </div>
                     </header>
 
-                    <section className="mx-auto w-full max-w-[1600px] min-w-0 flex-1 px-3 py-4 sm:px-5 lg:px-6 xl:px-8">
+                    <section className="w-full min-w-0 flex-1 px-3 py-4 sm:px-5 lg:px-6 xl:px-8 2xl:px-10">
                         <Outlet />
                     </section>
                 </main>

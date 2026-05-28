@@ -388,7 +388,7 @@ export function Produtos() {
                         Produtos encontrados
                     </h2>
 
-                    <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                    <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
                         Total: {produtos.length}
                     </span>
                 </div>

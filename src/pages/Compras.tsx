@@ -1599,7 +1599,7 @@ export function Compras() {
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-xl font-semibold">Itens das compras</h2>
 
-                    <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                    <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
                         Total: {itensCompras.length}
                     </span>
                 </div>
@@ -1654,16 +1654,16 @@ export function Compras() {
                     </p>
 
                     <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                        <span className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-yellow-300">
+                        <span className="inline-flex w-max whitespace-nowrap items-center rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-yellow-300">
                             Pendente: nada recebido
                         </span>
-                        <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-cyan-300">
+                        <span className="inline-flex w-max whitespace-nowrap items-center rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-cyan-300">
                             Parcial: parte recebida
                         </span>
-                        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-emerald-300">
+                        <span className="inline-flex w-max whitespace-nowrap items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-emerald-300">
                             Recebido: pendência zerada
                         </span>
-                        <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-red-300">
+                        <span className="inline-flex w-max whitespace-nowrap items-center rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-red-300">
                             Cancelado: item não deve ser recebido
                         </span>
                     </div>
@@ -1879,7 +1879,7 @@ export function Compras() {
                                             <td className="px-4 py-3">
                                                 <div className="flex flex-col gap-2">
                                                     <span
-                                                        className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatusRecebimento(
+                                                        className={`inline-flex w-fit whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatusRecebimento(
                                                             statusRecebimento
                                                         )}`}
                                                     >
@@ -1936,7 +1936,7 @@ export function Compras() {
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-xl font-semibold">Compras encontradas</h2>
 
-                    <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                    <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
                         Total: {compras.length}
                     </span>
                 </div>
@@ -2032,7 +2032,7 @@ export function Compras() {
                                         <td className="px-4 py-3">
                                             <div className="flex flex-col gap-2">
                                                 <span
-                                                    className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatus(
+                                                    className={`inline-flex w-fit whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatus(
                                                         compra.status
                                                     )}`}
                                                 >

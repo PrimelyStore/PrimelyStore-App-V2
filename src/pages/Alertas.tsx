@@ -329,7 +329,7 @@ export function Alertas() {
                         </p>
                     </div>
 
-                    <span className="w-fit rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                    <span className="w-fit inline-flex whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
                         Total: {vendasPendentes.length}
                     </span>
                 </div>
@@ -377,7 +377,7 @@ export function Alertas() {
 
                                         <td className="px-3 py-3 sm:px-4">
                                             <span
-                                                className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseSeveridade(
+                                                className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseSeveridade(
                                                     venda.severidade
                                                 )}`}
                                             >
@@ -412,7 +412,7 @@ export function Alertas() {
 
                                         <td className="px-3 py-3 sm:px-4">
                                             <span
-                                                className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseDecisao(
+                                                className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseDecisao(
                                                     venda.decisao
                                                 )}`}
                                             >
@@ -473,7 +473,7 @@ export function Alertas() {
                         Alertas operacionais
                     </h2>
 
-                    <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                    <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
                         Total: {alertas.length}
                     </span>
                 </div>
@@ -516,7 +516,7 @@ export function Alertas() {
 
                                         <td className="px-3 py-3 sm:px-4">
                                             <span
-                                                className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseSeveridade(
+                                                className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseSeveridade(
                                                     alerta.severidade
                                                 )}`}
                                             >
