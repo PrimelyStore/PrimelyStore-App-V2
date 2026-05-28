@@ -111,6 +111,8 @@ export function Fornecedores() {
         null
     )
 
+    const [mostrarFormulario, setMostrarFormulario] = useState(false)
+
     const [formulario, setFormulario] =
         useState<FormularioFornecedor>(formularioInicial)
 
@@ -153,11 +155,20 @@ export function Fornecedores() {
     function limparFormulario() {
         setFormulario(formularioInicial)
         setFornecedorEditandoId(null)
+        setMostrarFormulario(false)
+    }
+
+    function abrirFormularioCadastro() {
+        setFormulario(formularioInicial)
+        setFornecedorEditandoId(null)
+        setMostrarFormulario(true)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
     function iniciarEdicao(fornecedor: Fornecedor) {
         setFornecedorEditandoId(fornecedor.id)
         setFormulario(fornecedorParaFormulario(fornecedor))
+        setMostrarFormulario(true)
         setStatus('sucesso')
         setMensagem(`Editando o fornecedor: ${fornecedor.nome}`)
         window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -248,8 +259,9 @@ export function Fornecedores() {
                 description="Cadastro, edição e listagem dos fornecedores da operação."
             />
 
-            <AppCard>
-                <form onSubmit={enviarFormulario}>
+            {mostrarFormulario ? (
+                <AppCard>
+                    <form onSubmit={enviarFormulario}>
                 <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h2 className="text-xl font-semibold">
@@ -262,13 +274,13 @@ export function Fornecedores() {
                         </p>
                     </div>
 
-                    {estaEditando && (
+                    {mostrarFormulario && (
                         <button
                             type="button"
                             onClick={limparFormulario}
                             className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
                         >
-                            Cancelar edição
+                            {estaEditando ? 'Cancelar edição' : 'Cancelar cadastro'}
                         </button>
                     )}
                 </div>
@@ -508,8 +520,31 @@ export function Fornecedores() {
                                 : 'Cadastrar fornecedor'}
                     </button>
                 </div>
-                </form>
-            </AppCard>
+                    </form>
+                </AppCard>
+            ) : (
+                <AppCard>
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h2 className="text-xl font-semibold">
+                                Fornecedores
+                            </h2>
+
+                            <p className="mt-2 text-sm text-slate-400">
+                                O formulário fica fechado para manter a tela mais limpa. Clique no botão para cadastrar um novo fornecedor.
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={abrirFormularioCadastro}
+                            className="w-full rounded-xl bg-cyan-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 md:w-auto"
+                        >
+                            Cadastrar novo fornecedor
+                        </button>
+                    </div>
+                </AppCard>
+            )}
 
             <AppCard>
                 <p className="text-sm text-slate-400">
