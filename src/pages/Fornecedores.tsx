@@ -6,7 +6,7 @@ import {
     type Fornecedor,
     type NovoFornecedor,
 } from '../services/fornecedoresService'
-import { AppCard, PageHeader } from '../components/ui'
+import { AppCard, DataTableContainer, PageHeader, stickyTableHeadClassName } from '../components/ui'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
 
@@ -551,9 +551,9 @@ export function Fornecedores() {
                         </p>
                     </div>
                 ) : (
-                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                    <DataTableContainer>
                         <table className="w-full min-w-[1040px] border-collapse text-left text-sm">
-                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
+                            <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Nome</th>
                                     <th className="px-4 py-3 font-medium">Fantasia</th>
@@ -622,7 +622,7 @@ export function Fornecedores() {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
 
             </AppCard>
