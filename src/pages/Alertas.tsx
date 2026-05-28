@@ -191,8 +191,8 @@ export function Alertas() {
     const unidadesPendentesFIFO = formatarQuantidade(resumoVendasPendentes?.total_unidades_pendentes)
 
     return (
-        <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+        <div className="mx-auto w-full max-w-full space-y-6">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <p className="text-sm uppercase tracking-widest text-cyan-400">
                     Módulo
                 </p>
@@ -207,30 +207,30 @@ export function Alertas() {
                 </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">Total de alertas</p>
                     <p className="mt-3 text-3xl font-bold">{totalAlertas}</p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">Alertas altos</p>
                     <p className="mt-3 text-3xl font-bold text-red-300">{alertasAltos}</p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">Alertas médios</p>
                     <p className="mt-3 text-3xl font-bold text-yellow-300">{alertasMedios}</p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">Alertas baixos</p>
                     <p className="mt-3 text-3xl font-bold text-emerald-300">{alertasBaixos}</p>
                 </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">Vendas pendentes FIFO</p>
                     <p className={`mt-3 text-3xl font-bold ${totalPendenciasFIFO > 0 ? 'text-yellow-300' : 'text-emerald-300'}`}>
                         {totalPendenciasFIFO}
@@ -238,7 +238,7 @@ export function Alertas() {
                     <p className="mt-3 text-xs text-slate-500">Vendas importadas sem baixa completa</p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">Estoque insuficiente</p>
                     <p className={`mt-3 text-3xl font-bold ${pendenciasEstoqueInsuficiente > 0 ? 'text-red-300' : 'text-slate-100'}`}>
                         {pendenciasEstoqueInsuficiente}
@@ -246,7 +246,7 @@ export function Alertas() {
                     <p className="mt-3 text-xs text-slate-500">Bloqueadas por falta de saldo</p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">Aptas para baixa</p>
                     <p className={`mt-3 text-3xl font-bold ${pendenciasAptasParaBaixa > 0 ? 'text-yellow-300' : 'text-slate-100'}`}>
                         {pendenciasAptasParaBaixa}
@@ -254,7 +254,7 @@ export function Alertas() {
                     <p className="mt-3 text-xs text-slate-500">Já têm saldo para baixar FIFO</p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">Unidades pendentes</p>
                     <p className="mt-3 text-3xl font-bold text-slate-100">{unidadesPendentesFIFO}</p>
                     <p className="mt-3 text-xs text-slate-500">
@@ -264,23 +264,23 @@ export function Alertas() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">Alertas de estoque</p>
                     <p className="mt-3 text-3xl font-bold">{formatarNumero(resumo?.alertas_estoque)}</p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">Alertas de produto</p>
                     <p className="mt-3 text-3xl font-bold">{formatarNumero(resumo?.alertas_produto)}</p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">Alertas de custo real</p>
                     <p className="mt-3 text-3xl font-bold">{formatarNumero(resumo?.alertas_custo_real)}</p>
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <p className="text-sm text-slate-400">
                     Status da consulta:
                 </p>
@@ -301,7 +301,7 @@ export function Alertas() {
                     {mensagem}
                 </p>
 
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div className="mt-4 grid gap-4 lg:grid-cols-2">
                     <div className="rounded-xl border border-slate-700 bg-slate-950 p-4">
                         <p className="text-sm text-slate-400">Status geral dos alertas:</p>
                         <p className="mt-2 font-semibold text-slate-100">
@@ -318,8 +318,8 @@ export function Alertas() {
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
-                <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+                <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <h2 className="text-xl font-semibold">
                             Vendas pendentes de baixa FIFO
@@ -344,18 +344,18 @@ export function Alertas() {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
-                        <table className="min-w-[1100px] w-full border-collapse text-left text-sm">
+                    <div className="max-w-full overflow-x-auto rounded-xl border border-slate-700">
+                        <table className="w-full min-w-[980px] border-collapse text-left text-xs sm:text-sm">
                             <thead className="bg-slate-950 text-slate-400">
                                 <tr>
-                                    <th className="px-4 py-3 font-medium">Pedido</th>
-                                    <th className="px-4 py-3 font-medium">Severidade</th>
-                                    <th className="px-4 py-3 font-medium">Produto</th>
-                                    <th className="px-4 py-3 font-medium">Canal / Local</th>
-                                    <th className="px-4 py-3 font-medium">Pendente</th>
-                                    <th className="px-4 py-3 font-medium">Saldo</th>
-                                    <th className="px-4 py-3 font-medium">Decisão</th>
-                                    <th className="px-4 py-3 font-medium">Descrição</th>
+                                    <th className="w-[150px] px-3 py-3 font-medium sm:px-4">Pedido</th>
+                                    <th className="w-[120px] px-3 py-3 font-medium sm:px-4">Severidade</th>
+                                    <th className="w-[220px] px-3 py-3 font-medium sm:px-4">Produto</th>
+                                    <th className="w-[180px] px-3 py-3 font-medium sm:px-4">Canal / Local</th>
+                                    <th className="w-[90px] px-3 py-3 font-medium sm:px-4">Pendente</th>
+                                    <th className="w-[80px] px-3 py-3 font-medium sm:px-4">Saldo</th>
+                                    <th className="w-[150px] px-3 py-3 font-medium sm:px-4">Decisão</th>
+                                    <th className="w-[240px] px-3 py-3 font-medium sm:px-4">Descrição</th>
                                 </tr>
                             </thead>
 
@@ -365,7 +365,7 @@ export function Alertas() {
                                         key={`${venda.venda_id}-${venda.produto_id ?? venda.sku_vendido}`}
                                         className="hover:bg-slate-800/60"
                                     >
-                                        <td className="px-4 py-3 text-slate-100">
+                                        <td className="px-3 py-3 text-slate-100 sm:px-4">
                                             <div className="font-semibold">{venda.numero_pedido ?? '-'}</div>
                                             <div className="mt-1 text-xs text-slate-500">
                                                 Marketplace: {venda.numero_pedido_marketplace ?? '-'}
@@ -375,7 +375,7 @@ export function Alertas() {
                                             </div>
                                         </td>
 
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 py-3 sm:px-4">
                                             <span
                                                 className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseSeveridade(
                                                     venda.severidade
@@ -385,15 +385,15 @@ export function Alertas() {
                                             </span>
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-100">
-                                            <div>{venda.produto_nome ?? '-'}</div>
+                                        <td className="px-3 py-3 text-slate-100 sm:px-4">
+                                            <div className="max-w-[220px]">{venda.produto_nome ?? '-'}</div>
                                             <div className="mt-1 text-xs text-slate-500">
                                                 SKU: {venda.sku_vendido ?? '-'}
                                             </div>
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
-                                            <div>{venda.canal_venda_nome ?? '-'}</div>
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
+                                            <div className="max-w-[180px]">{venda.canal_venda_nome ?? '-'}</div>
                                             <div className="mt-1 text-xs text-slate-500">
                                                 Local: {venda.local_saida_nome ?? '-'}
                                             </div>
@@ -402,15 +402,15 @@ export function Alertas() {
                                             </div>
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
                                             {formatarQuantidade(venda.quantidade_pendente_baixa)}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
                                             {formatarQuantidade(venda.saldo_atual)}
                                         </td>
 
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 py-3 sm:px-4">
                                             <span
                                                 className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseDecisao(
                                                     venda.decisao
@@ -420,7 +420,7 @@ export function Alertas() {
                                             </span>
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="max-w-[260px] px-3 py-3 text-slate-300 sm:px-4">
                                             {venda.descricao_alerta ?? venda.olist_mensagem_erro ?? '-'}
                                         </td>
                                     </tr>
@@ -431,7 +431,7 @@ export function Alertas() {
                 )}
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <h2 className="text-xl font-semibold">
                     Resumo por tipo de alerta
                 </h2>
@@ -467,8 +467,8 @@ export function Alertas() {
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
-                <div className="mb-4 flex items-center justify-between">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-xl font-semibold">
                         Alertas operacionais
                     </h2>
@@ -485,18 +485,18 @@ export function Alertas() {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
-                        <table className="min-w-[1100px] w-full border-collapse text-left text-sm">
+                    <div className="max-w-full overflow-x-auto rounded-xl border border-slate-700">
+                        <table className="w-full min-w-[980px] border-collapse text-left text-xs sm:text-sm">
                             <thead className="bg-slate-950 text-slate-400">
                                 <tr>
-                                    <th className="px-4 py-3 font-medium">Categoria</th>
-                                    <th className="px-4 py-3 font-medium">Tipo</th>
-                                    <th className="px-4 py-3 font-medium">Severidade</th>
-                                    <th className="px-4 py-3 font-medium">Produto</th>
-                                    <th className="px-4 py-3 font-medium">Local</th>
-                                    <th className="px-4 py-3 font-medium">Lucro</th>
-                                    <th className="px-4 py-3 font-medium">Margem</th>
-                                    <th className="px-4 py-3 font-medium">Descrição</th>
+                                    <th className="w-[150px] px-3 py-3 font-medium sm:px-4">Categoria</th>
+                                    <th className="w-[170px] px-3 py-3 font-medium sm:px-4">Tipo</th>
+                                    <th className="w-[120px] px-3 py-3 font-medium sm:px-4">Severidade</th>
+                                    <th className="w-[240px] px-3 py-3 font-medium sm:px-4">Produto</th>
+                                    <th className="w-[160px] px-3 py-3 font-medium sm:px-4">Local</th>
+                                    <th className="w-[100px] px-3 py-3 font-medium sm:px-4">Lucro</th>
+                                    <th className="w-[100px] px-3 py-3 font-medium sm:px-4">Margem</th>
+                                    <th className="w-[260px] px-3 py-3 font-medium sm:px-4">Descrição</th>
                                 </tr>
                             </thead>
 
@@ -506,15 +506,15 @@ export function Alertas() {
                                         key={`${alerta.tipo_alerta ?? 'alerta'}-${index}`}
                                         className="hover:bg-slate-800/60"
                                     >
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
                                             {alerta.categoria_alerta ?? '-'}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
                                             {alerta.tipo_alerta ?? '-'}
                                         </td>
 
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 py-3 sm:px-4">
                                             <span
                                                 className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseSeveridade(
                                                     alerta.severidade
@@ -524,26 +524,26 @@ export function Alertas() {
                                             </span>
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-100">
-                                            <div>{alerta.produto_nome ?? alerta.produto_id ?? '-'}</div>
+                                        <td className="px-3 py-3 text-slate-100 sm:px-4">
+                                            <div className="max-w-[240px]">{alerta.produto_nome ?? alerta.produto_id ?? '-'}</div>
                                             <div className="mt-1 text-xs text-slate-500">
                                                 SKU: {alerta.produto_sku ?? '-'} | ASIN: {alerta.produto_asin ?? '-'}
                                             </div>
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="max-w-[160px] px-3 py-3 text-slate-300 sm:px-4">
                                             {alerta.local_estoque_nome ?? alerta.canal_venda_nome ?? '-'}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
                                             {formatarMoeda(alerta.lucro_real)}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
                                             {formatarPercentual(alerta.margem_real_percentual)}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="max-w-[260px] px-3 py-3 text-slate-300 sm:px-4">
                                             {alerta.descricao_alerta ?? '-'}
                                         </td>
                                     </tr>
