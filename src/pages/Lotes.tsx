@@ -3,8 +3,24 @@ import {
     buscarLotesEstoqueDetalhados,
     type EstoqueLoteDetalhado,
 } from '../services/estoqueService'
+import {
+    AppButton,
+    AppCard,
+    DataTableContainer,
+    PageHeader,
+    StatusBadge,
+    stickyTableHeadClassName,
+} from '../components/ui'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
+type StatusBadgeTone =
+    | 'default'
+    | 'success'
+    | 'warning'
+    | 'danger'
+    | 'info'
+    | 'purple'
+    | 'muted'
 
 type FiltrosLotes = {
     busca: string
@@ -55,36 +71,36 @@ function formatarData(data?: string | null) {
     return new Intl.DateTimeFormat('pt-BR').format(dataConvertida)
 }
 
-function obterClasseStatus(status?: string | null) {
+function obterTomStatus(status?: string | null): StatusBadgeTone {
     const valor = status?.toLowerCase() ?? ''
 
     if (valor === 'ativo') {
-        return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+        return 'success'
     }
 
     if (valor === 'consumido') {
-        return 'border-slate-700 bg-slate-800 text-slate-300'
+        return 'muted'
     }
 
     if (valor === 'cancelado') {
-        return 'border-red-500/30 bg-red-500/10 text-red-300'
+        return 'danger'
     }
 
-    return 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300'
+    return 'warning'
 }
 
-function obterClasseTipo(tipo?: string | null) {
+function obterTomTipo(tipo?: string | null): StatusBadgeTone {
     const valor = tipo?.toLowerCase() ?? ''
 
     if (valor === 'compra') {
-        return 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300'
+        return 'info'
     }
 
     if (valor === 'transferencia') {
-        return 'border-purple-500/30 bg-purple-500/10 text-purple-300'
+        return 'purple'
     }
 
-    return 'border-slate-700 bg-slate-800 text-slate-300'
+    return 'muted'
 }
 
 function normalizarTexto(valor?: string | null) {
@@ -272,43 +288,35 @@ export function Lotes() {
 
     return (
         <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
-                <p className="text-sm uppercase tracking-widest text-cyan-400">
-                    Estoque
-                </p>
+            <PageHeader
+                tag="Estoque"
+                title="Lotes detalhados"
+                description="Visualização dos lotes gerados por compras e transferências FIFO. Use esta tela para conferir saldo por lote, custo, origem, local e status do estoque."
+            />
 
-                <h1 className="mt-3 text-3xl font-bold">
-                    Lotes detalhados
-                </h1>
-
-                <p className="mt-4 max-w-4xl text-slate-300">
-                    Visualização dos lotes gerados por compras e transferências FIFO.
-                    Use esta tela para conferir saldo por lote, custo, origem, local
-                    e status do estoque.
-                </p>
-
-                <div className="mt-6 flex flex-wrap gap-3">
-                    <button
+            <AppCard>
+                <div className="flex flex-wrap gap-3">
+                    <AppButton
                         type="button"
+                        variant="primary"
                         onClick={carregarLotes}
                         disabled={carregando}
-                        className="rounded-xl bg-cyan-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {carregando ? 'Atualizando...' : 'Atualizar lotes'}
-                    </button>
+                    </AppButton>
 
-                    <button
+                    <AppButton
                         type="button"
+                        variant="secondary"
                         onClick={limparFiltros}
-                        className="rounded-xl border border-slate-700 px-5 py-3 font-semibold text-slate-200 transition hover:border-cyan-400 hover:text-cyan-300"
                     >
                         Limpar filtros
-                    </button>
+                    </AppButton>
                 </div>
-            </div>
+            </AppCard>
 
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Lotes encontrados
                     </p>
@@ -316,9 +324,9 @@ export function Lotes() {
                     <p className="mt-4 text-3xl font-bold">
                         {resumo.totalLotes}
                     </p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Unidades disponíveis
                     </p>
@@ -330,9 +338,9 @@ export function Lotes() {
                     <p className="mt-2 text-xs text-slate-500">
                         Inicial: {formatarNumero(resumo.quantidadeInicial)}
                     </p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Valor disponível
                     </p>
@@ -340,9 +348,9 @@ export function Lotes() {
                     <p className="mt-4 text-3xl font-bold text-cyan-300">
                         {formatarMoeda(resumo.valorTotalDisponivel)}
                     </p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Status dos lotes
                     </p>
@@ -376,10 +384,10 @@ export function Lotes() {
                             </p>
                         </div>
                     </div>
-                </div>
+                </AppCard>
             </section>
 
-            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <AppCard>
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold">
                         Filtros
@@ -490,9 +498,9 @@ export function Lotes() {
                         </select>
                     </div>
                 </div>
-            </section>
+            </AppCard>
 
-            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <AppCard>
                 <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h2 className="text-xl font-semibold">
@@ -514,9 +522,9 @@ export function Lotes() {
                         Nenhum lote encontrado com os filtros atuais.
                     </div>
                 ) : (
-                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                    <DataTableContainer>
                         <table className="min-w-[1500px] w-full border-collapse text-left text-sm">
-                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-300">
+                            <thead className={stickyTableHeadClassName}>
                                 <tr>
                                     <th className="px-4 py-3">Produto</th>
                                     <th className="px-4 py-3">Local</th>
@@ -616,23 +624,15 @@ export function Lotes() {
                                             </td>
 
                                             <td className="px-4 py-4 align-top">
-                                                <span
-                                                    className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseTipo(
-                                                        lote.tipo_lote
-                                                    )}`}
-                                                >
+                                                <StatusBadge tone={obterTomTipo(lote.tipo_lote)}>
                                                     {lote.tipo_lote ?? '-'}
-                                                </span>
+                                                </StatusBadge>
                                             </td>
 
                                             <td className="px-4 py-4 align-top">
-                                                <span
-                                                    className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseStatus(
-                                                        lote.status
-                                                    )}`}
-                                                >
+                                                <StatusBadge tone={obterTomStatus(lote.status)}>
                                                     {lote.status ?? '-'}
-                                                </span>
+                                                </StatusBadge>
                                             </td>
 
                                             <td className="px-4 py-4 align-top">
@@ -656,11 +656,11 @@ export function Lotes() {
                                 })}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
-            </section>
+            </AppCard>
 
-            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <AppCard>
                 <p className="text-sm text-slate-400">
                     Status da consulta:
                 </p>
@@ -680,7 +680,7 @@ export function Lotes() {
                 <p className="mt-4 text-slate-100">
                     {mensagem}
                 </p>
-            </section>
+            </AppCard>
         </div>
     )
 }
