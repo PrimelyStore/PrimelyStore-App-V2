@@ -6,7 +6,7 @@ import {
     type Fornecedor,
     type NovoFornecedor,
 } from '../services/fornecedoresService'
-import { PageHeader } from '../components/ui'
+import { AppCard, PageHeader } from '../components/ui'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
 
@@ -248,10 +248,8 @@ export function Fornecedores() {
                 description="Cadastro, edição e listagem dos fornecedores da operação."
             />
 
-            <form
-                onSubmit={enviarFormulario}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg"
-            >
+            <AppCard>
+                <form onSubmit={enviarFormulario}>
                 <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h2 className="text-xl font-semibold">
@@ -510,9 +508,10 @@ export function Fornecedores() {
                                 : 'Cadastrar fornecedor'}
                     </button>
                 </div>
-            </form>
+                </form>
+            </AppCard>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <AppCard>
                 <p className="text-sm text-slate-400">
                     Status da consulta:
                 </p>
@@ -532,9 +531,9 @@ export function Fornecedores() {
                 <p className="mt-3 text-slate-300">
                     {mensagem}
                 </p>
-            </div>
+            </AppCard>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <AppCard>
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">
                         Fornecedores encontrados
@@ -626,7 +625,7 @@ export function Fornecedores() {
                     </div>
                 )}
 
-            </div>
+            </AppCard>
         </div>
     )
 }
