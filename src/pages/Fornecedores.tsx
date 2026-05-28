@@ -6,7 +6,7 @@ import {
     type Fornecedor,
     type NovoFornecedor,
 } from '../services/fornecedoresService'
-import { AppCard, DataTableContainer, PageHeader, StatusBadge, stickyTableHeadClassName } from '../components/ui'
+import { AppButton, AppCard, DataTableContainer, PageHeader, StatusBadge, stickyTableHeadClassName } from '../components/ui'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
 
@@ -275,13 +275,14 @@ export function Fornecedores() {
                     </div>
 
                     {mostrarFormulario && (
-                        <button
+                        <AppButton
                             type="button"
+                            variant="secondary"
+                            size="sm"
                             onClick={limparFormulario}
-                            className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
                         >
                             {estaEditando ? 'Cancelar edição' : 'Cancelar cadastro'}
-                        </button>
+                        </AppButton>
                     )}
                 </div>
 
@@ -506,10 +507,10 @@ export function Fornecedores() {
                 </div>
 
                 <div className="mt-6 flex justify-end">
-                    <button
+                    <AppButton
                         type="submit"
+                        variant="primary"
                         disabled={salvando}
-                        className="rounded-xl bg-cyan-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {salvando
                             ? estaEditando
@@ -518,7 +519,7 @@ export function Fornecedores() {
                             : estaEditando
                                 ? 'Atualizar fornecedor'
                                 : 'Cadastrar fornecedor'}
-                    </button>
+                    </AppButton>
                 </div>
                     </form>
                 </AppCard>
@@ -535,13 +536,14 @@ export function Fornecedores() {
                             </p>
                         </div>
 
-                        <button
+                        <AppButton
                             type="button"
+                            variant="primary"
                             onClick={abrirFormularioCadastro}
-                            className="w-full rounded-xl bg-cyan-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 md:w-auto"
+                            className="w-full md:w-auto"
                         >
                             Cadastrar novo fornecedor
-                        </button>
+                        </AppButton>
                     </div>
                 </AppCard>
             )}
@@ -649,13 +651,14 @@ export function Fornecedores() {
                                         </td>
 
                                         <td className="px-4 py-3">
-                                            <button
+                                            <AppButton
                                                 type="button"
+                                                variant="secondary"
+                                                size="sm"
                                                 onClick={() => iniciarEdicao(fornecedor)}
-                                                className="rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10"
                                             >
                                                 Editar
-                                            </button>
+                                            </AppButton>
                                         </td>
                                     </tr>
                                 ))}
