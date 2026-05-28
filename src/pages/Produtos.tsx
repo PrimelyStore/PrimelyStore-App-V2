@@ -6,6 +6,14 @@ import {
     type NovoProduto,
     type Produto,
 } from '../services/produtosService'
+import {
+    AppButton,
+    AppCard,
+    DataTableContainer,
+    PageHeader,
+    StatusBadge,
+    stickyTableHeadClassName,
+} from '../components/ui'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
 
@@ -83,6 +91,7 @@ export function Produtos() {
     const [produtos, setProdutos] = useState<Produto[]>([])
     const [salvando, setSalvando] = useState(false)
     const [produtoEditandoId, setProdutoEditandoId] = useState<string | null>(null)
+    const [mostrarFormulario, setMostrarFormulario] = useState(false)
 
     const [formulario, setFormulario] =
         useState<FormularioProduto>(formularioInicial)
@@ -124,11 +133,20 @@ export function Produtos() {
     function limparFormulario() {
         setFormulario(formularioInicial)
         setProdutoEditandoId(null)
+        setMostrarFormulario(false)
+    }
+
+    function abrirFormularioCadastro() {
+        setFormulario(formularioInicial)
+        setProdutoEditandoId(null)
+        setMostrarFormulario(true)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
     function iniciarEdicao(produto: Produto) {
         setProdutoEditandoId(produto.id)
         setFormulario(produtoParaFormulario(produto))
+        setMostrarFormulario(true)
         setStatus('sucesso')
         setMensagem(`Editando o produto: ${produto.nome}`)
         window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -203,164 +221,179 @@ export function Produtos() {
 
     return (
         <div className="mx-auto w-full max-w-full space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
-                <p className="text-sm uppercase tracking-widest text-cyan-400">
-                    Módulo
-                </p>
+            <PageHeader
+                tag="MÓDULO"
+                title="Produtos"
+                description="Cadastro, edição e listagem dos produtos vendidos na operação."
+            />
 
-                <h1 className="mt-3 text-3xl font-bold">
-                    Produtos
-                </h1>
+            {mostrarFormulario ? (
+                <AppCard>
+                    <form onSubmit={enviarFormulario}>
+                        <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <h2 className="text-xl font-semibold">
+                                    {estaEditando ? 'Editar produto' : 'Cadastrar novo produto'}
+                                </h2>
 
-                <p className="mt-4 max-w-3xl text-slate-300">
-                    Cadastro, edição e listagem dos produtos vendidos na operação.
-                </p>
-            </div>
+                                <p className="mt-2 text-sm text-slate-400">
+                                    Campos obrigatórios: nome, SKU e status. O ASIN é opcional, mas se for preenchido precisa ter exatamente 10 caracteres.
+                                </p>
+                            </div>
 
-            <form
-                onSubmit={enviarFormulario}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6"
-            >
-                <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <h2 className="text-xl font-semibold">
-                            {estaEditando ? 'Editar produto' : 'Cadastrar novo produto'}
-                        </h2>
+                            <AppButton
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={limparFormulario}
+                            >
+                                {estaEditando ? 'Cancelar edição' : 'Cancelar cadastro'}
+                            </AppButton>
+                        </div>
 
-                        <p className="mt-2 text-sm text-slate-400">
-                            Campos obrigatórios: nome, SKU e status. O ASIN é opcional, mas se for preenchido precisa ter exatamente 10 caracteres.
-                        </p>
-                    </div>
+                        <div className="grid gap-4 lg:grid-cols-2">
+                            <div>
+                                <label className="mb-2 block text-sm text-slate-300">
+                                    Nome do produto *
+                                </label>
 
-                    {estaEditando && (
-                        <button
+                                <input
+                                    value={formulario.nome}
+                                    onChange={(event) => atualizarCampo('nome', event.target.value)}
+                                    placeholder="Ex: Vidro Novo Luxcar 100ml"
+                                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-sm text-slate-300">
+                                    SKU *
+                                </label>
+
+                                <input
+                                    value={formulario.sku}
+                                    onChange={(event) => atualizarCampo('sku', event.target.value)}
+                                    placeholder="Ex: LUX-VIDRO-NOVO-100ML"
+                                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-sm text-slate-300">
+                                    ASIN
+                                </label>
+
+                                <input
+                                    value={formulario.asin}
+                                    onChange={(event) =>
+                                        atualizarCampo('asin', event.target.value.toUpperCase())
+                                    }
+                                    placeholder="Ex: B08TDQWBR3"
+                                    maxLength={10}
+                                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-sm text-slate-300">
+                                    EAN
+                                </label>
+
+                                <input
+                                    value={formulario.ean}
+                                    onChange={(event) => atualizarCampo('ean', event.target.value)}
+                                    placeholder="Código de barras, se houver"
+                                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-sm text-slate-300">
+                                    Marca
+                                </label>
+
+                                <input
+                                    value={formulario.marca}
+                                    onChange={(event) => atualizarCampo('marca', event.target.value)}
+                                    placeholder="Ex: Luxcar"
+                                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-sm text-slate-300">
+                                    Categoria
+                                </label>
+
+                                <input
+                                    value={formulario.categoria}
+                                    onChange={(event) =>
+                                        atualizarCampo('categoria', event.target.value)
+                                    }
+                                    placeholder="Ex: Automotivo"
+                                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-sm text-slate-300">
+                                    Status *
+                                </label>
+
+                                <select
+                                    value={formulario.status}
+                                    onChange={(event) => atualizarCampo('status', event.target.value)}
+                                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                                >
+                                    <option value="ativo">ativo</option>
+                                    <option value="inativo">inativo</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex flex-col justify-end gap-3 sm:flex-row">
+                            <AppButton
+                                type="submit"
+                                variant="primary"
+                                disabled={salvando}
+                            >
+                                {salvando
+                                    ? estaEditando
+                                        ? 'Atualizando...'
+                                        : 'Cadastrando...'
+                                    : estaEditando
+                                        ? 'Atualizar produto'
+                                        : 'Cadastrar produto'}
+                            </AppButton>
+                        </div>
+                    </form>
+                </AppCard>
+            ) : (
+                <AppCard>
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h2 className="text-xl font-semibold">
+                                Produtos
+                            </h2>
+
+                            <p className="mt-2 text-sm text-slate-400">
+                                O formulário fica fechado para manter a tela mais limpa. Clique no botão para cadastrar um novo produto.
+                            </p>
+                        </div>
+
+                        <AppButton
                             type="button"
-                            onClick={limparFormulario}
-                            className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+                            variant="primary"
+                            onClick={abrirFormularioCadastro}
+                            className="w-full md:w-auto"
                         >
-                            Cancelar edição
-                        </button>
-                    )}
-                </div>
-
-                <div className="grid gap-4 lg:grid-cols-2">
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Nome do produto *
-                        </label>
-
-                        <input
-                            value={formulario.nome}
-                            onChange={(event) => atualizarCampo('nome', event.target.value)}
-                            placeholder="Ex: Vidro Novo Luxcar 100ml"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
+                            Cadastrar novo produto
+                        </AppButton>
                     </div>
+                </AppCard>
+            )}
 
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            SKU *
-                        </label>
-
-                        <input
-                            value={formulario.sku}
-                            onChange={(event) => atualizarCampo('sku', event.target.value)}
-                            placeholder="Ex: LUX-VIDRO-NOVO-100ML"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            ASIN
-                        </label>
-
-                        <input
-                            value={formulario.asin}
-                            onChange={(event) =>
-                                atualizarCampo('asin', event.target.value.toUpperCase())
-                            }
-                            placeholder="Ex: B08TDQWBR3"
-                            maxLength={10}
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            EAN
-                        </label>
-
-                        <input
-                            value={formulario.ean}
-                            onChange={(event) => atualizarCampo('ean', event.target.value)}
-                            placeholder="Código de barras, se houver"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Marca
-                        </label>
-
-                        <input
-                            value={formulario.marca}
-                            onChange={(event) => atualizarCampo('marca', event.target.value)}
-                            placeholder="Ex: Luxcar"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Categoria
-                        </label>
-
-                        <input
-                            value={formulario.categoria}
-                            onChange={(event) =>
-                                atualizarCampo('categoria', event.target.value)
-                            }
-                            placeholder="Ex: Automotivo"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Status *
-                        </label>
-
-                        <select
-                            value={formulario.status}
-                            onChange={(event) => atualizarCampo('status', event.target.value)}
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        >
-                            <option value="ativo">ativo</option>
-                            <option value="inativo">inativo</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div className="mt-6 flex flex-col justify-end gap-3 sm:flex-row">
-                    <button
-                        type="submit"
-                        disabled={salvando}
-                        className="rounded-xl bg-cyan-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        {salvando
-                            ? estaEditando
-                                ? 'Atualizando...'
-                                : 'Cadastrando...'
-                            : estaEditando
-                                ? 'Atualizar produto'
-                                : 'Cadastrar produto'}
-                    </button>
-                </div>
-            </form>
-
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+            <AppCard>
                 <p className="text-sm text-slate-400">
                     Status da consulta:
                 </p>
@@ -380,9 +413,9 @@ export function Produtos() {
                 <p className="mt-3 text-slate-300">
                     {mensagem}
                 </p>
-            </div>
+            </AppCard>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+            <AppCard>
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">
                         Produtos encontrados
@@ -400,9 +433,9 @@ export function Produtos() {
                         </p>
                     </div>
                 ) : (
-                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                    <DataTableContainer>
                         <table className="w-full min-w-[880px] border-collapse text-left text-xs sm:text-sm">
-                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
+                            <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                 <tr>
                                     <th className="w-[260px] px-3 py-3 font-medium sm:px-4">Nome</th>
                                     <th className="w-[170px] px-3 py-3 font-medium sm:px-4">SKU</th>
@@ -443,26 +476,30 @@ export function Produtos() {
                                         </td>
 
                                         <td className="px-3 py-3 text-slate-300 sm:px-4">
-                                            {produto.status}
+                                            <StatusBadge
+                                                tone={produto.status === 'ativo' ? 'success' : 'muted'}
+                                            >
+                                                {produto.status}
+                                            </StatusBadge>
                                         </td>
 
                                         <td className="px-3 py-3 sm:px-4">
-                                            <button
+                                            <AppButton
                                                 type="button"
+                                                variant="secondary"
+                                                size="sm"
                                                 onClick={() => iniciarEdicao(produto)}
-                                                className="whitespace-nowrap rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10"
                                             >
                                                 Editar
-                                            </button>
+                                            </AppButton>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
-
-            </div>
+            </AppCard>
         </div>
     )
 }
