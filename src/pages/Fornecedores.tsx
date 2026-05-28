@@ -6,7 +6,7 @@ import {
     type Fornecedor,
     type NovoFornecedor,
 } from '../services/fornecedoresService'
-import { AppCard, DataTableContainer, PageHeader, stickyTableHeadClassName } from '../components/ui'
+import { AppCard, DataTableContainer, PageHeader, StatusBadge, stickyTableHeadClassName } from '../components/ui'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
 
@@ -606,7 +606,11 @@ export function Fornecedores() {
                                         </td>
 
                                         <td className="px-4 py-3 text-slate-300">
-                                            {fornecedor.status}
+                                            <StatusBadge
+                                                tone={fornecedor.status === 'ativo' ? 'success' : 'muted'}
+                                            >
+                                                {fornecedor.status}
+                                            </StatusBadge>
                                         </td>
 
                                         <td className="px-4 py-3">
