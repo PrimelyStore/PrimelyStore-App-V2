@@ -400,9 +400,9 @@ export function Produtos() {
                         </p>
                     </div>
                 ) : (
-                    <div className="max-w-full overflow-x-auto rounded-xl border border-slate-700">
+                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
                         <table className="w-full min-w-[880px] border-collapse text-left text-xs sm:text-sm">
-                            <thead className="bg-slate-950 text-slate-400">
+                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
                                 <tr>
                                     <th className="w-[260px] px-3 py-3 font-medium sm:px-4">Nome</th>
                                     <th className="w-[170px] px-3 py-3 font-medium sm:px-4">SKU</th>

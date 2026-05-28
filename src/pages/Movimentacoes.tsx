@@ -588,9 +588,9 @@ export function Movimentacoes() {
                         Nenhuma movimentação encontrada com os filtros atuais.
                     </div>
                 ) : (
-                    <div className="max-w-full overflow-x-auto rounded-xl border border-slate-700">
+                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
                         <table className="w-full min-w-[1180px] border-collapse text-left text-xs sm:text-sm">
-                            <thead className="bg-slate-950 text-slate-300">
+                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-300">
                                 <tr>
                                     <th className="w-[130px] px-3 py-3 sm:px-4">Data</th>
                                     <th className="w-[260px] px-3 py-3 sm:px-4">Produto</th>

@@ -514,9 +514,9 @@ export function Lotes() {
                         Nenhum lote encontrado com os filtros atuais.
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
+                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
                         <table className="min-w-[1500px] w-full border-collapse text-left text-sm">
-                            <thead className="bg-slate-950 text-slate-300">
+                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-300">
                                 <tr>
                                     <th className="px-4 py-3">Produto</th>
                                     <th className="px-4 py-3">Local</th>

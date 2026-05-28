@@ -413,9 +413,9 @@ export function Dashboard() {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
+                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
                         <table className="w-full min-w-[1200px] border-collapse text-left text-sm">
-                            <thead className="bg-slate-950 text-slate-400">
+                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Pedido</th>
                                     <th className="px-4 py-3 font-medium">Severidade</th>
@@ -519,9 +519,9 @@ export function Dashboard() {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
+                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
                         <table className="w-full min-w-[1200px] border-collapse text-left text-sm">
-                            <thead className="bg-slate-950 text-slate-400">
+                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Severidade</th>
                                     <th className="px-4 py-3 font-medium">Categoria</th>
@@ -598,9 +598,9 @@ export function Dashboard() {
                             Nenhuma compra recente encontrada.
                         </p>
                     ) : (
-                        <div className="overflow-x-auto rounded-xl border border-slate-700">
+                        <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
                             <table className="w-full min-w-[700px] border-collapse text-left text-sm">
-                                <thead className="bg-slate-950 text-slate-400">
+                                <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
                                     <tr>
                                         <th className="px-4 py-3 font-medium">Pedido</th>
                                         <th className="px-4 py-3 font-medium">Fornecedor</th>
@@ -646,9 +646,9 @@ export function Dashboard() {
                             Nenhuma venda recente encontrada.
                         </p>
                     ) : (
-                        <div className="overflow-x-auto rounded-xl border border-slate-700">
+                        <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
                             <table className="w-full min-w-[800px] border-collapse text-left text-sm">
-                                <thead className="bg-slate-950 text-slate-400">
+                                <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
                                     <tr>
                                         <th className="px-4 py-3 font-medium">Pedido</th>
                                         <th className="px-4 py-3 font-medium">Canal</th>
@@ -697,9 +697,9 @@ export function Dashboard() {
                         Nenhum saldo de estoque encontrado.
                     </p>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
+                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
                         <table className="w-full min-w-[900px] border-collapse text-left text-sm">
-                            <thead className="bg-slate-950 text-slate-400">
+                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Produto</th>
                                     <th className="px-4 py-3 font-medium">SKU</th>
