@@ -404,8 +404,8 @@ export function Estoque() {
     }).length
 
     return (
-        <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+        <div className="mx-auto w-full max-w-full space-y-6">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <p className="text-sm uppercase tracking-widest text-cyan-400">
                     Módulo
                 </p>
@@ -421,7 +421,7 @@ export function Estoque() {
 
             <form
                 onSubmit={enviarTransferencia}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg"
+                className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6"
             >
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold">
@@ -434,7 +434,7 @@ export function Estoque() {
                     </p>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 lg:grid-cols-2">
                     <div>
                         <label className="mb-2 block text-sm text-slate-300">
                             Produto *
@@ -558,7 +558,7 @@ export function Estoque() {
                     </div>
                 </div>
 
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex flex-col justify-end gap-3 sm:flex-row">
                     <button
                         type="submit"
                         disabled={transferindo}
@@ -569,8 +569,8 @@ export function Estoque() {
                 </div>
             </form>
 
-            <div className="grid gap-4 md:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">
                         Itens retornados
                     </p>
@@ -580,7 +580,7 @@ export function Estoque() {
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">
                         Quantidade total
                     </p>
@@ -590,7 +590,7 @@ export function Estoque() {
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">
                         Locais com saldo
                     </p>
@@ -600,7 +600,7 @@ export function Estoque() {
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">
                         Locais sem saldo
                     </p>
@@ -611,7 +611,7 @@ export function Estoque() {
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <p className="text-sm text-slate-400">
                     Status da consulta:
                 </p>
@@ -633,7 +633,7 @@ export function Estoque() {
                 </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">
                         Saldos de estoque encontrados
@@ -651,17 +651,17 @@ export function Estoque() {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
-                        <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+                    <div className="max-w-full overflow-x-auto rounded-xl border border-slate-700">
+                        <table className="w-full min-w-[860px] border-collapse text-left text-xs sm:text-sm">
                             <thead className="bg-slate-950 text-slate-400">
                                 <tr>
-                                    <th className="px-4 py-3 font-medium">Produto</th>
-                                    <th className="px-4 py-3 font-medium">SKU</th>
-                                    <th className="px-4 py-3 font-medium">ASIN</th>
-                                    <th className="px-4 py-3 font-medium">Local</th>
-                                    <th className="px-4 py-3 font-medium">Tipo do local</th>
-                                    <th className="px-4 py-3 font-medium">Saldo atual</th>
-                                    <th className="px-4 py-3 font-medium">Status</th>
+                                    <th className="w-[240px] px-3 py-3 font-medium sm:px-4">Produto</th>
+                                    <th className="w-[160px] px-3 py-3 font-medium sm:px-4">SKU</th>
+                                    <th className="w-[120px] px-3 py-3 font-medium sm:px-4">ASIN</th>
+                                    <th className="w-[150px] px-3 py-3 font-medium sm:px-4">Local</th>
+                                    <th className="w-[130px] px-3 py-3 font-medium sm:px-4">Tipo do local</th>
+                                    <th className="w-[100px] px-3 py-3 font-medium sm:px-4">Saldo atual</th>
+                                    <th className="w-[110px] px-3 py-3 font-medium sm:px-4">Status</th>
                                 </tr>
                             </thead>
 
@@ -674,31 +674,31 @@ export function Estoque() {
                                             key={`${item.produto_id}-${item.local_estoque_id}`}
                                             className="hover:bg-slate-800/60"
                                         >
-                                            <td className="px-4 py-3 text-slate-100">
+                                            <td className="max-w-[240px] px-3 py-3 font-medium text-slate-100 sm:px-4">
                                                 {item.produto_nome}
                                             </td>
 
-                                            <td className="px-4 py-3 text-slate-300">
-                                                {item.produto_sku ?? '-'}
+                                            <td className="max-w-[160px] px-3 py-3 text-slate-300 sm:px-4">
+                                                <span className="break-words">{item.produto_sku ?? '-'}</span>
                                             </td>
 
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-3 text-slate-300 sm:px-4">
                                                 {item.produto_asin ?? '-'}
                                             </td>
 
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="max-w-[150px] px-3 py-3 text-slate-300 sm:px-4">
                                                 {item.local_estoque_nome}
                                             </td>
 
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-3 text-slate-300 sm:px-4">
                                                 {item.local_estoque_tipo}
                                             </td>
 
-                                            <td className="px-4 py-3 font-semibold text-slate-100">
+                                            <td className="px-3 py-3 font-semibold text-slate-100 sm:px-4">
                                                 {saldo}
                                             </td>
 
-                                            <td className="px-4 py-3">
+                                            <td className="px-3 py-3 sm:px-4">
                                                 <span
                                                     className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseSaldo(
                                                         item.saldo_atual
@@ -716,8 +716,8 @@ export function Estoque() {
                 )}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">
                         Movimentações listadas
                     </p>
@@ -727,7 +727,7 @@ export function Estoque() {
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">
                         Entradas
                     </p>
@@ -737,7 +737,7 @@ export function Estoque() {
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">
                         Transferências
                     </p>
@@ -747,7 +747,7 @@ export function Estoque() {
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                     <p className="text-sm text-slate-400">
                         Saídas
                     </p>
@@ -758,7 +758,7 @@ export function Estoque() {
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">
                         Histórico de movimentações
@@ -776,19 +776,19 @@ export function Estoque() {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
-                        <table className="w-full min-w-[1400px] border-collapse text-left text-sm">
+                    <div className="max-w-full overflow-x-auto rounded-xl border border-slate-700">
+                        <table className="w-full min-w-[1160px] border-collapse text-left text-xs sm:text-sm">
                             <thead className="bg-slate-950 text-slate-400">
                                 <tr>
-                                    <th className="px-4 py-3 font-medium">Data</th>
-                                    <th className="px-4 py-3 font-medium">Produto</th>
-                                    <th className="px-4 py-3 font-medium">SKU</th>
-                                    <th className="px-4 py-3 font-medium">Tipo</th>
-                                    <th className="px-4 py-3 font-medium">Origem</th>
-                                    <th className="px-4 py-3 font-medium">Destino</th>
-                                    <th className="px-4 py-3 font-medium">Qtd.</th>
-                                    <th className="px-4 py-3 font-medium">Documento</th>
-                                    <th className="px-4 py-3 font-medium">Observações</th>
+                                    <th className="w-[130px] px-3 py-3 font-medium sm:px-4">Data</th>
+                                    <th className="w-[230px] px-3 py-3 font-medium sm:px-4">Produto</th>
+                                    <th className="w-[150px] px-3 py-3 font-medium sm:px-4">SKU</th>
+                                    <th className="w-[140px] px-3 py-3 font-medium sm:px-4">Tipo</th>
+                                    <th className="w-[140px] px-3 py-3 font-medium sm:px-4">Origem</th>
+                                    <th className="w-[140px] px-3 py-3 font-medium sm:px-4">Destino</th>
+                                    <th className="w-[80px] px-3 py-3 font-medium sm:px-4">Qtd.</th>
+                                    <th className="w-[140px] px-3 py-3 font-medium sm:px-4">Documento</th>
+                                    <th className="w-[230px] px-3 py-3 font-medium sm:px-4">Observações</th>
                                 </tr>
                             </thead>
 
@@ -798,21 +798,21 @@ export function Estoque() {
                                         key={movimento.movimentacao_id}
                                         className="hover:bg-slate-800/60"
                                     >
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="px-3 py-3 text-slate-300 sm:px-4">
                                             {formatarDataHora(
                                                 movimento.data_movimentacao ?? movimento.created_at
                                             )}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-100">
+                                        <td className="max-w-[230px] px-3 py-3 font-medium text-slate-100 sm:px-4">
                                             {movimento.produto_nome}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
-                                            {movimento.produto_sku ?? '-'}
+                                        <td className="max-w-[150px] px-3 py-3 text-slate-300 sm:px-4">
+                                            <span className="break-words">{movimento.produto_sku ?? '-'}</span>
                                         </td>
 
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 py-3 sm:px-4">
                                             <span
                                                 className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${obterClasseTipoMovimentacao(
                                                     movimento.tipo
@@ -822,23 +822,23 @@ export function Estoque() {
                                             </span>
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="max-w-[140px] px-3 py-3 text-slate-300 sm:px-4">
                                             {movimento.local_origem_nome ?? '-'}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="max-w-[140px] px-3 py-3 text-slate-300 sm:px-4">
                                             {movimento.local_destino_nome ?? '-'}
                                         </td>
 
-                                        <td className="px-4 py-3 font-semibold text-slate-100">
+                                        <td className="px-3 py-3 font-semibold text-slate-100 sm:px-4">
                                             {movimento.quantidade}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
-                                            {movimento.documento_origem ?? '-'}
+                                        <td className="max-w-[140px] px-3 py-3 text-slate-300 sm:px-4">
+                                            <span className="break-words">{movimento.documento_origem ?? '-'}</span>
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
+                                        <td className="max-w-[230px] px-3 py-3 text-slate-300 sm:px-4">
                                             {movimento.observacoes ?? '-'}
                                         </td>
                                     </tr>
