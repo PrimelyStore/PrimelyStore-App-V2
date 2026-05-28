@@ -6,6 +6,7 @@ import {
     type Fornecedor,
     type NovoFornecedor,
 } from '../services/fornecedoresService'
+import { PageHeader } from '../components/ui'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
 
@@ -241,19 +242,11 @@ export function Fornecedores() {
 
     return (
         <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
-                <p className="text-sm uppercase tracking-widest text-cyan-400">
-                    Módulo
-                </p>
-
-                <h1 className="mt-3 text-3xl font-bold">
-                    Fornecedores
-                </h1>
-
-                <p className="mt-4 max-w-3xl text-slate-300">
-                    Cadastro, edição e listagem dos fornecedores da operação.
-                </p>
-            </div>
+            <PageHeader
+                tag="MÓDULO"
+                title="Fornecedores"
+                description="Cadastro, edição e listagem dos fornecedores da operação."
+            />
 
             <form
                 onSubmit={enviarFormulario}
