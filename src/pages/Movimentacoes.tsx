@@ -3,8 +3,24 @@ import {
     buscarMovimentacoesEstoque,
     type MovimentacaoEstoqueDetalhada,
 } from '../services/estoqueService'
+import {
+    AppButton,
+    AppCard,
+    DataTableContainer,
+    PageHeader,
+    StatusBadge,
+    stickyTableHeadClassName,
+} from '../components/ui'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
+type StatusBadgeTone =
+    | 'default'
+    | 'success'
+    | 'warning'
+    | 'danger'
+    | 'info'
+    | 'purple'
+    | 'muted'
 
 type FiltrosMovimentacoes = {
     busca: string
@@ -56,40 +72,40 @@ function normalizarTexto(valor?: string | null) {
         .replace(/[\u0300-\u036f]/g, '')
 }
 
-function obterClasseDirecao(direcao?: string | null) {
+function obterTomDirecao(direcao?: string | null): StatusBadgeTone {
     const valor = direcao?.toLowerCase() ?? ''
 
     if (valor === 'entrada') {
-        return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+        return 'success'
     }
 
     if (valor === 'saida') {
-        return 'border-red-500/30 bg-red-500/10 text-red-300'
+        return 'danger'
     }
 
     if (valor === 'transferencia') {
-        return 'border-purple-500/30 bg-purple-500/10 text-purple-300'
+        return 'purple'
     }
 
-    return 'border-slate-700 bg-slate-800 text-slate-300'
+    return 'muted'
 }
 
-function obterClasseTipo(tipo?: string | null) {
+function obterTomTipo(tipo?: string | null): StatusBadgeTone {
     const valor = tipo?.toLowerCase() ?? ''
 
     if (valor === 'compra_entrada') {
-        return 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300'
+        return 'info'
     }
 
     if (valor === 'venda_saida') {
-        return 'border-orange-500/30 bg-orange-500/10 text-orange-300'
+        return 'warning'
     }
 
     if (valor === 'transferencia') {
-        return 'border-purple-500/30 bg-purple-500/10 text-purple-300'
+        return 'purple'
     }
 
-    return 'border-slate-700 bg-slate-800 text-slate-300'
+    return 'muted'
 }
 
 function obterLabelTipo(tipo?: string | null) {
@@ -348,43 +364,35 @@ export function Movimentacoes() {
 
     return (
         <div className="mx-auto w-full max-w-full space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
-                <p className="text-sm uppercase tracking-widest text-cyan-400">
-                    Auditoria
-                </p>
+            <PageHeader
+                tag="Auditoria"
+                title="Movimentações de estoque"
+                description="Tela própria para consultar entradas, saídas e transferências de estoque. Use esta visão para auditoria do FIFO, compras, vendas e movimentações entre locais."
+            />
 
-                <h1 className="mt-3 text-3xl font-bold">
-                    Movimentações de estoque
-                </h1>
-
-                <p className="mt-4 max-w-4xl text-slate-300">
-                    Tela própria para consultar entradas, saídas e transferências
-                    de estoque. Use esta visão para auditoria do FIFO, compras,
-                    vendas e movimentações entre locais.
-                </p>
-
-                <div className="mt-6 flex flex-wrap gap-3">
-                    <button
+            <AppCard>
+                <div className="flex flex-wrap gap-3">
+                    <AppButton
                         type="button"
+                        variant="primary"
                         onClick={carregarMovimentacoes}
                         disabled={carregando}
-                        className="rounded-xl bg-cyan-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {carregando ? 'Atualizando...' : 'Atualizar movimentações'}
-                    </button>
+                    </AppButton>
 
-                    <button
+                    <AppButton
                         type="button"
+                        variant="secondary"
                         onClick={limparFiltros}
-                        className="rounded-xl border border-slate-700 px-5 py-3 font-semibold text-slate-200 transition hover:border-cyan-400 hover:text-cyan-300"
                     >
                         Limpar filtros
-                    </button>
+                    </AppButton>
                 </div>
-            </div>
+            </AppCard>
 
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Movimentações
                     </p>
@@ -396,9 +404,9 @@ export function Movimentacoes() {
                     <p className="mt-2 text-xs text-slate-500">
                         Unidades movimentadas: {formatarNumero(resumo.totalUnidades)}
                     </p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Entradas
                     </p>
@@ -410,9 +418,9 @@ export function Movimentacoes() {
                     <p className="mt-2 text-xs text-slate-500">
                         Unidades: {formatarNumero(resumo.unidadesEntrada)}
                     </p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Saídas
                     </p>
@@ -424,9 +432,9 @@ export function Movimentacoes() {
                     <p className="mt-2 text-xs text-slate-500">
                         Unidades: {formatarNumero(resumo.unidadesSaida)}
                     </p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Transferências
                     </p>
@@ -438,10 +446,10 @@ export function Movimentacoes() {
                     <p className="mt-2 text-xs text-slate-500">
                         Unidades: {formatarNumero(resumo.unidadesTransferencia)}
                     </p>
-                </div>
+                </AppCard>
             </section>
 
-            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+            <AppCard>
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold">
                         Filtros
@@ -564,9 +572,9 @@ export function Movimentacoes() {
                         />
                     </div>
                 </div>
-            </section>
+            </AppCard>
 
-            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+            <AppCard>
                 <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h2 className="text-xl font-semibold">
@@ -588,9 +596,9 @@ export function Movimentacoes() {
                         Nenhuma movimentação encontrada com os filtros atuais.
                     </div>
                 ) : (
-                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                    <DataTableContainer>
                         <table className="w-full min-w-[1180px] border-collapse text-left text-xs sm:text-sm">
-                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-300">
+                            <thead className={stickyTableHeadClassName}>
                                 <tr>
                                     <th className="w-[130px] px-3 py-3 sm:px-4">Data</th>
                                     <th className="w-[260px] px-3 py-3 sm:px-4">Produto</th>
@@ -636,25 +644,21 @@ export function Movimentacoes() {
                                         </td>
 
                                         <td className="px-3 py-4 align-top sm:px-4">
-                                            <span
-                                                className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseTipo(
-                                                    movimentacao.tipo
-                                                )}`}
-                                            >
+                                            <StatusBadge tone={obterTomTipo(movimentacao.tipo)}>
                                                 {obterLabelTipo(movimentacao.tipo)}
-                                            </span>
+                                            </StatusBadge>
                                         </td>
 
                                         <td className="px-3 py-4 align-top sm:px-4">
-                                            <span
-                                                className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseDirecao(
+                                            <StatusBadge
+                                                tone={obterTomDirecao(
                                                     movimentacao.direcao_movimento
-                                                )}`}
+                                                )}
                                             >
                                                 {obterLabelDirecao(
                                                     movimentacao.direcao_movimento
                                                 )}
-                                            </span>
+                                            </StatusBadge>
                                         </td>
 
                                         <td className="px-3 py-4 align-top sm:px-4">
@@ -694,11 +698,11 @@ export function Movimentacoes() {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
-            </section>
+            </AppCard>
 
-            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+            <AppCard>
                 <p className="text-sm text-slate-400">
                     Status da consulta:
                 </p>
@@ -718,7 +722,7 @@ export function Movimentacoes() {
                 <p className="mt-4 text-slate-100">
                     {mensagem}
                 </p>
-            </section>
+            </AppCard>
         </div>
     )
 }
