@@ -17,8 +17,25 @@ import {
     type DashboardVendaPendenteBaixaFifo,
     type DashboardVendaRecente,
 } from '../services/dashboardService'
+import {
+    AppCard,
+    DataTableContainer,
+    PageHeader,
+    StatCard,
+    StatusBadge,
+    stickyTableHeadClassName,
+} from '../components/ui'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
+type StatusBadgeTone =
+    | 'default'
+    | 'success'
+    | 'warning'
+    | 'danger'
+    | 'info'
+    | 'purple'
+    | 'muted'
+type StatCardTone = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple'
 
 function numero(valor: number | string | null | undefined) {
     if (typeof valor === 'number') {
@@ -82,7 +99,7 @@ function formatarDataHora(data?: string | null) {
     }).format(dataConvertida)
 }
 
-function classeStatus(status?: string | null) {
+function tomStatus(status?: string | null): StatusBadgeTone {
     const valor = status?.toLowerCase() ?? ''
 
     if (
@@ -93,7 +110,7 @@ function classeStatus(status?: string | null) {
         valor === 'aprovado' ||
         valor === 'entregue'
     ) {
-        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+        return 'success'
     }
 
     if (
@@ -101,7 +118,7 @@ function classeStatus(status?: string | null) {
         valor.includes('monitorar') ||
         valor.includes('atencao')
     ) {
-        return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30'
+        return 'warning'
     }
 
     if (
@@ -110,28 +127,28 @@ function classeStatus(status?: string | null) {
         valor.includes('problema') ||
         valor === 'cancelado'
     ) {
-        return 'bg-red-500/10 text-red-300 border-red-500/30'
+        return 'danger'
     }
 
-    return 'bg-slate-800 text-slate-300 border-slate-700'
+    return 'muted'
 }
 
-function classeSeveridade(severidade?: string | null) {
+function tomSeveridade(severidade?: string | null): StatusBadgeTone {
     const valor = severidade?.toLowerCase() ?? ''
 
     if (valor === 'alto' || valor === 'alta') {
-        return 'bg-red-500/10 text-red-300 border-red-500/30'
+        return 'danger'
     }
 
     if (valor === 'medio' || valor === 'médio' || valor === 'media') {
-        return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30'
+        return 'warning'
     }
 
     if (valor === 'baixo' || valor === 'baixa') {
-        return 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
+        return 'info'
     }
 
-    return 'bg-slate-800 text-slate-300 border-slate-700'
+    return 'muted'
 }
 
 type CardProps = {
@@ -141,30 +158,34 @@ type CardProps = {
     destaque?: 'normal' | 'verde' | 'azul' | 'amarelo' | 'vermelho'
 }
 
+function tomCardResumo(destaque: CardProps['destaque']): StatCardTone {
+    if (destaque === 'verde') {
+        return 'success'
+    }
+
+    if (destaque === 'azul') {
+        return 'info'
+    }
+
+    if (destaque === 'amarelo') {
+        return 'warning'
+    }
+
+    if (destaque === 'vermelho') {
+        return 'danger'
+    }
+
+    return 'default'
+}
+
 function CardResumo({ titulo, valor, subtitulo, destaque = 'normal' }: CardProps) {
-    const classeValor =
-        destaque === 'verde'
-            ? 'text-emerald-300'
-            : destaque === 'azul'
-                ? 'text-cyan-300'
-                : destaque === 'amarelo'
-                    ? 'text-yellow-300'
-                    : destaque === 'vermelho'
-                        ? 'text-red-300'
-                        : 'text-slate-100'
-
     return (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
-            <p className="text-sm text-slate-400">{titulo}</p>
-
-            <p className={`mt-3 text-3xl font-bold ${classeValor}`}>
-                {valor}
-            </p>
-
-            {subtitulo && (
-                <p className="mt-2 text-xs text-slate-500">{subtitulo}</p>
-            )}
-        </div>
+        <StatCard
+            label={titulo}
+            value={valor}
+            description={subtitulo}
+            tone={tomCardResumo(destaque)}
+        />
     )
 }
 
@@ -232,24 +253,17 @@ export function Dashboard() {
 
     return (
         <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
-                <p className="text-sm uppercase tracking-widest text-cyan-400">
-                    Painel principal
-                </p>
+            <PageHeader
+                tag="Painel principal"
+                title="Dashboard Operacional"
+                description="Visão geral da operação Primely Store com produtos, estoque, compras, vendas, lucro estimado, alertas operacionais e saldos por local."
+            />
 
-                <h1 className="mt-3 text-3xl font-bold">
-                    Dashboard Operacional
-                </h1>
-
-                <p className="mt-4 max-w-4xl text-slate-300">
-                    Visão geral da operação Primely Store com produtos, estoque, compras, vendas,
-                    lucro estimado, alertas operacionais e saldos por local.
-                </p>
-
-                <p className="mt-3 text-xs text-slate-500">
+            <AppCard>
+                <p className="text-xs text-slate-500">
                     Atualizado em: {formatarDataHora(kpis?.atualizado_em ?? alertasResumo?.atualizado_em)}
                 </p>
-            </div>
+            </AppCard>
 
             <div className="grid gap-4 md:grid-cols-4">
                 <CardResumo
@@ -394,7 +408,7 @@ export function Dashboard() {
                 />
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <AppCard>
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">Vendas pendentes de baixa FIFO</h2>
 
@@ -413,9 +427,9 @@ export function Dashboard() {
                         </p>
                     </div>
                 ) : (
-                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                    <DataTableContainer>
                         <table className="w-full min-w-[1200px] border-collapse text-left text-sm">
-                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
+                            <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Pedido</th>
                                     <th className="px-4 py-3 font-medium">Severidade</th>
@@ -441,9 +455,9 @@ export function Dashboard() {
                                         </td>
 
                                         <td className="px-4 py-3">
-                                            <span className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${classeSeveridade(item.severidade)}`}>
+                                            <StatusBadge tone={tomSeveridade(item.severidade)}>
                                                 {item.severidade ?? '-'}
-                                            </span>
+                                            </StatusBadge>
                                         </td>
 
                                         <td className="px-4 py-3 text-slate-300">
@@ -481,11 +495,11 @@ export function Dashboard() {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
-            </div>
+            </AppCard>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <AppCard>
                 <p className="text-sm text-slate-400">Status da consulta:</p>
 
                 <p
@@ -501,9 +515,9 @@ export function Dashboard() {
                 </p>
 
                 <p className="mt-3 text-slate-300">{mensagem}</p>
-            </div>
+            </AppCard>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <AppCard>
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">Alertas operacionais</h2>
 
@@ -519,9 +533,9 @@ export function Dashboard() {
                         </p>
                     </div>
                 ) : (
-                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                    <DataTableContainer>
                         <table className="w-full min-w-[1200px] border-collapse text-left text-sm">
-                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
+                            <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Severidade</th>
                                     <th className="px-4 py-3 font-medium">Categoria</th>
@@ -539,9 +553,9 @@ export function Dashboard() {
                                 {alertas.map((alerta, index) => (
                                     <tr key={`${alerta.tipo_alerta}-${alerta.produto_id}-${index}`} className="hover:bg-slate-800/60">
                                         <td className="px-4 py-3">
-                                            <span className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${classeSeveridade(alerta.severidade)}`}>
+                                            <StatusBadge tone={tomSeveridade(alerta.severidade)}>
                                                 {alerta.severidade ?? '-'}
-                                            </span>
+                                            </StatusBadge>
                                         </td>
 
                                         <td className="px-4 py-3 text-slate-300">
@@ -579,12 +593,12 @@ export function Dashboard() {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
-            </div>
+            </AppCard>
 
             <div className="grid gap-6 xl:grid-cols-2">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <AppCard>
                     <div className="mb-4 flex items-center justify-between">
                         <h2 className="text-xl font-semibold">Compras recentes</h2>
 
@@ -598,9 +612,9 @@ export function Dashboard() {
                             Nenhuma compra recente encontrada.
                         </p>
                     ) : (
-                        <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                        <DataTableContainer>
                             <table className="w-full min-w-[700px] border-collapse text-left text-sm">
-                                <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
+                                <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                     <tr>
                                         <th className="px-4 py-3 font-medium">Pedido</th>
                                         <th className="px-4 py-3 font-medium">Fornecedor</th>
@@ -620,19 +634,19 @@ export function Dashboard() {
                                             <td className="px-4 py-3 text-slate-300">{formatarNumero(compra.quantidade_total_unidades)}</td>
                                             <td className="px-4 py-3 text-slate-300">{formatarMoeda(compra.valor_total_estimado)}</td>
                                             <td className="px-4 py-3">
-                                                <span className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${classeStatus(compra.status)}`}>
+                                                <StatusBadge tone={tomStatus(compra.status)}>
                                                     {compra.status ?? '-'}
-                                                </span>
+                                                </StatusBadge>
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
-                        </div>
+                        </DataTableContainer>
                     )}
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                <AppCard>
                     <div className="mb-4 flex items-center justify-between">
                         <h2 className="text-xl font-semibold">Vendas recentes</h2>
 
@@ -646,9 +660,9 @@ export function Dashboard() {
                             Nenhuma venda recente encontrada.
                         </p>
                     ) : (
-                        <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                        <DataTableContainer>
                             <table className="w-full min-w-[800px] border-collapse text-left text-sm">
-                                <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
+                                <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                     <tr>
                                         <th className="px-4 py-3 font-medium">Pedido</th>
                                         <th className="px-4 py-3 font-medium">Canal</th>
@@ -670,20 +684,20 @@ export function Dashboard() {
                                             <td className="px-4 py-3 text-slate-300">{formatarMoeda(venda.receita_liquida_calculada)}</td>
                                             <td className="px-4 py-3 font-semibold text-slate-100">{formatarMoeda(venda.lucro_estimado)}</td>
                                             <td className="px-4 py-3">
-                                                <span className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${classeStatus(venda.status)}`}>
+                                                <StatusBadge tone={tomStatus(venda.status)}>
                                                     {venda.status ?? '-'}
-                                                </span>
+                                                </StatusBadge>
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
-                        </div>
+                        </DataTableContainer>
                     )}
-                </div>
+                </AppCard>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <AppCard>
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">Saldos de estoque</h2>
 
@@ -697,9 +711,9 @@ export function Dashboard() {
                         Nenhum saldo de estoque encontrado.
                     </p>
                 ) : (
-                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                    <DataTableContainer>
                         <table className="w-full min-w-[900px] border-collapse text-left text-sm">
-                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
+                            <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Produto</th>
                                     <th className="px-4 py-3 font-medium">SKU</th>
@@ -721,10 +735,10 @@ export function Dashboard() {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
 
-            </div>
+            </AppCard>
         </div>
     )
 }
