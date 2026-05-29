@@ -18,8 +18,24 @@ import {
 } from '../services/locaisEstoqueService'
 import { buscarProdutos, type Produto } from '../services/produtosService'
 import { buscarEstoque, type EstoqueSaldo } from '../services/estoqueService'
+import {
+    AppButton,
+    AppCard,
+    DataTableContainer,
+    PageHeader,
+    StatusBadge,
+    stickyTableHeadClassName,
+} from '../components/ui'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
+type StatusBadgeTone =
+    | 'default'
+    | 'success'
+    | 'warning'
+    | 'danger'
+    | 'info'
+    | 'purple'
+    | 'muted'
 
 type FormularioVenda = {
     canal_venda_id: string
@@ -255,26 +271,26 @@ const camposVendaQueRecalculamTotal: Array<keyof FormularioVenda> = [
     'valor_desconto',
 ]
 
-function obterClasseStatus(status?: string | null) {
+function obterTomStatus(status?: string | null): StatusBadgeTone {
     const valor = status?.toLowerCase() ?? ''
 
     if (valor === 'aprovado' || valor === 'entregue') {
-        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+        return 'success'
     }
 
     if (valor === 'enviado') {
-        return 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
+        return 'info'
     }
 
     if (valor === 'rascunho' || valor === 'ativo') {
-        return 'bg-slate-800 text-slate-300 border-slate-700'
+        return 'muted'
     }
 
     if (valor === 'cancelado' || valor === 'devolvido' || valor === 'reembolsado') {
-        return 'bg-red-500/10 text-red-300 border-red-500/30'
+        return 'danger'
     }
 
-    return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30'
+    return 'warning'
 }
 
 function calcularQuantidadeConsumida(item: VendaItemDetalhado) {
@@ -755,24 +771,14 @@ export function Vendas() {
 
     return (
         <div className="mx-auto w-full max-w-full space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
-                <p className="text-sm uppercase tracking-widest text-cyan-400">
-                    Módulo
-                </p>
+            <PageHeader
+                tag="MÓDULO"
+                title="Vendas"
+                description="Cadastro de vendas, itens vendidos, baixa FIFO de estoque e listagem consolidada pela view vendas_resumo."
+            />
 
-                <h1 className="mt-3 text-3xl font-bold">
-                    Vendas
-                </h1>
-
-                <p className="mt-4 max-w-3xl text-slate-300">
-                    Cadastro de vendas, itens vendidos, baixa FIFO de estoque e listagem consolidada pela view vendas_resumo.
-                </p>
-            </div>
-
-            <form
-                onSubmit={enviarVenda}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6"
-            >
+            <AppCard>
+                <form onSubmit={enviarVenda}>
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold">
                         Cadastrar cabeçalho da venda
@@ -1044,20 +1050,19 @@ export function Vendas() {
                 </div>
 
                 <div className="mt-6 flex justify-end">
-                    <button
+                    <AppButton
                         type="submit"
+                        variant="primary"
                         disabled={salvandoVenda}
-                        className="rounded-xl bg-cyan-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {salvandoVenda ? 'Cadastrando...' : 'Cadastrar venda'}
-                    </button>
+                    </AppButton>
                 </div>
-            </form>
+                </form>
+            </AppCard>
 
-            <form
-                onSubmit={enviarItemVenda}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6"
-            >
+            <AppCard>
+                <form onSubmit={enviarItemVenda}>
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold">
                         Adicionar item à venda
@@ -1414,10 +1419,10 @@ export function Vendas() {
                 </div>
 
                 <div className="mt-6 flex justify-end">
-                    <button
+                    <AppButton
                         type="submit"
+                        variant="success"
                         disabled={cadastroItemBloqueado}
-                        className="rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {salvandoItem
                             ? 'Adicionando...'
@@ -1430,33 +1435,34 @@ export function Vendas() {
                                         : saldoDisponivelParaItem === null
                                             ? 'Saldo não localizado'
                                             : 'Adicionar item à venda'}
-                    </button>
+                    </AppButton>
                 </div>
-            </form>
+                </form>
+            </AppCard>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">Vendas encontradas</p>
                     <p className="mt-3 text-3xl font-bold">{vendas.length}</p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">Unidades vendidas</p>
                     <p className="mt-3 text-3xl font-bold">{quantidadeTotalVendida}</p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">Receita líquida</p>
                     <p className="mt-3 text-3xl font-bold">{formatarMoeda(receitaLiquida)}</p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">Lucro estimado</p>
                     <p className="mt-3 text-3xl font-bold">{formatarMoeda(lucroEstimado)}</p>
-                </div>
+                </AppCard>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+            <AppCard>
                 <p className="text-sm text-slate-400">Status da consulta:</p>
 
                 <p
@@ -1472,9 +1478,9 @@ export function Vendas() {
                 </p>
 
                 <p className="mt-3 text-slate-300">{mensagem}</p>
-            </div>
+            </AppCard>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+            <AppCard>
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">Itens das vendas</h2>
 
@@ -1490,9 +1496,9 @@ export function Vendas() {
                         </p>
                     </div>
                 ) : (
-                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                    <DataTableContainer>
                         <table className="w-full min-w-[1040px] border-collapse text-left text-xs sm:text-sm">
-                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
+                            <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                 <tr>
                                     <th className="px-3 py-3 font-medium sm:px-4">Venda</th>
                                     <th className="px-3 py-3 font-medium sm:px-4">Produto</th>
@@ -1553,39 +1559,36 @@ export function Vendas() {
                                             </td>
 
                                             <td className="px-3 py-3 sm:px-4">
-                                                <span
-                                                    className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatus(
-                                                        item.status
-                                                    )}`}
-                                                >
+                                                <StatusBadge tone={obterTomStatus(item.status)}>
                                                     {item.status}
-                                                </span>
+                                                </StatusBadge>
                                             </td>
 
                                             <td className="px-3 py-3 sm:px-4">
-                                                <button
+                                                <AppButton
                                                     type="button"
+                                                    variant="secondary"
+                                                    size="sm"
                                                     disabled={!podeBaixar || baixandoVendaId === item.venda_id}
                                                     onClick={() => baixarVendaFIFO(item.venda_id)}
-                                                    className="whitespace-nowrap rounded-lg border border-orange-500/40 px-3 py-2 text-xs font-semibold text-orange-300 hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-500"
                                                 >
                                                     {baixandoVendaId === item.venda_id
                                                         ? 'Baixando...'
                                                         : podeBaixar
                                                             ? 'Baixar FIFO'
                                                             : 'Baixado'}
-                                                </button>
+                                                </AppButton>
                                             </td>
                                         </tr>
                                     )
                                 })}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
-            </div>
+            </AppCard>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+            <AppCard>
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">Vendas encontradas</h2>
 
@@ -1601,9 +1604,9 @@ export function Vendas() {
                         </p>
                     </div>
                 ) : (
-                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                    <DataTableContainer>
                         <table className="w-full min-w-[1160px] border-collapse text-left text-xs sm:text-sm">
-                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
+                            <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                 <tr>
                                     <th className="px-3 py-3 font-medium sm:px-4">Pedido</th>
                                     <th className="px-3 py-3 font-medium sm:px-4">Marketplace</th>
@@ -1666,32 +1669,29 @@ export function Vendas() {
                                         </td>
 
                                         <td className="px-3 py-3 sm:px-4">
-                                            <span
-                                                className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatus(
-                                                    venda.status
-                                                )}`}
-                                            >
+                                            <StatusBadge tone={obterTomStatus(venda.status)}>
                                                 {venda.status ?? '-'}
-                                            </span>
+                                            </StatusBadge>
                                         </td>
 
                                         <td className="px-3 py-3 sm:px-4">
-                                            <button
+                                            <AppButton
                                                 type="button"
+                                                variant="secondary"
+                                                size="sm"
                                                 onClick={() => selecionarVendaParaItem(venda.venda_id)}
-                                                className="whitespace-nowrap rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10"
                                             >
                                                 Usar venda
-                                            </button>
+                                            </AppButton>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
 
-            </div>
+            </AppCard>
         </div>
     )
 }
