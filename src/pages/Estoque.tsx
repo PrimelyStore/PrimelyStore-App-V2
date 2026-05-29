@@ -11,8 +11,24 @@ import {
     buscarLocaisEstoqueAtivos,
     type LocalEstoque,
 } from '../services/locaisEstoqueService'
+import {
+    AppButton,
+    AppCard,
+    DataTableContainer,
+    PageHeader,
+    StatusBadge,
+    stickyTableHeadClassName,
+} from '../components/ui'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
+type StatusBadgeTone =
+    | 'default'
+    | 'success'
+    | 'warning'
+    | 'danger'
+    | 'info'
+    | 'purple'
+    | 'muted'
 
 type FormularioTransferencia = {
     produto_id: string
@@ -97,40 +113,40 @@ function converterInteiro(valor: string) {
     return numero
 }
 
-function obterClasseSaldo(saldo?: number | null) {
+function obterTomSaldo(saldo?: number | null): StatusBadgeTone {
     const valor = saldo ?? 0
 
     if (valor > 0) {
-        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+        return 'success'
     }
 
-    return 'bg-red-500/10 text-red-300 border-red-500/30'
+    return 'danger'
 }
 
-function obterClasseTipoMovimentacao(tipo?: string) {
+function obterTomTipoMovimentacao(tipo?: string): StatusBadgeTone {
     const valor = tipo?.toLowerCase() ?? ''
 
     if (valor === 'compra_entrada') {
-        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+        return 'success'
     }
 
     if (valor === 'transferencia') {
-        return 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
+        return 'info'
     }
 
     if (valor === 'venda_saida') {
-        return 'bg-orange-500/10 text-orange-300 border-orange-500/30'
+        return 'warning'
     }
 
     if (valor === 'ajuste_entrada') {
-        return 'bg-blue-500/10 text-blue-300 border-blue-500/30'
+        return 'info'
     }
 
     if (valor === 'ajuste_saida') {
-        return 'bg-red-500/10 text-red-300 border-red-500/30'
+        return 'danger'
     }
 
-    return 'bg-slate-800 text-slate-300 border-slate-700'
+    return 'muted'
 }
 
 function traduzirTipoMovimentacao(tipo?: string) {
@@ -405,24 +421,14 @@ export function Estoque() {
 
     return (
         <div className="mx-auto w-full max-w-full space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
-                <p className="text-sm uppercase tracking-widest text-cyan-400">
-                    Módulo
-                </p>
+            <PageHeader
+                tag="MÓDULO"
+                title="Estoque"
+                description="Saldos atuais, transferência FIFO entre locais e histórico detalhado de movimentações."
+            />
 
-                <h1 className="mt-3 text-3xl font-bold">
-                    Estoque
-                </h1>
-
-                <p className="mt-4 max-w-3xl text-slate-300">
-                    Saldos atuais, transferência FIFO entre locais e histórico detalhado de movimentações.
-                </p>
-            </div>
-
-            <form
-                onSubmit={enviarTransferencia}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6"
-            >
+            <AppCard>
+                <form onSubmit={enviarTransferencia}>
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold">
                         Transferir estoque FIFO
@@ -559,18 +565,19 @@ export function Estoque() {
                 </div>
 
                 <div className="mt-6 flex flex-col justify-end gap-3 sm:flex-row">
-                    <button
+                    <AppButton
                         type="submit"
+                        variant="primary"
                         disabled={transferindo}
-                        className="rounded-xl bg-cyan-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {transferindo ? 'Transferindo...' : 'Transferir estoque'}
-                    </button>
+                    </AppButton>
                 </div>
-            </form>
+                </form>
+            </AppCard>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Itens retornados
                     </p>
@@ -578,9 +585,9 @@ export function Estoque() {
                     <p className="mt-3 text-3xl font-bold">
                         {estoque.length}
                     </p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Quantidade total
                     </p>
@@ -588,9 +595,9 @@ export function Estoque() {
                     <p className="mt-3 text-3xl font-bold">
                         {quantidadeTotal}
                     </p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Locais com saldo
                     </p>
@@ -598,9 +605,9 @@ export function Estoque() {
                     <p className="mt-3 text-3xl font-bold text-emerald-300">
                         {locaisComSaldo}
                     </p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Locais sem saldo
                     </p>
@@ -608,10 +615,10 @@ export function Estoque() {
                     <p className="mt-3 text-3xl font-bold text-red-300">
                         {locaisSemSaldo}
                     </p>
-                </div>
+                </AppCard>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+            <AppCard>
                 <p className="text-sm text-slate-400">
                     Status da consulta:
                 </p>
@@ -631,9 +638,9 @@ export function Estoque() {
                 <p className="mt-3 text-slate-300">
                     {mensagem}
                 </p>
-            </div>
+            </AppCard>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+            <AppCard>
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">
                         Saldos de estoque encontrados
@@ -651,9 +658,9 @@ export function Estoque() {
                         </p>
                     </div>
                 ) : (
-                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                    <DataTableContainer>
                         <table className="w-full min-w-[860px] border-collapse text-left text-xs sm:text-sm">
-                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
+                            <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                 <tr>
                                     <th className="w-[240px] px-3 py-3 font-medium sm:px-4">Produto</th>
                                     <th className="w-[160px] px-3 py-3 font-medium sm:px-4">SKU</th>
@@ -699,25 +706,21 @@ export function Estoque() {
                                             </td>
 
                                             <td className="px-3 py-3 sm:px-4">
-                                                <span
-                                                    className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseSaldo(
-                                                        item.saldo_atual
-                                                    )}`}
-                                                >
+                                                <StatusBadge tone={obterTomSaldo(item.saldo_atual)}>
                                                     {saldo > 0 ? 'com saldo' : 'sem saldo'}
-                                                </span>
+                                                </StatusBadge>
                                             </td>
                                         </tr>
                                     )
                                 })}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
-            </div>
+            </AppCard>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Movimentações listadas
                     </p>
@@ -725,9 +728,9 @@ export function Estoque() {
                     <p className="mt-3 text-3xl font-bold">
                         {movimentacoes.length}
                     </p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Entradas
                     </p>
@@ -735,9 +738,9 @@ export function Estoque() {
                     <p className="mt-3 text-3xl font-bold text-emerald-300">
                         {totalEntradas}
                     </p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Transferências
                     </p>
@@ -745,9 +748,9 @@ export function Estoque() {
                     <p className="mt-3 text-3xl font-bold text-cyan-300">
                         {totalTransferencias}
                     </p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Saídas
                     </p>
@@ -755,10 +758,10 @@ export function Estoque() {
                     <p className="mt-3 text-3xl font-bold text-orange-300">
                         {totalSaidas}
                     </p>
-                </div>
+                </AppCard>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+            <AppCard>
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">
                         Histórico de movimentações
@@ -776,9 +779,9 @@ export function Estoque() {
                         </p>
                     </div>
                 ) : (
-                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                    <DataTableContainer>
                         <table className="w-full min-w-[1160px] border-collapse text-left text-xs sm:text-sm">
-                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
+                            <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                 <tr>
                                     <th className="w-[130px] px-3 py-3 font-medium sm:px-4">Data</th>
                                     <th className="w-[230px] px-3 py-3 font-medium sm:px-4">Produto</th>
@@ -813,13 +816,13 @@ export function Estoque() {
                                         </td>
 
                                         <td className="px-3 py-3 sm:px-4">
-                                            <span
-                                                className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseTipoMovimentacao(
+                                            <StatusBadge
+                                                tone={obterTomTipoMovimentacao(
                                                     movimento.tipo
-                                                )}`}
+                                                )}
                                             >
                                                 {traduzirTipoMovimentacao(movimento.tipo)}
-                                            </span>
+                                            </StatusBadge>
                                         </td>
 
                                         <td className="max-w-[140px] px-3 py-3 text-slate-300 sm:px-4">
@@ -845,10 +848,10 @@ export function Estoque() {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
 
-            </div>
+            </AppCard>
         </div>
     )
 }
