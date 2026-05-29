@@ -19,8 +19,24 @@ import {
     type LocalEstoque,
 } from '../services/locaisEstoqueService'
 import { buscarProdutos, type Produto } from '../services/produtosService'
+import {
+    AppButton,
+    AppCard,
+    DataTableContainer,
+    PageHeader,
+    StatusBadge,
+    stickyTableHeadClassName,
+} from '../components/ui'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
+type StatusBadgeTone =
+    | 'default'
+    | 'success'
+    | 'warning'
+    | 'danger'
+    | 'info'
+    | 'purple'
+    | 'muted'
 
 type FormularioCompra = {
     fornecedor_id: string
@@ -159,26 +175,26 @@ function converterNumeroSeguro(valor: string) {
     return numero
 }
 
-function obterClasseStatus(status?: string) {
+function obterTomStatus(status?: string): StatusBadgeTone {
     const valor = status?.toLowerCase() ?? ''
 
     if (valor === 'recebido') {
-        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+        return 'success'
     }
 
     if (valor === 'pedido_realizado') {
-        return 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
+        return 'info'
     }
 
     if (valor === 'rascunho' || valor === 'pendente') {
-        return 'bg-slate-800 text-slate-300 border-slate-700'
+        return 'muted'
     }
 
     if (valor === 'cancelado') {
-        return 'bg-red-500/10 text-red-300 border-red-500/30'
+        return 'danger'
     }
 
-    return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30'
+    return 'warning'
 }
 
 function obterStatusRecebimentoItem(item: CompraItemDetalhado) {
@@ -212,24 +228,24 @@ function obterRotuloStatusRecebimento(status: string) {
     return rotulos[status] ?? status
 }
 
-function obterClasseStatusRecebimento(status: string) {
+function obterTomStatusRecebimento(status: string): StatusBadgeTone {
     if (status === 'recebido') {
-        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+        return 'success'
     }
 
     if (status === 'parcialmente_recebido') {
-        return 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
+        return 'info'
     }
 
     if (status === 'pendente') {
-        return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30'
+        return 'warning'
     }
 
     if (status === 'cancelado') {
-        return 'bg-red-500/10 text-red-300 border-red-500/30'
+        return 'danger'
     }
 
-    return 'bg-slate-800 text-slate-300 border-slate-700'
+    return 'muted'
 }
 
 
@@ -857,19 +873,11 @@ export function Compras() {
 
     return (
         <div className="w-full min-w-0 space-y-5">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6">
-                <p className="text-sm uppercase tracking-widest text-cyan-400">
-                    Módulo
-                </p>
-
-                <h1 className="mt-3 text-3xl font-bold">
-                    Compras
-                </h1>
-
-                <p className="mt-4 max-w-3xl text-slate-300">
-                    Cadastro do cabeçalho da compra, inclusão de itens, recebimento e listagem consolidada.
-                </p>
-            </div>
+            <PageHeader
+                tag="Módulo"
+                title="Compras"
+                description="Cadastro do cabeçalho da compra, inclusão de itens, recebimento e listagem consolidada."
+            />
 
             <form
                 onSubmit={enviarFormularioCompra}
@@ -1137,13 +1145,13 @@ export function Compras() {
                 </div>
 
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-                    <button
+                    <AppButton
                         type="submit"
+                        variant="primary"
                         disabled={salvandoCompra}
-                        className="rounded-xl bg-cyan-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {salvandoCompra ? 'Cadastrando...' : 'Cadastrar compra'}
-                    </button>
+                    </AppButton>
                 </div>
             </form>
 
@@ -1194,13 +1202,13 @@ export function Compras() {
                                     </p>
                                 </div>
 
-                                <button
+                                <AppButton
                                     type="button"
                                     onClick={() => limparFormularioItem()}
                                     className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
                                 >
                                     Limpar seleção
-                                </button>
+                                </AppButton>
                             </div>
                         </div>
                     </div>
@@ -1539,45 +1547,45 @@ export function Compras() {
                 </div>
 
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-                    <button
+                    <AppButton
                         type="submit"
+                        variant="success"
                         disabled={salvandoItem || compraBloqueadaParaRecebimento(compraSelecionada)}
-                        className="rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {compraBloqueadaParaRecebimento(compraSelecionada)
                             ? 'Compra bloqueada'
                             : salvandoItem
                                 ? 'Adicionando...'
                                 : 'Adicionar item à compra'}
-                    </button>
+                    </AppButton>
                 </div>
             </form>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6">
+                <AppCard className="sm:p-5 lg:p-6">
                     <p className="text-sm text-slate-400">Compras encontradas</p>
                     <p className="mt-3 text-3xl font-bold">{compras.length}</p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6">
+                <AppCard className="sm:p-5 lg:p-6">
                     <p className="text-sm text-slate-400">Compras recebidas</p>
                     <p className="mt-3 text-3xl font-bold">{comprasRecebidas}</p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6">
+                <AppCard className="sm:p-5 lg:p-6">
                     <p className="text-sm text-slate-400">Unidades compradas</p>
                     <p className="mt-3 text-3xl font-bold">{quantidadeTotalUnidades}</p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6">
+                <AppCard className="sm:p-5 lg:p-6">
                     <p className="text-sm text-slate-400">Valor total estimado</p>
                     <p className="mt-3 text-3xl font-bold">
                         {formatarMoeda(valorTotalEstimado)}
                     </p>
-                </div>
+                </AppCard>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6">
+            <AppCard className="sm:p-5 lg:p-6">
                 <p className="text-sm text-slate-400">Status da consulta:</p>
 
                 <p
@@ -1593,9 +1601,9 @@ export function Compras() {
                 </p>
 
                 <p className="mt-3 text-slate-300">{mensagem}</p>
-            </div>
+            </AppCard>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6">
+            <AppCard className="sm:p-5 lg:p-6">
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-xl font-semibold">Itens das compras</h2>
 
@@ -1683,27 +1691,27 @@ export function Compras() {
                             </div>
 
                             <div className="flex gap-3">
-                                <button
+                                <AppButton
                                     type="button"
+                                    variant="secondary"
                                     onClick={() => setItemSelecionadoParaReceber(null)}
-                                    className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
                                 >
                                     Cancelar
-                                </button>
+                                </AppButton>
 
-                                <button
+                                <AppButton
                                     type="button"
+                                    variant="success"
                                     disabled={
                                         recebendoItemId === itemSelecionadoParaReceber.id ||
                                         itemBloqueadoParaRecebimento(itemSelecionadoParaReceber)
                                     }
                                     onClick={() => receberItemPendente(itemSelecionadoParaReceber)}
-                                    className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {recebendoItemId === itemSelecionadoParaReceber.id
                                         ? 'Recebendo...'
                                         : 'Confirmar recebimento'}
-                                </button>
+                                </AppButton>
                             </div>
                         </div>
 
@@ -1776,9 +1784,9 @@ export function Compras() {
                         </p>
                     </div>
                 ) : (
-                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                    <DataTableContainer>
                         <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
-                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
+                            <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Compra</th>
                                     <th className="px-4 py-3 font-medium">Produto</th>
@@ -1878,13 +1886,9 @@ export function Compras() {
 
                                             <td className="px-4 py-3">
                                                 <div className="flex flex-col gap-2">
-                                                    <span
-                                                        className={`inline-flex w-fit whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatusRecebimento(
-                                                            statusRecebimento
-                                                        )}`}
-                                                    >
+                                                    <StatusBadge tone={obterTomStatusRecebimento(statusRecebimento)}>
                                                         {obterRotuloStatusRecebimento(statusRecebimento)}
-                                                    </span>
+                                                    </StatusBadge>
 
                                                     {item.status !== statusRecebimento && (
                                                         <span className="text-xs text-slate-500">
@@ -1906,11 +1910,12 @@ export function Compras() {
                                             </td>
 
                                             <td className="px-4 py-3">
-                                                <button
+                                                <AppButton
                                                     type="button"
+                                                    variant="secondary"
+                                                    size="sm"
                                                     disabled={!podeReceber || recebendoItemId === item.id}
                                                     onClick={() => selecionarItemParaRecebimento(item)}
-                                                    className="rounded-lg border border-emerald-500/40 px-3 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-500"
                                                 >
                                                     {bloqueadoParaRecebimento
                                                         ? 'Bloqueado'
@@ -1921,18 +1926,18 @@ export function Compras() {
                                                                 : statusRecebimento === 'cancelado'
                                                                     ? 'Cancelado'
                                                                     : 'Recebido'}
-                                                </button>
+                                                </AppButton>
                                             </td>
                                         </tr>
                                     )
                                 })}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
-            </div>
+            </AppCard>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6">
+            <AppCard className="sm:p-5 lg:p-6">
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-xl font-semibold">Compras encontradas</h2>
 
@@ -1948,9 +1953,9 @@ export function Compras() {
                         </p>
                     </div>
                 ) : (
-                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                    <DataTableContainer>
                         <table className="w-full min-w-[1180px] border-collapse text-left text-sm">
-                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
+                            <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Pedido</th>
                                     <th className="px-4 py-3 font-medium">Nota fiscal</th>
@@ -2031,13 +2036,9 @@ export function Compras() {
 
                                         <td className="px-4 py-3">
                                             <div className="flex flex-col gap-2">
-                                                <span
-                                                    className={`inline-flex w-fit whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseStatus(
-                                                        compra.status
-                                                    )}`}
-                                                >
+                                                <StatusBadge tone={obterTomStatus(compra.status)}>
                                                     {compra.status}
-                                                </span>
+                                                </StatusBadge>
 
                                                 {compra.bloqueia_recebimento && (
                                                     <span
@@ -2055,24 +2056,25 @@ export function Compras() {
                                         </td>
 
                                         <td className="px-4 py-3">
-                                            <button
+                                            <AppButton
                                                 type="button"
+                                                variant="secondary"
+                                                size="sm"
                                                 disabled={compraBloqueadaParaRecebimento(compra)}
                                                 onClick={() => selecionarCompraParaItem(compra)}
-                                                className="rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-500"
                                             >
                                                 {compraBloqueadaParaRecebimento(compra)
                                                     ? 'Bloqueada'
                                                     : 'Usar compra'}
-                                            </button>
+                                            </AppButton>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
-            </div>
+            </AppCard>
         </div>
     )
 }
