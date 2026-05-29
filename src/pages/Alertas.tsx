@@ -9,9 +9,25 @@ import {
     type AlertasVendasPendentesBaixa,
     type AlertaVendaPendenteBaixaFIFO,
 } from '../services/alertasService'
+import {
+    AppCard,
+    DataTableContainer,
+    PageHeader,
+    StatCard,
+    StatusBadge,
+    stickyTableHeadClassName,
+} from '../components/ui'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
 type ValorNumerico = number | string | null | undefined
+type StatusBadgeTone =
+    | 'default'
+    | 'success'
+    | 'warning'
+    | 'danger'
+    | 'info'
+    | 'purple'
+    | 'muted'
 
 function normalizarNumero(valor?: ValorNumerico) {
     if (typeof valor === 'number') {
@@ -82,38 +98,38 @@ function formatarDataHora(data?: string | null) {
     }).format(dataConvertida)
 }
 
-function obterClasseSeveridade(severidade?: string | null) {
+function obterTomSeveridade(severidade?: string | null): StatusBadgeTone {
     const valor = severidade?.toLowerCase() ?? ''
 
     if (valor.includes('alto') || valor.includes('critico') || valor.includes('crítico')) {
-        return 'bg-red-500/10 text-red-300 border-red-500/30'
+        return 'danger'
     }
 
     if (valor.includes('medio') || valor.includes('médio')) {
-        return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30'
+        return 'warning'
     }
 
     if (valor.includes('baixo')) {
-        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+        return 'success'
     }
 
-    return 'bg-slate-800 text-slate-300 border-slate-700'
+    return 'muted'
 }
 
-function obterClasseDecisao(decisao?: string | null) {
+function obterTomDecisao(decisao?: string | null): StatusBadgeTone {
     if (decisao === 'nao_pode_baixar_estoque_insuficiente') {
-        return 'bg-red-500/10 text-red-300 border-red-500/30'
+        return 'danger'
     }
 
     if (decisao === 'pode_baixar') {
-        return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30'
+        return 'warning'
     }
 
     if (decisao === 'nao_precisa_baixar') {
-        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+        return 'success'
     }
 
-    return 'bg-slate-800 text-slate-300 border-slate-700'
+    return 'muted'
 }
 
 function formatarDecisao(decisao?: string | null) {
@@ -192,95 +208,52 @@ export function Alertas() {
 
     return (
         <div className="mx-auto w-full max-w-full space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
-                <p className="text-sm uppercase tracking-widest text-cyan-400">
-                    Módulo
-                </p>
+            <PageHeader
+                tag="Módulo"
+                title="Alertas"
+                description="Painel de alertas inteligentes da operação, incluindo estoque, produtos, custo real, divergências entre movimentações e lotes, revisão de lucro e vendas importadas com baixa FIFO pendente."
+            />
 
-                <h1 className="mt-3 text-3xl font-bold">
-                    Alertas
-                </h1>
-
-                <p className="mt-4 max-w-3xl text-slate-300">
-                    Painel de alertas inteligentes da operação, incluindo estoque, produtos, custo real,
-                    divergências entre movimentações e lotes, revisão de lucro e vendas importadas com baixa FIFO pendente.
-                </p>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <StatCard label="Total de alertas" value={totalAlertas} />
+                <StatCard label="Alertas altos" value={alertasAltos} tone="danger" />
+                <StatCard label="Alertas médios" value={alertasMedios} tone="warning" />
+                <StatCard label="Alertas baixos" value={alertasBaixos} tone="success" />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
-                    <p className="text-sm text-slate-400">Total de alertas</p>
-                    <p className="mt-3 text-3xl font-bold">{totalAlertas}</p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
-                    <p className="text-sm text-slate-400">Alertas altos</p>
-                    <p className="mt-3 text-3xl font-bold text-red-300">{alertasAltos}</p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
-                    <p className="text-sm text-slate-400">Alertas médios</p>
-                    <p className="mt-3 text-3xl font-bold text-yellow-300">{alertasMedios}</p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
-                    <p className="text-sm text-slate-400">Alertas baixos</p>
-                    <p className="mt-3 text-3xl font-bold text-emerald-300">{alertasBaixos}</p>
-                </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
-                    <p className="text-sm text-slate-400">Vendas pendentes FIFO</p>
-                    <p className={`mt-3 text-3xl font-bold ${totalPendenciasFIFO > 0 ? 'text-yellow-300' : 'text-emerald-300'}`}>
-                        {totalPendenciasFIFO}
-                    </p>
-                    <p className="mt-3 text-xs text-slate-500">Vendas importadas sem baixa completa</p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
-                    <p className="text-sm text-slate-400">Estoque insuficiente</p>
-                    <p className={`mt-3 text-3xl font-bold ${pendenciasEstoqueInsuficiente > 0 ? 'text-red-300' : 'text-slate-100'}`}>
-                        {pendenciasEstoqueInsuficiente}
-                    </p>
-                    <p className="mt-3 text-xs text-slate-500">Bloqueadas por falta de saldo</p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
-                    <p className="text-sm text-slate-400">Aptas para baixa</p>
-                    <p className={`mt-3 text-3xl font-bold ${pendenciasAptasParaBaixa > 0 ? 'text-yellow-300' : 'text-slate-100'}`}>
-                        {pendenciasAptasParaBaixa}
-                    </p>
-                    <p className="mt-3 text-xs text-slate-500">Já têm saldo para baixar FIFO</p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
-                    <p className="text-sm text-slate-400">Unidades pendentes</p>
-                    <p className="mt-3 text-3xl font-bold text-slate-100">{unidadesPendentesFIFO}</p>
-                    <p className="mt-3 text-xs text-slate-500">
-                        {formatarNumero(resumoVendasPendentes?.total_pedidos_afetados)} pedido(s) afetado(s)
-                    </p>
-                </div>
+                <StatCard
+                    label="Vendas pendentes FIFO"
+                    value={totalPendenciasFIFO}
+                    tone={totalPendenciasFIFO > 0 ? 'warning' : 'success'}
+                    description="Vendas importadas sem baixa completa"
+                />
+                <StatCard
+                    label="Estoque insuficiente"
+                    value={pendenciasEstoqueInsuficiente}
+                    tone={pendenciasEstoqueInsuficiente > 0 ? 'danger' : 'default'}
+                    description="Bloqueadas por falta de saldo"
+                />
+                <StatCard
+                    label="Aptas para baixa"
+                    value={pendenciasAptasParaBaixa}
+                    tone={pendenciasAptasParaBaixa > 0 ? 'warning' : 'default'}
+                    description="Já têm saldo para baixar FIFO"
+                />
+                <StatCard
+                    label="Unidades pendentes"
+                    value={unidadesPendentesFIFO}
+                    description={`${formatarNumero(resumoVendasPendentes?.total_pedidos_afetados)} pedido(s) afetado(s)`}
+                />
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
-                    <p className="text-sm text-slate-400">Alertas de estoque</p>
-                    <p className="mt-3 text-3xl font-bold">{formatarNumero(resumo?.alertas_estoque)}</p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
-                    <p className="text-sm text-slate-400">Alertas de produto</p>
-                    <p className="mt-3 text-3xl font-bold">{formatarNumero(resumo?.alertas_produto)}</p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
-                    <p className="text-sm text-slate-400">Alertas de custo real</p>
-                    <p className="mt-3 text-3xl font-bold">{formatarNumero(resumo?.alertas_custo_real)}</p>
-                </div>
+                <StatCard label="Alertas de estoque" value={formatarNumero(resumo?.alertas_estoque)} />
+                <StatCard label="Alertas de produto" value={formatarNumero(resumo?.alertas_produto)} />
+                <StatCard label="Alertas de custo real" value={formatarNumero(resumo?.alertas_custo_real)} />
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+            <AppCard>
                 <p className="text-sm text-slate-400">
                     Status da consulta:
                 </p>
@@ -316,9 +289,9 @@ export function Alertas() {
                         </p>
                     </div>
                 </div>
-            </div>
+            </AppCard>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+            <AppCard>
                 <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <h2 className="text-xl font-semibold">
@@ -344,9 +317,9 @@ export function Alertas() {
                         </p>
                     </div>
                 ) : (
-                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                    <DataTableContainer>
                         <table className="w-full min-w-[980px] border-collapse text-left text-xs sm:text-sm">
-                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
+                            <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                 <tr>
                                     <th className="w-[150px] px-3 py-3 font-medium sm:px-4">Pedido</th>
                                     <th className="w-[120px] px-3 py-3 font-medium sm:px-4">Severidade</th>
@@ -376,13 +349,9 @@ export function Alertas() {
                                         </td>
 
                                         <td className="px-3 py-3 sm:px-4">
-                                            <span
-                                                className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseSeveridade(
-                                                    venda.severidade
-                                                )}`}
-                                            >
+                                            <StatusBadge tone={obterTomSeveridade(venda.severidade)}>
                                                 {venda.severidade ?? '-'}
-                                            </span>
+                                            </StatusBadge>
                                         </td>
 
                                         <td className="px-3 py-3 text-slate-100 sm:px-4">
@@ -411,13 +380,9 @@ export function Alertas() {
                                         </td>
 
                                         <td className="px-3 py-3 sm:px-4">
-                                            <span
-                                                className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseDecisao(
-                                                    venda.decisao
-                                                )}`}
-                                            >
+                                            <StatusBadge tone={obterTomDecisao(venda.decisao)}>
                                                 {formatarDecisao(venda.decisao)}
-                                            </span>
+                                            </StatusBadge>
                                         </td>
 
                                         <td className="max-w-[260px] px-3 py-3 text-slate-300 sm:px-4">
@@ -427,11 +392,11 @@ export function Alertas() {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
-            </div>
+            </AppCard>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+            <AppCard>
                 <h2 className="text-xl font-semibold">
                     Resumo por tipo de alerta
                 </h2>
@@ -465,9 +430,9 @@ export function Alertas() {
                         </p>
                     </div>
                 </div>
-            </div>
+            </AppCard>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-6">
+            <AppCard>
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-xl font-semibold">
                         Alertas operacionais
@@ -485,9 +450,9 @@ export function Alertas() {
                         </p>
                     </div>
                 ) : (
-                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
+                    <DataTableContainer>
                         <table className="w-full min-w-[980px] border-collapse text-left text-xs sm:text-sm">
-                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400">
+                            <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                 <tr>
                                     <th className="w-[150px] px-3 py-3 font-medium sm:px-4">Categoria</th>
                                     <th className="w-[170px] px-3 py-3 font-medium sm:px-4">Tipo</th>
@@ -515,13 +480,9 @@ export function Alertas() {
                                         </td>
 
                                         <td className="px-3 py-3 sm:px-4">
-                                            <span
-                                                className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-medium ${obterClasseSeveridade(
-                                                    alerta.severidade
-                                                )}`}
-                                            >
+                                            <StatusBadge tone={obterTomSeveridade(alerta.severidade)}>
                                                 {alerta.severidade ?? '-'}
-                                            </span>
+                                            </StatusBadge>
                                         </td>
 
                                         <td className="px-3 py-3 text-slate-100 sm:px-4">
@@ -550,10 +511,10 @@ export function Alertas() {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
 
-            </div>
+            </AppCard>
         </div>
     )
 }
