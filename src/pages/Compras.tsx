@@ -4,6 +4,7 @@ import {
     buscarItensCompras,
     cadastrarCompra,
     cadastrarItemCompra,
+    definirControleRecebimentoCompra,
     receberItemCompra,
     type CompraItemDetalhado,
     type CompraResumo,
@@ -404,6 +405,78 @@ function itemBloqueadoParaRecebimento(
     return item?.bloqueia_recebimento === true
 }
 
+function compraEhNotaOlist(compra: Pick<CompraResumo, 'numero_pedido'>) {
+    return (compra.numero_pedido ?? '').startsWith('OLIST-NF-')
+}
+
+function compraCandidataLiberacaoRecebimentoReal(
+    compra: Pick<
+        CompraResumo,
+        'numero_pedido' | 'classificacao_operacional_recebimento'
+    >
+) {
+    return (
+        compraEhNotaOlist(compra) &&
+        compra.classificacao_operacional_recebimento ===
+            'pendente_conferencia_operacional'
+    )
+}
+
+function obterMotivoImpedimentoLiberacaoRecebimentoReal(
+    compra: CompraResumo,
+    itensDaCompra: CompraItemDetalhado[]
+) {
+    const classificacao = compra.classificacao_operacional_recebimento
+    const statusCompra = (compra.status ?? '').toLowerCase()
+    const totalItensResumo = Number(compra.quantidade_itens_distintos ?? 0)
+    const possuiItens = totalItensResumo > 0 || itensDaCompra.length > 0
+    const possuiItemRecebido = itensDaCompra.some(
+        (item) => Number(item.quantidade_recebida ?? 0) > 0
+    )
+
+    if (!compraEhNotaOlist(compra)) {
+        return 'A liberação automática é restrita a compras importadas do Olist.'
+    }
+
+    if (classificacao === 'historico_fiscal_sem_entrada_estoque') {
+        return 'Esta NF está classificada como histórico fiscal e não deve gerar entrada de estoque.'
+    }
+
+    if (classificacao === 'recebimento_real') {
+        return 'Esta compra já está liberada para recebimento real.'
+    }
+
+    if (classificacao !== 'pendente_conferencia_operacional') {
+        return 'A compra ainda não está pendente de conferência operacional.'
+    }
+
+    if (compra.bloqueia_recebimento !== true) {
+        return 'A compra não está bloqueada para conferência. Revise o controle operacional antes de liberar.'
+    }
+
+    if (!compra.local_destino_id) {
+        return 'Informe o local de destino antes de liberar o recebimento real.'
+    }
+
+    if (statusCompra === 'recebido') {
+        return 'A compra já está marcada como recebida.'
+    }
+
+    if (statusCompra === 'cancelado') {
+        return 'A compra está cancelada.'
+    }
+
+    if (!possuiItens) {
+        return 'A compra ainda não possui itens.'
+    }
+
+    if (possuiItemRecebido) {
+        return 'A compra já possui item recebido. Não é seguro alterar a classificação por este botão.'
+    }
+
+    return null
+}
+
 function obterClasseLinhaItemCompra(statusRecebimento: string, selecionado: boolean) {
     if (selecionado) {
         return 'bg-emerald-500/10 hover:bg-emerald-500/20'
@@ -555,6 +628,8 @@ export function Compras() {
     const [salvandoCompra, setSalvandoCompra] = useState(false)
     const [salvandoItem, setSalvandoItem] = useState(false)
     const [recebendoItemId, setRecebendoItemId] = useState<string | null>(null)
+    const [liberandoRecebimentoCompraId, setLiberandoRecebimentoCompraId] =
+        useState<string | null>(null)
     const [itemSelecionadoParaReceber, setItemSelecionadoParaReceber] =
         useState<CompraItemDetalhado | null>(null)
     const [mostrarFormularioCompra, setMostrarFormularioCompra] = useState(false)
@@ -836,6 +911,61 @@ export function Compras() {
             }
         } finally {
             setSalvandoItem(false)
+        }
+    }
+
+    function obterItensDaCompra(compraId: string) {
+        return itensCompras.filter((item) => item.compra_id === compraId)
+    }
+
+    async function liberarRecebimentoRealCompra(compra: CompraResumo) {
+        const itensDaCompra = obterItensDaCompra(compra.compra_id)
+        const motivoImpedimento =
+            obterMotivoImpedimentoLiberacaoRecebimentoReal(compra, itensDaCompra)
+
+        if (motivoImpedimento) {
+            setStatus('erro')
+            setMensagem(motivoImpedimento)
+            return
+        }
+
+        const confirmarLiberacao = window.confirm(
+            `Você está prestes a liberar a NF ${
+                compra.numero_nota_fiscal ?? compra.numero_pedido ?? ''
+            } para recebimento real.\n\nDepois disso, os itens poderão ser recebidos e poderão gerar lote e entrada de estoque.\n\nConfirme somente se:\n- a mercadoria ainda não entrou no estoque Primely;\n- a NF não é apenas histórico fiscal;\n- os produtos, quantidades e custos foram conferidos.\n\nDeseja continuar?`
+        )
+
+        if (!confirmarLiberacao) {
+            return
+        }
+
+        try {
+            setLiberandoRecebimentoCompraId(compra.compra_id)
+            setMensagem('Liberando compra para recebimento real...')
+
+            await definirControleRecebimentoCompra(
+                compra.compra_id,
+                'recebimento_real',
+                'NF conferida operacionalmente e liberada para recebimento real. Mercadoria ainda não entrou no estoque Primely.',
+                'app_compras_liberacao_recebimento_real'
+            )
+
+            await recarregarComprasEItens()
+
+            setStatus('sucesso')
+            setMensagem(
+                'Compra liberada para recebimento real. Nenhum item foi recebido automaticamente.'
+            )
+        } catch (error) {
+            setStatus('erro')
+
+            if (error instanceof Error) {
+                setMensagem(error.message)
+            } else {
+                setMensagem('Erro desconhecido ao liberar recebimento real.')
+            }
+        } finally {
+            setLiberandoRecebimentoCompraId(null)
         }
     }
 
@@ -2159,6 +2289,19 @@ export function Compras() {
                                 {compras.map((compra) => {
                                     const bloqueadaParaRecebimento =
                                         compraBloqueadaParaRecebimento(compra)
+                                    const itensDaCompra = obterItensDaCompra(compra.compra_id)
+                                    const candidataLiberacaoRecebimentoReal =
+                                        compraCandidataLiberacaoRecebimentoReal(compra)
+                                    const motivoImpedimentoLiberacao =
+                                        obterMotivoImpedimentoLiberacaoRecebimentoReal(
+                                            compra,
+                                            itensDaCompra
+                                        )
+                                    const podeLiberarRecebimentoReal =
+                                        candidataLiberacaoRecebimentoReal &&
+                                        !motivoImpedimentoLiberacao
+                                    const liberandoRecebimentoReal =
+                                        liberandoRecebimentoCompraId === compra.compra_id
 
                                     return (
                                         <tr
@@ -2234,18 +2377,54 @@ export function Compras() {
                                             </div>
                                         </td>
 
-                                        <td className="px-4 py-3">
-                                            <AppButton
-                                                type="button"
-                                                variant="secondary"
-                                                size="sm"
-                                                disabled={bloqueadaParaRecebimento}
-                                                onClick={() => selecionarCompraParaItem(compra)}
-                                            >
-                                                {bloqueadaParaRecebimento
-                                                    ? 'Bloqueada'
-                                                    : 'Usar compra'}
-                                            </AppButton>
+                                        <td className="px-4 py-3 align-top">
+                                            <div className="flex max-w-[180px] flex-col gap-2">
+                                                {candidataLiberacaoRecebimentoReal ? (
+                                                    <>
+                                                        <AppButton
+                                                            type="button"
+                                                            variant={
+                                                                podeLiberarRecebimentoReal
+                                                                    ? 'primary'
+                                                                    : 'secondary'
+                                                            }
+                                                            size="sm"
+                                                            disabled={
+                                                                !podeLiberarRecebimentoReal ||
+                                                                liberandoRecebimentoReal
+                                                            }
+                                                            onClick={() =>
+                                                                liberarRecebimentoRealCompra(compra)
+                                                            }
+                                                        >
+                                                            {liberandoRecebimentoReal
+                                                                ? 'Liberando...'
+                                                                : 'Liberar recebimento real'}
+                                                        </AppButton>
+
+                                                        {motivoImpedimentoLiberacao && (
+                                                            <span
+                                                                className="text-[11px] leading-relaxed text-slate-500"
+                                                                title={motivoImpedimentoLiberacao}
+                                                            >
+                                                                {motivoImpedimentoLiberacao}
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <AppButton
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        disabled={bloqueadaParaRecebimento}
+                                                        onClick={() => selecionarCompraParaItem(compra)}
+                                                    >
+                                                        {bloqueadaParaRecebimento
+                                                            ? 'Bloqueada'
+                                                            : 'Usar compra'}
+                                                    </AppButton>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                     )
