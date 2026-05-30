@@ -32,6 +32,7 @@ export type CompraResumo = {
     classificacao_operacional_recebimento: ClassificacaoOperacionalRecebimento | string | null
     bloqueia_recebimento: boolean
     motivo_bloqueio_recebimento: string | null
+    origem_controle_recebimento: string | null
 }
 
 export type CompraControleRecebimento = {
@@ -118,6 +119,7 @@ export type CompraItemDetalhado = CompraItem & {
     classificacao_operacional_recebimento: ClassificacaoOperacionalRecebimento | string | null
     bloqueia_recebimento: boolean
     motivo_bloqueio_recebimento: string | null
+    origem_controle_recebimento: string | null
 }
 
 export type NovoCompraItem = {
@@ -176,6 +178,7 @@ export async function buscarComprasResumo() {
         | 'classificacao_operacional_recebimento'
         | 'bloqueia_recebimento'
         | 'motivo_bloqueio_recebimento'
+        | 'origem_controle_recebimento'
     >[]
 
     const controlesPorCompra = await buscarControlesRecebimento(
@@ -191,6 +194,7 @@ export async function buscarComprasResumo() {
                 controle?.classificacao_operacional ?? null,
             bloqueia_recebimento: controle?.bloqueia_recebimento ?? false,
             motivo_bloqueio_recebimento: controle?.motivo ?? null,
+            origem_controle_recebimento: controle?.origem ?? null,
         }
     }) as CompraResumo[]
 }
@@ -222,6 +226,7 @@ export async function buscarItensCompras() {
         | 'classificacao_operacional_recebimento'
         | 'bloqueia_recebimento'
         | 'motivo_bloqueio_recebimento'
+        | 'origem_controle_recebimento'
     >[]
 
     const controlesPorCompra = await buscarControlesRecebimento(
@@ -237,6 +242,7 @@ export async function buscarItensCompras() {
                 controle?.classificacao_operacional ?? null,
             bloqueia_recebimento: controle?.bloqueia_recebimento ?? false,
             motivo_bloqueio_recebimento: controle?.motivo ?? null,
+            origem_controle_recebimento: controle?.origem ?? null,
         }
     }) as CompraItemDetalhado[]
 }

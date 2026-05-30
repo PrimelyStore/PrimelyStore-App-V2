@@ -265,20 +265,131 @@ function obterRotuloClassificacaoOperacional(classificacao?: string | null) {
     return null
 }
 
-function obterClasseClassificacaoOperacional(classificacao?: string | null) {
+function obterTomClassificacaoOperacional(
+    classificacao?: string | null
+): StatusBadgeTone {
     if (classificacao === 'historico_fiscal_sem_entrada_estoque') {
-        return 'text-red-300'
+        return 'danger'
     }
 
     if (classificacao === 'pendente_conferencia_operacional') {
-        return 'text-yellow-300'
+        return 'warning'
     }
 
     if (classificacao === 'recebimento_real') {
-        return 'text-emerald-300'
+        return 'success'
     }
 
-    return 'text-slate-400'
+    return 'muted'
+}
+
+function obterRotuloBloqueioRecebimento(bloqueiaRecebimento?: boolean) {
+    return bloqueiaRecebimento
+        ? 'Recebimento bloqueado'
+        : 'Recebimento liberado'
+}
+
+
+function obterRotuloClassificacaoOperacionalCompacto(classificacao?: string | null) {
+    if (classificacao === 'historico_fiscal_sem_entrada_estoque') {
+        return 'Histórico fiscal'
+    }
+
+    if (classificacao === 'pendente_conferencia_operacional') {
+        return 'Pendente conferência'
+    }
+
+    if (classificacao === 'recebimento_real') {
+        return 'Recebimento real'
+    }
+
+    return null
+}
+
+function obterRotuloBloqueioRecebimentoCompacto(bloqueiaRecebimento?: boolean | null) {
+    if (typeof bloqueiaRecebimento !== 'boolean') {
+        return null
+    }
+
+    return bloqueiaRecebimento ? 'Bloqueado' : 'Liberado'
+}
+
+type ControleRecebimentoResumoProps = {
+    classificacao?: string | null
+    bloqueiaRecebimento?: boolean | null
+    motivo?: string | null
+    origem?: string | null
+    compacto?: boolean
+}
+
+function ControleRecebimentoResumo({
+    classificacao,
+    bloqueiaRecebimento,
+    motivo,
+    origem,
+    compacto = true,
+}: ControleRecebimentoResumoProps) {
+    const temControle = Boolean(
+        classificacao || typeof bloqueiaRecebimento === 'boolean' || motivo || origem
+    )
+
+    if (!temControle) {
+        return null
+    }
+
+    const rotuloClassificacao = compacto
+        ? obterRotuloClassificacaoOperacionalCompacto(classificacao)
+        : obterRotuloClassificacaoOperacional(classificacao)
+    const rotuloBloqueio = compacto
+        ? obterRotuloBloqueioRecebimentoCompacto(bloqueiaRecebimento)
+        : obterRotuloBloqueioRecebimento(bloqueiaRecebimento === true)
+    const bloqueado = bloqueiaRecebimento === true
+    const temDetalhes = Boolean(motivo || origem)
+
+    return (
+        <div className={compacto ? 'flex max-w-[220px] flex-col gap-1.5' : 'flex flex-col gap-2'}>
+            {classificacao && (
+                <StatusBadge tone={obterTomClassificacaoOperacional(classificacao)}>
+                    {rotuloClassificacao ?? 'Controle operacional'}
+                </StatusBadge>
+            )}
+
+            {rotuloBloqueio && (
+                <span
+                    className={
+                        bloqueado
+                            ? 'inline-flex w-max whitespace-nowrap rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-200'
+                            : 'inline-flex w-max whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-200'
+                    }
+                >
+                    {rotuloBloqueio}
+                </span>
+            )}
+
+            {temDetalhes && (
+                <details className="group max-w-[220px]">
+                    <summary className="cursor-pointer select-none text-[11px] font-medium text-slate-400 outline-none transition hover:text-slate-200">
+                        Ver detalhes
+                    </summary>
+
+                    <div className="mt-1 space-y-1 rounded-lg border border-slate-700 bg-slate-950/80 p-2">
+                        {motivo && (
+                            <p className="text-[11px] leading-relaxed text-slate-300" title={motivo}>
+                                <span className="font-semibold text-slate-200">Motivo: </span>
+                                {motivo}
+                            </p>
+                        )}
+
+                        {origem && (
+                            <p className="text-[10px] leading-relaxed text-slate-500">
+                                Origem: {origem}
+                            </p>
+                        )}
+                    </div>
+                </details>
+            )}
+        </div>
+    )
 }
 
 function compraBloqueadaParaRecebimento(
@@ -446,6 +557,8 @@ export function Compras() {
     const [recebendoItemId, setRecebendoItemId] = useState<string | null>(null)
     const [itemSelecionadoParaReceber, setItemSelecionadoParaReceber] =
         useState<CompraItemDetalhado | null>(null)
+    const [mostrarFormularioCompra, setMostrarFormularioCompra] = useState(false)
+    const [mostrarFormularioItem, setMostrarFormularioItem] = useState(false)
 
     const [formularioCompra, setFormularioCompra] =
         useState<FormularioCompra>(formularioInicial)
@@ -554,6 +667,7 @@ export function Compras() {
             ...formularioAtual,
             compra_id: compra.compra_id,
         }))
+        setMostrarFormularioItem(true)
 
         setStatus('sucesso')
         setMensagem(
@@ -625,6 +739,8 @@ export function Compras() {
             const compraCadastrada = await cadastrarCompra(novaCompra)
 
             limparFormularioCompra()
+            setMostrarFormularioCompra(false)
+            setMostrarFormularioItem(true)
             await recarregarComprasEItens()
 
             setFormularioItem((formularioAtual) => ({
@@ -879,7 +995,44 @@ export function Compras() {
                 description="Cadastro do cabeçalho da compra, inclusão de itens, recebimento e listagem consolidada."
             />
 
-            <form
+            <AppCard className="sm:p-5 lg:p-6">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <h2 className="text-xl font-semibold text-slate-100">
+                            Ações rápidas de compras
+                        </h2>
+
+                        <p className="mt-2 text-sm text-slate-400">
+                            Os formulários ficam recolhidos para deixar a tela mais limpa. Abra somente quando precisar cadastrar uma compra ou adicionar item.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
+                        <AppButton
+                            type="button"
+                            variant={mostrarFormularioCompra ? 'secondary' : 'primary'}
+                            onClick={() => setMostrarFormularioCompra((aberto) => !aberto)}
+                        >
+                            {mostrarFormularioCompra
+                                ? 'Fechar cabeçalho'
+                                : 'Cadastrar cabeçalho da compra'}
+                        </AppButton>
+
+                        <AppButton
+                            type="button"
+                            variant={mostrarFormularioItem ? 'secondary' : 'success'}
+                            onClick={() => setMostrarFormularioItem((aberto) => !aberto)}
+                        >
+                            {mostrarFormularioItem
+                                ? 'Fechar item'
+                                : 'Adicionar item à compra'}
+                        </AppButton>
+                    </div>
+                </div>
+            </AppCard>
+
+            {mostrarFormularioCompra && (
+                <form
                 onSubmit={enviarFormularioCompra}
                 className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6"
             >
@@ -1153,9 +1306,11 @@ export function Compras() {
                         {salvandoCompra ? 'Cadastrando...' : 'Cadastrar compra'}
                     </AppButton>
                 </div>
-            </form>
+                </form>
+            )}
 
-            <form
+            {mostrarFormularioItem && (
+                <form
                 onSubmit={enviarFormularioItem}
                 className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6"
             >
@@ -1185,12 +1340,45 @@ export function Compras() {
                                     Fornecedor: {compraSelecionada.fornecedor_nome ?? 'não informado'} · Local: {compraSelecionada.local_destino_nome ?? 'não informado'}
                                 </p>
 
-                                {compraBloqueadaParaRecebimento(compraSelecionada) && (
-                                    <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-200">
-                                        {obterRotuloClassificacaoOperacional(
-                                            compraSelecionada.classificacao_operacional_recebimento
-                                        ) ?? 'Compra bloqueada para recebimento'}
-                                    </p>
+                                {compraSelecionada.classificacao_operacional_recebimento && (
+                                    <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-4">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <StatusBadge
+                                                tone={obterTomClassificacaoOperacional(
+                                                    compraSelecionada.classificacao_operacional_recebimento
+                                                )}
+                                            >
+                                                {obterRotuloClassificacaoOperacional(
+                                                    compraSelecionada.classificacao_operacional_recebimento
+                                                ) ?? 'Controle operacional'}
+                                            </StatusBadge>
+
+                                            <span
+                                                className={
+                                                    compraBloqueadaParaRecebimento(compraSelecionada)
+                                                        ? 'inline-flex w-max whitespace-nowrap rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-200'
+                                                        : 'inline-flex w-max whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-200'
+                                                }
+                                            >
+                                                {obterRotuloBloqueioRecebimento(
+                                                    compraSelecionada.bloqueia_recebimento
+                                                )}
+                                            </span>
+                                        </div>
+
+                                        {compraSelecionada.motivo_bloqueio_recebimento && (
+                                            <p className="mt-3 text-xs leading-relaxed text-slate-300">
+                                                <span className="font-semibold text-slate-200">Motivo: </span>
+                                                {compraSelecionada.motivo_bloqueio_recebimento}
+                                            </p>
+                                        )}
+
+                                        {compraSelecionada.origem_controle_recebimento && (
+                                            <p className="mt-2 text-xs text-slate-500">
+                                                Origem: {compraSelecionada.origem_controle_recebimento}
+                                            </p>
+                                        )}
+                                    </div>
                                 )}
                             </div>
 
@@ -1559,7 +1747,8 @@ export function Compras() {
                                 : 'Adicionar item à compra'}
                     </AppButton>
                 </div>
-            </form>
+                </form>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <AppCard className="sm:p-5 lg:p-6">
@@ -1812,10 +2001,6 @@ export function Compras() {
                                     const percentualRecebido = calcularPercentualRecebido(item)
                                     const bloqueadoParaRecebimento =
                                         itemBloqueadoParaRecebimento(item)
-                                    const rotuloClassificacao =
-                                        obterRotuloClassificacaoOperacional(
-                                            item.classificacao_operacional_recebimento
-                                        )
                                     const podeReceber =
                                         !bloqueadoParaRecebimento &&
                                         pendente > 0 &&
@@ -1884,28 +2069,24 @@ export function Compras() {
                                                 {item.lote ?? '-'}
                                             </td>
 
-                                            <td className="px-4 py-3">
-                                                <div className="flex flex-col gap-2">
+                                            <td className="px-4 py-3 align-top">
+                                                <div className="flex max-w-[220px] flex-col gap-2">
                                                     <StatusBadge tone={obterTomStatusRecebimento(statusRecebimento)}>
                                                         {obterRotuloStatusRecebimento(statusRecebimento)}
                                                     </StatusBadge>
 
                                                     {item.status !== statusRecebimento && (
-                                                        <span className="text-xs text-slate-500">
-                                                            Status original: {item.status}
+                                                        <span className="text-[11px] text-slate-500">
+                                                            Original: {item.status}
                                                         </span>
                                                     )}
 
-                                                    {bloqueadoParaRecebimento && (
-                                                        <span
-                                                            className={`text-xs font-semibold ${obterClasseClassificacaoOperacional(
-                                                                item.classificacao_operacional_recebimento
-                                                            )}`}
-                                                            title={item.motivo_bloqueio_recebimento ?? undefined}
-                                                        >
-                                                            {rotuloClassificacao ?? 'Compra bloqueada para recebimento'}
-                                                        </span>
-                                                    )}
+                                                    <ControleRecebimentoResumo
+                                                        classificacao={item.classificacao_operacional_recebimento}
+                                                        bloqueiaRecebimento={item.bloqueia_recebimento}
+                                                        motivo={item.motivo_bloqueio_recebimento}
+                                                        origem={item.origem_controle_recebimento}
+                                                    />
                                                 </div>
                                             </td>
 
@@ -1975,15 +2156,19 @@ export function Compras() {
                             </thead>
 
                             <tbody className="divide-y divide-slate-800 bg-slate-900">
-                                {compras.map((compra) => (
-                                    <tr
-                                        key={compra.compra_id}
-                                        className={
-                                            compraSelecionada?.compra_id === compra.compra_id
-                                                ? 'bg-cyan-500/10 hover:bg-cyan-500/20'
-                                                : 'hover:bg-slate-800/60'
-                                        }
-                                    >
+                                {compras.map((compra) => {
+                                    const bloqueadaParaRecebimento =
+                                        compraBloqueadaParaRecebimento(compra)
+
+                                    return (
+                                        <tr
+                                            key={compra.compra_id}
+                                            className={
+                                                compraSelecionada?.compra_id === compra.compra_id
+                                                    ? 'bg-cyan-500/10 hover:bg-cyan-500/20'
+                                                    : 'hover:bg-slate-800/60'
+                                            }
+                                        >
                                         <td className="px-4 py-3 text-slate-100">
                                             {compra.numero_pedido ?? '-'}
                                         </td>
@@ -2034,24 +2219,18 @@ export function Compras() {
                                             {formatarMoeda(compra.valor_total_estimado)}
                                         </td>
 
-                                        <td className="px-4 py-3">
-                                            <div className="flex flex-col gap-2">
+                                        <td className="px-4 py-3 align-top">
+                                            <div className="flex max-w-[220px] flex-col gap-2">
                                                 <StatusBadge tone={obterTomStatus(compra.status)}>
                                                     {compra.status}
                                                 </StatusBadge>
 
-                                                {compra.bloqueia_recebimento && (
-                                                    <span
-                                                        className={`text-xs font-semibold ${obterClasseClassificacaoOperacional(
-                                                            compra.classificacao_operacional_recebimento
-                                                        )}`}
-                                                        title={compra.motivo_bloqueio_recebimento ?? undefined}
-                                                    >
-                                                        {obterRotuloClassificacaoOperacional(
-                                                            compra.classificacao_operacional_recebimento
-                                                        ) ?? 'Compra bloqueada'}
-                                                    </span>
-                                                )}
+                                                <ControleRecebimentoResumo
+                                                    classificacao={compra.classificacao_operacional_recebimento}
+                                                    bloqueiaRecebimento={compra.bloqueia_recebimento}
+                                                    motivo={compra.motivo_bloqueio_recebimento}
+                                                    origem={compra.origem_controle_recebimento}
+                                                />
                                             </div>
                                         </td>
 
@@ -2060,16 +2239,17 @@ export function Compras() {
                                                 type="button"
                                                 variant="secondary"
                                                 size="sm"
-                                                disabled={compraBloqueadaParaRecebimento(compra)}
+                                                disabled={bloqueadaParaRecebimento}
                                                 onClick={() => selecionarCompraParaItem(compra)}
                                             >
-                                                {compraBloqueadaParaRecebimento(compra)
+                                                {bloqueadaParaRecebimento
                                                     ? 'Bloqueada'
                                                     : 'Usar compra'}
                                             </AppButton>
                                         </td>
                                     </tr>
-                                ))}
+                                    )
+                                })}
                             </tbody>
                         </table>
                     </DataTableContainer>
