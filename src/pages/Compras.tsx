@@ -1,8 +1,8 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { Fragment, useEffect, useState, type FormEvent } from 'react'
 import {
     buscarComprasResumo,
     buscarItensCompras,
-    buscarTodasNotasEntradaOlistCompras,
+    buscarNotasEntradaOlistCompras,
     cadastrarCompra,
     cadastrarItemCompra,
     definirControleRecebimentoCompra,
@@ -11,9 +11,7 @@ import {
     type CompraResumo,
     type NovaCompra,
     type NovoCompraItem,
-    type ProgressoSincronizacaoNotasEntradaOlist,
     type ResultadoSincronizacaoNotasEntradaOlist,
-    type ResumoSincronizacaoNotasEntradaOlist,
 } from '../services/comprasService'
 import {
     buscarFornecedores,
@@ -516,6 +514,43 @@ function calcularPercentualRecebido(item: CompraItemDetalhado) {
     return Math.min(100, Math.max(0, (quantidadeRecebida / quantidade) * 100))
 }
 
+function obterStatusRecebimentoGrupo(itens: CompraItemDetalhado[]) {
+    if (itens.length === 0) {
+        return 'pendente'
+    }
+
+    const statusDosItens = itens.map((item) => obterStatusRecebimentoItem(item))
+
+    if (statusDosItens.every((status) => status === 'cancelado')) {
+        return 'cancelado'
+    }
+
+    if (statusDosItens.every((status) => status === 'recebido')) {
+        return 'recebido'
+    }
+
+    if (
+        statusDosItens.some(
+            (status) => status === 'recebido' || status === 'parcialmente_recebido'
+        )
+    ) {
+        return 'parcialmente_recebido'
+    }
+
+    return 'pendente'
+}
+
+function calcularPercentualRecebidoGrupo(
+    quantidadeTotal: number,
+    quantidadeRecebida: number
+) {
+    if (quantidadeTotal <= 0) {
+        return 0
+    }
+
+    return Math.min(100, Math.max(0, (quantidadeRecebida / quantidadeTotal) * 100))
+}
+
 function validarFormularioCompra(formulario: FormularioCompra) {
     if (!formulario.fornecedor_id) {
         return 'Selecione um fornecedor.'
@@ -639,18 +674,11 @@ export function Compras() {
     const [mostrarFormularioCompra, setMostrarFormularioCompra] = useState(false)
     const [mostrarFormularioItem, setMostrarFormularioItem] = useState(false)
     const [sincronizandoNotasOlist, setSincronizandoNotasOlist] = useState(false)
+    const [comprasItensExpandidas, setComprasItensExpandidas] = useState<string[]>([])
     const [
         ultimoResultadoSincronizacaoOlist,
         setUltimoResultadoSincronizacaoOlist,
     ] = useState<ResultadoSincronizacaoNotasEntradaOlist | null>(null)
-    const [
-        progressoSincronizacaoOlist,
-        setProgressoSincronizacaoOlist,
-    ] = useState<ProgressoSincronizacaoNotasEntradaOlist | null>(null)
-    const [
-        resumoSincronizacaoOlist,
-        setResumoSincronizacaoOlist,
-    ] = useState<ResumoSincronizacaoNotasEntradaOlist | null>(null)
 
     const [formularioCompra, setFormularioCompra] =
         useState<FormularioCompra>(formularioInicial)
@@ -719,7 +747,7 @@ export function Compras() {
 
     async function buscarNotasOlistCompras() {
         const confirmarBusca = window.confirm(
-            'Buscar NFs de compra no Olist?\n\nO sistema vai consultar as notas em chamadas pequenas, uma por vez, para evitar limite da Edge Function.\nEsta ação apenas sincroniza as NFs e itens para conferência. Ela não gera estoque, não cria lote e não confirma recebimento automaticamente.'
+            'Buscar novas NFs de compra no Olist?\n\nEsta ação apenas sincroniza as NFs e itens para conferência.\nEla não gera estoque, não cria lote e não confirma recebimento automaticamente.'
         )
 
         if (!confirmarBusca) {
@@ -729,61 +757,27 @@ export function Compras() {
         try {
             setSincronizandoNotasOlist(true)
             setStatus('carregando')
-            setMensagem('Iniciando busca progressiva de NFs de compra no Olist...')
+            setMensagem('Buscando NFs de compra no Olist...')
             setUltimoResultadoSincronizacaoOlist(null)
-            setProgressoSincronizacaoOlist(null)
-            setResumoSincronizacaoOlist(null)
 
-            const resumoFinal = await buscarTodasNotasEntradaOlistCompras({
-                offsetInicial: 0,
-                maxNotas: 30,
-                itemDelayMs: 2000,
-                intervaloEntreChamadasMs: 1200,
-                onProgresso: (progresso, resultadoParcial) => {
-                    setProgressoSincronizacaoOlist(progresso)
-                    setUltimoResultadoSincronizacaoOlist(resultadoParcial)
+            const resultado = await buscarNotasEntradaOlistCompras()
 
-                    const totalTexto =
-                        typeof progresso.totalReportado === 'number'
-                            ? progresso.totalReportado
-                            : '?'
-
-                    setMensagem(
-                        [
-                            'Buscando NFs Olist...',
-                            `Chamada ${progresso.chamadasRealizadas}.`,
-                            `Offset atual: ${progresso.offsetAtual}.`,
-                            `Próximo offset: ${progresso.proximoOffset}.`,
-                            `Total Olist: ${totalTexto}.`,
-                            progresso.ultimaNotaNumero
-                                ? `Última NF: ${progresso.ultimaNotaNumero}.`
-                                : '',
-                        ]
-                            .filter(Boolean)
-                            .join(' ')
-                    )
-                },
-            })
-
-            setResumoSincronizacaoOlist(resumoFinal)
+            setUltimoResultadoSincronizacaoOlist(resultado)
             await recarregarComprasEItens()
+
+            const resumo = resultado.result
 
             setStatus('sucesso')
             setMensagem(
                 [
-                    'Busca progressiva de NFs Olist concluída.',
-                    `Total informado pela Olist: ${resumoFinal.totalReportado ?? '?'}.`,
-                    `Chamadas realizadas: ${resumoFinal.chamadasRealizadas}.`,
-                    `Notas lidas: ${resumoFinal.notasLidas}.`,
-                    `Notas inseridas: ${resumoFinal.notasInseridas}.`,
-                    `Notas atualizadas: ${resumoFinal.notasAtualizadas}.`,
-                    `Itens inseridos: ${resumoFinal.itensInseridos}.`,
-                    `Itens atualizados: ${resumoFinal.itensAtualizados}.`,
-                    `Erros em notas: ${resumoFinal.errosNotas}.`,
-                    `Erros em itens: ${resumoFinal.errosItens}.`,
-                    resumoFinal.limiteAtingido
-                        ? 'Limite de segurança atingido; rode novamente para continuar.'
-                        : 'Varredura concluída dentro do total informado pela Olist.',
+                    'Busca de NFs Olist concluída.',
+                    `Notas lidas: ${resumo?.received_count ?? 0}.`,
+                    `Notas inseridas: ${resumo?.inserted_notas_count ?? 0}.`,
+                    `Notas atualizadas: ${resumo?.updated_notas_count ?? 0}.`,
+                    `Itens inseridos: ${resumo?.inserted_items_count ?? 0}.`,
+                    `Itens atualizados: ${resumo?.updated_items_count ?? 0}.`,
+                    `Erros em notas: ${resumo?.notas_errors_count ?? 0}.`,
+                    `Erros em itens: ${resumo?.items_errors_count ?? 0}.`,
                 ].join(' ')
             )
         } catch (error) {
@@ -1017,6 +1011,16 @@ export function Compras() {
         return itensCompras.filter((item) => item.compra_id === compraId)
     }
 
+    function alternarItensDaCompra(compraId: string) {
+        setComprasItensExpandidas((comprasExpandidasAtuais) => {
+            if (comprasExpandidasAtuais.includes(compraId)) {
+                return comprasExpandidasAtuais.filter((id) => id !== compraId)
+            }
+
+            return [...comprasExpandidasAtuais, compraId]
+        })
+    }
+
     async function liberarRecebimentoRealCompra(compra: CompraResumo) {
         const itensDaCompra = obterItensDaCompra(compra.compra_id)
         const motivoImpedimento =
@@ -1164,6 +1168,52 @@ export function Compras() {
             quantidadePendente: 0,
         }
     )
+
+    const comprasPorId = new Map(
+        compras.map((compra) => [compra.compra_id, compra])
+    )
+
+    const gruposItensCompras = Array.from(
+        itensCompras
+            .reduce((grupos, item) => {
+                const itensDoGrupo = grupos.get(item.compra_id) ?? []
+
+                itensDoGrupo.push(item)
+                grupos.set(item.compra_id, itensDoGrupo)
+
+                return grupos
+            }, new Map<string, CompraItemDetalhado[]>())
+            .entries()
+    ).map(([compraId, itens]) => {
+        const quantidadeTotal = itens.reduce(
+            (total, item) => total + Number(item.quantidade ?? 0),
+            0
+        )
+        const quantidadeRecebida = itens.reduce(
+            (total, item) => total + Number(item.quantidade_recebida ?? 0),
+            0
+        )
+        const quantidadePendente = Math.max(
+            0,
+            quantidadeTotal - quantidadeRecebida
+        )
+        const statusRecebimento = obterStatusRecebimentoGrupo(itens)
+        const percentualRecebido = calcularPercentualRecebidoGrupo(
+            quantidadeTotal,
+            quantidadeRecebida
+        )
+
+        return {
+            compraId,
+            compra: comprasPorId.get(compraId) ?? null,
+            itens,
+            quantidadeTotal,
+            quantidadeRecebida,
+            quantidadePendente,
+            statusRecebimento,
+            percentualRecebido,
+        }
+    })
 
     const valorFreteFormulario = converterNumeroSeguro(formularioCompra.valor_frete)
     const valorDescontoFormulario = converterNumeroSeguro(formularioCompra.valor_desconto)
@@ -2031,128 +2081,10 @@ export function Compras() {
 
                 <p className="mt-3 text-slate-300">{mensagem}</p>
 
-                {progressoSincronizacaoOlist && (
-                    <div className="mt-4 rounded-2xl border border-cyan-900/60 bg-cyan-950/20 p-4">
-                        <p className="text-sm font-semibold text-cyan-200">
-                            Progresso da busca Olist
-                        </p>
-
-                        <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-5">
-                            <div>
-                                <p className="text-slate-500">Total Olist</p>
-                                <p className="font-semibold text-slate-100">
-                                    {progressoSincronizacaoOlist.totalReportado ?? '?'}
-                                </p>
-                            </div>
-
-                            <div>
-                                <p className="text-slate-500">Chamadas</p>
-                                <p className="font-semibold text-slate-100">
-                                    {progressoSincronizacaoOlist.chamadasRealizadas}
-                                </p>
-                            </div>
-
-                            <div>
-                                <p className="text-slate-500">Offset atual</p>
-                                <p className="font-semibold text-cyan-300">
-                                    {progressoSincronizacaoOlist.offsetAtual}
-                                </p>
-                            </div>
-
-                            <div>
-                                <p className="text-slate-500">Próximo offset</p>
-                                <p className="font-semibold text-cyan-300">
-                                    {progressoSincronizacaoOlist.proximoOffset}
-                                </p>
-                            </div>
-
-                            <div>
-                                <p className="text-slate-500">Última NF</p>
-                                <p className="font-semibold text-slate-100">
-                                    {progressoSincronizacaoOlist.ultimaNotaNumero ?? '-'}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
-                            <div>
-                                <p className="text-slate-500">Notas lidas acumuladas</p>
-                                <p className="font-semibold text-slate-100">
-                                    {progressoSincronizacaoOlist.notasLidas}
-                                </p>
-                            </div>
-
-                            <div>
-                                <p className="text-slate-500">Notas inseridas</p>
-                                <p className="font-semibold text-emerald-300">
-                                    {progressoSincronizacaoOlist.notasInseridas}
-                                </p>
-                            </div>
-
-                            <div>
-                                <p className="text-slate-500">Notas atualizadas</p>
-                                <p className="font-semibold text-cyan-300">
-                                    {progressoSincronizacaoOlist.notasAtualizadas}
-                                </p>
-                            </div>
-
-                            <div>
-                                <p className="text-slate-500">Erros acumulados</p>
-                                <p className="font-semibold text-red-300">
-                                    {progressoSincronizacaoOlist.errosNotas +
-                                        progressoSincronizacaoOlist.errosItens}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {resumoSincronizacaoOlist && (
-                    <div className="mt-4 rounded-2xl border border-emerald-900/60 bg-emerald-950/20 p-4">
-                        <p className="text-sm font-semibold text-emerald-200">
-                            Resumo final da busca Olist
-                        </p>
-
-                        <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
-                            <div>
-                                <p className="text-slate-500">Total informado</p>
-                                <p className="font-semibold text-slate-100">
-                                    {resumoSincronizacaoOlist.totalReportado ?? '?'}
-                                </p>
-                            </div>
-
-                            <div>
-                                <p className="text-slate-500">Chamadas realizadas</p>
-                                <p className="font-semibold text-slate-100">
-                                    {resumoSincronizacaoOlist.chamadasRealizadas}
-                                </p>
-                            </div>
-
-                            <div>
-                                <p className="text-slate-500">Notas inseridas</p>
-                                <p className="font-semibold text-emerald-300">
-                                    {resumoSincronizacaoOlist.notasInseridas}
-                                </p>
-                            </div>
-
-                            <div>
-                                <p className="text-slate-500">Notas atualizadas</p>
-                                <p className="font-semibold text-cyan-300">
-                                    {resumoSincronizacaoOlist.notasAtualizadas}
-                                </p>
-                            </div>
-                        </div>
-
-                        <p className="mt-3 text-xs text-slate-500">
-                            A busca importa/atualiza snapshots da Olist em chamadas pequenas. Estoque, lotes e recebimentos não são criados automaticamente.
-                        </p>
-                    </div>
-                )}
-
                 {ultimoResultadoSincronizacaoOlist?.result && (
                     <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950 p-4">
                         <p className="text-sm font-semibold text-slate-200">
-                            Última chamada Olist
+                            Última busca Olist
                         </p>
 
                         <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
@@ -2187,7 +2119,7 @@ export function Compras() {
                         </div>
 
                         <p className="mt-3 text-xs text-slate-500">
-                            Esta é apenas a última chamada individual feita durante a busca progressiva.
+                            A busca apenas importa/atualiza snapshots da Olist. Estoque, lotes e recebimentos não são criados automaticamente.
                         </p>
                     </div>
                 )}
@@ -2197,9 +2129,14 @@ export function Compras() {
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-xl font-semibold">Itens das compras</h2>
 
-                    <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
-                        Total: {itensCompras.length}
-                    </span>
+                    <div className="flex flex-wrap gap-2">
+                        <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                            NFs: {gruposItensCompras.length}
+                        </span>
+                        <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                            Itens: {itensCompras.length}
+                        </span>
+                    </div>
                 </div>
 
                 <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
@@ -2367,7 +2304,7 @@ export function Compras() {
                     </div>
                 )}
 
-                {itensCompras.length === 0 ? (
+                {gruposItensCompras.length === 0 ? (
                     <div className="rounded-xl border border-slate-700 bg-slate-950 p-5">
                         <p className="text-slate-300">
                             Nenhum item de compra para exibir no momento.
@@ -2375,142 +2312,349 @@ export function Compras() {
                     </div>
                 ) : (
                     <DataTableContainer>
-                        <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
+                        <table className="w-full min-w-[1180px] border-collapse text-left text-sm">
                             <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                 <tr>
-                                    <th className="px-4 py-3 font-medium">Compra</th>
-                                    <th className="px-4 py-3 font-medium">Produto</th>
-                                    <th className="px-4 py-3 font-medium">SKU</th>
-                                    <th className="px-4 py-3 font-medium">Qtd.</th>
-                                    <th className="px-4 py-3 font-medium">Recebida</th>
-                                    <th className="px-4 py-3 font-medium">Pendente</th>
+                                    <th className="px-4 py-3 font-medium">Compra / NF</th>
+                                    <th className="px-4 py-3 font-medium">Fornecedor</th>
+                                    <th className="px-4 py-3 font-medium">Itens</th>
+                                    <th className="px-4 py-3 font-medium">Unidades</th>
+                                    <th className="px-4 py-3 font-medium">Recebidas</th>
+                                    <th className="px-4 py-3 font-medium">Pendentes</th>
                                     <th className="px-4 py-3 font-medium">Progresso</th>
-                                    <th className="px-4 py-3 font-medium">Custo unit.</th>
-                                    <th className="px-4 py-3 font-medium">Lote</th>
                                     <th className="px-4 py-3 font-medium">Status</th>
                                     <th className="px-4 py-3 font-medium">Ações</th>
                                 </tr>
                             </thead>
 
                             <tbody className="divide-y divide-slate-800 bg-slate-900">
-                                {itensCompras.map((item) => {
-                                    const pendente = Math.max(
-                                        0,
-                                        Number(item.quantidade ?? 0) - Number(item.quantidade_recebida ?? 0)
+                                {gruposItensCompras.map((grupo) => {
+                                    const compra = grupo.compra
+                                    const expandido = comprasItensExpandidas.includes(
+                                        grupo.compraId
                                     )
-                                    const statusRecebimento = obterStatusRecebimentoItem(item)
-                                    const percentualRecebido = calcularPercentualRecebido(item)
-                                    const bloqueadoParaRecebimento =
-                                        itemBloqueadoParaRecebimento(item)
-                                    const podeReceber =
-                                        !bloqueadoParaRecebimento &&
-                                        pendente > 0 &&
-                                        statusRecebimento !== 'cancelado'
+                                    const bloqueadaParaRecebimento =
+                                        compra?.bloqueia_recebimento ??
+                                        grupo.itens.some((item) => item.bloqueia_recebimento)
+                                    const numeroCompra =
+                                        compra?.numero_pedido ??
+                                        grupo.itens[0]?.compras?.numero_pedido ??
+                                        '-'
+                                    const numeroNotaFiscal =
+                                        compra?.numero_nota_fiscal ?? '-'
 
                                     return (
-                                        <tr
-                                            key={item.id}
-                                            className={obterClasseLinhaItemCompra(
-                                                statusRecebimento,
-                                                itemSelecionadoParaReceber?.id === item.id
-                                            )}
-                                        >
-                                            <td className="px-4 py-3 text-slate-100">
-                                                {item.compras?.numero_pedido ?? '-'}
-                                            </td>
-
-                                            <td className="max-w-[420px] px-4 py-3 text-slate-300">
-                                                <span className="line-clamp-2 break-words">{item.produtos?.nome ?? item.produto_id}</span>
-                                            </td>
-
-                                            <td className="px-4 py-3 text-slate-300">
-                                                {item.produtos?.sku ?? '-'}
-                                            </td>
-
-                                            <td className="px-4 py-3 font-semibold text-slate-100">
-                                                {item.quantidade}
-                                            </td>
-
-                                            <td className="px-4 py-3 font-semibold text-emerald-300">
-                                                {item.quantidade_recebida}
-                                            </td>
-
-                                            <td
+                                        <Fragment key={grupo.compraId}>
+                                            <tr
                                                 className={
-                                                    pendente > 0
-                                                        ? 'px-4 py-3 font-semibold text-yellow-300'
-                                                        : 'px-4 py-3 font-semibold text-emerald-300'
+                                                    expandido
+                                                        ? 'bg-cyan-500/10 hover:bg-cyan-500/20'
+                                                        : 'hover:bg-slate-800/60'
                                                 }
                                             >
-                                                {pendente}
-                                            </td>
-
-                                            <td className="px-4 py-3">
-                                                <div className="w-28">
-                                                    <div className="flex items-center justify-between text-xs text-slate-400">
-                                                        <span>{Math.round(percentualRecebido)}%</span>
-                                                        <span>
-                                                            {item.quantidade_recebida}/{item.quantidade}
+                                                <td className="px-4 py-3 align-top">
+                                                    <div className="flex min-w-[150px] flex-col gap-1">
+                                                        <span className="font-semibold text-slate-100">
+                                                            {numeroCompra}
+                                                        </span>
+                                                        <span className="text-xs text-slate-400">
+                                                            NF: {numeroNotaFiscal}
                                                         </span>
                                                     </div>
-                                                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800">
-                                                        <div
-                                                            className="h-full rounded-full bg-emerald-400"
-                                                            style={{ width: `${percentualRecebido}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </td>
+                                                </td>
 
-                                            <td className="px-4 py-3 text-slate-300">
-                                                {formatarMoeda(item.custo_unitario)}
-                                            </td>
+                                                <td className="px-4 py-3 align-top text-slate-300">
+                                                    <span className="line-clamp-3 max-w-[260px] break-words">
+                                                        {compra?.fornecedor_nome ?? '-'}
+                                                    </span>
+                                                </td>
 
-                                            <td className="px-4 py-3 text-slate-300">
-                                                {item.lote ?? '-'}
-                                            </td>
+                                                <td className="px-4 py-3 align-top font-semibold text-slate-100">
+                                                    {grupo.itens.length}
+                                                </td>
 
-                                            <td className="px-4 py-3 align-top">
-                                                <div className="flex max-w-[220px] flex-col gap-2">
-                                                    <StatusBadge tone={obterTomStatusRecebimento(statusRecebimento)}>
-                                                        {obterRotuloStatusRecebimento(statusRecebimento)}
-                                                    </StatusBadge>
+                                                <td className="px-4 py-3 align-top font-semibold text-slate-100">
+                                                    {grupo.quantidadeTotal}
+                                                </td>
 
-                                                    {item.status !== statusRecebimento && (
-                                                        <span className="text-[11px] text-slate-500">
-                                                            Original: {item.status}
-                                                        </span>
-                                                    )}
+                                                <td className="px-4 py-3 align-top font-semibold text-emerald-300">
+                                                    {grupo.quantidadeRecebida}
+                                                </td>
 
-                                                    <ControleRecebimentoResumo
-                                                        classificacao={item.classificacao_operacional_recebimento}
-                                                        bloqueiaRecebimento={item.bloqueia_recebimento}
-                                                        motivo={item.motivo_bloqueio_recebimento}
-                                                        origem={item.origem_controle_recebimento}
-                                                    />
-                                                </div>
-                                            </td>
-
-                                            <td className="px-4 py-3">
-                                                <AppButton
-                                                    type="button"
-                                                    variant="secondary"
-                                                    size="sm"
-                                                    disabled={!podeReceber || recebendoItemId === item.id}
-                                                    onClick={() => selecionarItemParaRecebimento(item)}
+                                                <td
+                                                    className={
+                                                        grupo.quantidadePendente > 0
+                                                            ? 'px-4 py-3 align-top font-semibold text-yellow-300'
+                                                            : 'px-4 py-3 align-top font-semibold text-emerald-300'
+                                                    }
                                                 >
-                                                    {bloqueadoParaRecebimento
-                                                        ? 'Bloqueado'
-                                                        : recebendoItemId === item.id
-                                                            ? 'Recebendo...'
-                                                            : podeReceber
-                                                                ? 'Conferir recebimento'
-                                                                : statusRecebimento === 'cancelado'
-                                                                    ? 'Cancelado'
-                                                                    : 'Recebido'}
-                                                </AppButton>
-                                            </td>
-                                        </tr>
+                                                    {grupo.quantidadePendente}
+                                                </td>
+
+                                                <td className="px-4 py-3 align-top">
+                                                    <div className="w-32">
+                                                        <div className="flex items-center justify-between text-xs text-slate-400">
+                                                            <span>
+                                                                {Math.round(grupo.percentualRecebido)}%
+                                                            </span>
+                                                            <span>
+                                                                {grupo.quantidadeRecebida}/{grupo.quantidadeTotal}
+                                                            </span>
+                                                        </div>
+                                                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800">
+                                                            <div
+                                                                className="h-full rounded-full bg-emerald-400"
+                                                                style={{
+                                                                    width: `${grupo.percentualRecebido}%`,
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                <td className="px-4 py-3 align-top">
+                                                    <div className="flex max-w-[220px] flex-col gap-2">
+                                                        <StatusBadge
+                                                            tone={obterTomStatusRecebimento(
+                                                                grupo.statusRecebimento
+                                                            )}
+                                                        >
+                                                            {obterRotuloStatusRecebimento(
+                                                                grupo.statusRecebimento
+                                                            )}
+                                                        </StatusBadge>
+
+                                                        {compra ? (
+                                                            <ControleRecebimentoResumo
+                                                                classificacao={
+                                                                    compra.classificacao_operacional_recebimento
+                                                                }
+                                                                bloqueiaRecebimento={
+                                                                    compra.bloqueia_recebimento
+                                                                }
+                                                                motivo={
+                                                                    compra.motivo_bloqueio_recebimento
+                                                                }
+                                                                origem={
+                                                                    compra.origem_controle_recebimento
+                                                                }
+                                                            />
+                                                        ) : (
+                                                            <span className="text-[11px] text-slate-500">
+                                                                Resumo da compra indisponível.
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+
+                                                <td className="px-4 py-3 align-top">
+                                                    <div className="flex max-w-[180px] flex-col gap-2">
+                                                        <AppButton
+                                                            type="button"
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                alternarItensDaCompra(grupo.compraId)
+                                                            }
+                                                        >
+                                                            {expandido ? 'Ocultar itens' : 'Ver itens'}
+                                                        </AppButton>
+
+                                                        {bloqueadaParaRecebimento && (
+                                                            <span className="text-[11px] font-semibold text-red-200">
+                                                                Recebimento bloqueado
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            {expandido && (
+                                                <tr className="bg-slate-950/70">
+                                                    <td colSpan={9} className="px-4 py-4">
+                                                        <div className="rounded-2xl border border-slate-800 bg-slate-950/90 p-4">
+                                                            <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                                                <div>
+                                                                    <p className="text-sm font-semibold text-slate-100">
+                                                                        Itens da {numeroCompra}
+                                                                    </p>
+                                                                    <p className="text-xs text-slate-500">
+                                                                        Lista detalhada dos produtos desta NF/compra.
+                                                                    </p>
+                                                                </div>
+
+                                                                <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
+                                                                    {grupo.itens.length} item(ns)
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="overflow-x-auto">
+                                                                <table className="w-full min-w-[1050px] border-collapse text-left text-xs">
+                                                                    <thead className="text-slate-500">
+                                                                        <tr>
+                                                                            <th className="px-3 py-2 font-medium">Produto</th>
+                                                                            <th className="px-3 py-2 font-medium">SKU</th>
+                                                                            <th className="px-3 py-2 font-medium">Qtd.</th>
+                                                                            <th className="px-3 py-2 font-medium">Recebida</th>
+                                                                            <th className="px-3 py-2 font-medium">Pendente</th>
+                                                                            <th className="px-3 py-2 font-medium">Progresso</th>
+                                                                            <th className="px-3 py-2 font-medium">Custo unit.</th>
+                                                                            <th className="px-3 py-2 font-medium">Lote</th>
+                                                                            <th className="px-3 py-2 font-medium">Status</th>
+                                                                            <th className="px-3 py-2 font-medium">Ações</th>
+                                                                        </tr>
+                                                                    </thead>
+
+                                                                    <tbody className="divide-y divide-slate-800">
+                                                                        {grupo.itens.map((item) => {
+                                                                            const pendente = Math.max(
+                                                                                0,
+                                                                                Number(item.quantidade ?? 0) -
+                                                                                    Number(item.quantidade_recebida ?? 0)
+                                                                            )
+                                                                            const statusRecebimento =
+                                                                                obterStatusRecebimentoItem(item)
+                                                                            const percentualRecebido =
+                                                                                calcularPercentualRecebido(item)
+                                                                            const bloqueadoParaRecebimento =
+                                                                                itemBloqueadoParaRecebimento(item)
+                                                                            const podeReceber =
+                                                                                !bloqueadoParaRecebimento &&
+                                                                                pendente > 0 &&
+                                                                                statusRecebimento !== 'cancelado'
+
+                                                                            return (
+                                                                                <tr
+                                                                                    key={item.id}
+                                                                                    className={obterClasseLinhaItemCompra(
+                                                                                        statusRecebimento,
+                                                                                        itemSelecionadoParaReceber?.id === item.id
+                                                                                    )}
+                                                                                >
+                                                                                    <td className="max-w-[340px] px-3 py-3 text-slate-300">
+                                                                                        <span className="line-clamp-2 break-words">
+                                                                                            {item.produtos?.nome ?? item.produto_id}
+                                                                                        </span>
+                                                                                    </td>
+
+                                                                                    <td className="px-3 py-3 text-slate-300">
+                                                                                        {item.produtos?.sku ?? '-'}
+                                                                                    </td>
+
+                                                                                    <td className="px-3 py-3 font-semibold text-slate-100">
+                                                                                        {item.quantidade}
+                                                                                    </td>
+
+                                                                                    <td className="px-3 py-3 font-semibold text-emerald-300">
+                                                                                        {item.quantidade_recebida}
+                                                                                    </td>
+
+                                                                                    <td
+                                                                                        className={
+                                                                                            pendente > 0
+                                                                                                ? 'px-3 py-3 font-semibold text-yellow-300'
+                                                                                                : 'px-3 py-3 font-semibold text-emerald-300'
+                                                                                        }
+                                                                                    >
+                                                                                        {pendente}
+                                                                                    </td>
+
+                                                                                    <td className="px-3 py-3">
+                                                                                        <div className="w-28">
+                                                                                            <div className="flex items-center justify-between text-[11px] text-slate-400">
+                                                                                                <span>
+                                                                                                    {Math.round(percentualRecebido)}%
+                                                                                                </span>
+                                                                                                <span>
+                                                                                                    {item.quantidade_recebida}/{item.quantidade}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800">
+                                                                                                <div
+                                                                                                    className="h-full rounded-full bg-emerald-400"
+                                                                                                    style={{
+                                                                                                        width: `${percentualRecebido}%`,
+                                                                                                    }}
+                                                                                                />
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </td>
+
+                                                                                    <td className="px-3 py-3 text-slate-300">
+                                                                                        {formatarMoeda(item.custo_unitario)}
+                                                                                    </td>
+
+                                                                                    <td className="px-3 py-3 text-slate-300">
+                                                                                        {item.lote ?? '-'}
+                                                                                    </td>
+
+                                                                                    <td className="px-3 py-3 align-top">
+                                                                                        <div className="flex max-w-[200px] flex-col gap-2">
+                                                                                            <StatusBadge
+                                                                                                tone={obterTomStatusRecebimento(
+                                                                                                    statusRecebimento
+                                                                                                )}
+                                                                                            >
+                                                                                                {obterRotuloStatusRecebimento(
+                                                                                                    statusRecebimento
+                                                                                                )}
+                                                                                            </StatusBadge>
+
+                                                                                            {item.status !== statusRecebimento && (
+                                                                                                <span className="text-[11px] text-slate-500">
+                                                                                                    Original: {item.status}
+                                                                                                </span>
+                                                                                            )}
+
+                                                                                            <ControleRecebimentoResumo
+                                                                                                classificacao={
+                                                                                                    item.classificacao_operacional_recebimento
+                                                                                                }
+                                                                                                bloqueiaRecebimento={
+                                                                                                    item.bloqueia_recebimento
+                                                                                                }
+                                                                                                motivo={
+                                                                                                    item.motivo_bloqueio_recebimento
+                                                                                                }
+                                                                                                origem={
+                                                                                                    item.origem_controle_recebimento
+                                                                                                }
+                                                                                            />
+                                                                                        </div>
+                                                                                    </td>
+
+                                                                                    <td className="px-3 py-3">
+                                                                                        <AppButton
+                                                                                            type="button"
+                                                                                            variant="secondary"
+                                                                                            size="sm"
+                                                                                            disabled={
+                                                                                                !podeReceber || recebendoItemId === item.id
+                                                                                            }
+                                                                                            onClick={() => selecionarItemParaRecebimento(item)}
+                                                                                        >
+                                                                                            {bloqueadoParaRecebimento
+                                                                                                ? 'Bloqueado'
+                                                                                                : recebendoItemId === item.id
+                                                                                                    ? 'Recebendo...'
+                                                                                                    : podeReceber
+                                                                                                        ? 'Conferir recebimento'
+                                                                                                        : statusRecebimento === 'cancelado'
+                                                                                                            ? 'Cancelado'
+                                                                                                            : 'Recebido'}
+                                                                                        </AppButton>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            )
+                                                                        })}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </Fragment>
                                     )
                                 })}
                             </tbody>
