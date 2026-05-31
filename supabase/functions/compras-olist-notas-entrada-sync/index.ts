@@ -2,6 +2,7 @@ type SyncRequestBody = {
     limit?: number
     maxPages?: number
     offset?: number
+    itemDelayMs?: number
 }
 
 const corsHeaders = {
@@ -114,10 +115,18 @@ Deno.serve(async (req) => {
 
     const body = (await req.json().catch(() => ({}))) as SyncRequestBody
 
-    // Limites conservadores para reduzir risco de bloqueio 429 na Olist.
-    const limit = limitarNumero(converterInteiroSeguro(body.limit, 3), 1, 3)
-    const maxPages = limitarNumero(converterInteiroSeguro(body.maxPages, 3), 1, 4)
+    // Limites bem conservadores.
+    // A execução anterior com limit=3, maxPages=3 e delay alto estourou o limite
+    // do worker do Supabase. Por isso esta função intermediária chama a função
+    // real sempre em lote pequeno: 1 NF por chamada.
+    const limit = limitarNumero(converterInteiroSeguro(body.limit, 1), 1, 1)
+    const maxPages = limitarNumero(converterInteiroSeguro(body.maxPages, 1), 1, 1)
     const offset = limitarNumero(converterInteiroSeguro(body.offset, 0), 0, 1000)
+    const itemDelayMs = limitarNumero(
+        converterInteiroSeguro(body.itemDelayMs, 2000),
+        1000,
+        2500
+    )
 
     const parametros = new URLSearchParams({
         limit: String(limit),
@@ -128,7 +137,7 @@ Deno.serve(async (req) => {
         buscarFornecedores: 'true',
         marcadores: 'Compras',
         orderBy: 'desc',
-        itemDelayMs: '3000',
+        itemDelayMs: String(itemDelayMs),
         processar: 'false',
         dryRun: 'false',
     })
@@ -173,6 +182,14 @@ Deno.serve(async (req) => {
         ...(dadosResposta as Record<string, unknown>),
         wrapper_service: 'compras-olist-notas-entrada-sync',
         wrapper_note:
-            'Busca iniciada pelo app. Nenhum token interno foi exposto ao navegador.',
+            'Busca iniciada pelo app em lote pequeno. Nenhum token interno foi exposto ao navegador.',
+        wrapper_lote_seguro: {
+            limit,
+            maxPages,
+            offset,
+            itemDelayMs,
+            processar: false,
+            dryRun: false,
+        },
     })
 })
