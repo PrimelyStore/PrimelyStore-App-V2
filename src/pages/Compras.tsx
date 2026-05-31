@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import {
     buscarComprasResumo,
     buscarItensCompras,
-    buscarNotasEntradaOlistCompras,
+    buscarTodasNotasEntradaOlistCompras,
     cadastrarCompra,
     cadastrarItemCompra,
     definirControleRecebimentoCompra,
@@ -11,7 +11,9 @@ import {
     type CompraResumo,
     type NovaCompra,
     type NovoCompraItem,
+    type ProgressoSincronizacaoNotasEntradaOlist,
     type ResultadoSincronizacaoNotasEntradaOlist,
+    type ResumoSincronizacaoNotasEntradaOlist,
 } from '../services/comprasService'
 import {
     buscarFornecedores,
@@ -641,6 +643,14 @@ export function Compras() {
         ultimoResultadoSincronizacaoOlist,
         setUltimoResultadoSincronizacaoOlist,
     ] = useState<ResultadoSincronizacaoNotasEntradaOlist | null>(null)
+    const [
+        progressoSincronizacaoOlist,
+        setProgressoSincronizacaoOlist,
+    ] = useState<ProgressoSincronizacaoNotasEntradaOlist | null>(null)
+    const [
+        resumoSincronizacaoOlist,
+        setResumoSincronizacaoOlist,
+    ] = useState<ResumoSincronizacaoNotasEntradaOlist | null>(null)
 
     const [formularioCompra, setFormularioCompra] =
         useState<FormularioCompra>(formularioInicial)
@@ -709,7 +719,7 @@ export function Compras() {
 
     async function buscarNotasOlistCompras() {
         const confirmarBusca = window.confirm(
-            'Buscar novas NFs de compra no Olist?\n\nEsta ação apenas sincroniza as NFs e itens para conferência.\nEla não gera estoque, não cria lote e não confirma recebimento automaticamente.'
+            'Buscar NFs de compra no Olist?\n\nO sistema vai consultar as notas em chamadas pequenas, uma por vez, para evitar limite da Edge Function.\nEsta ação apenas sincroniza as NFs e itens para conferência. Ela não gera estoque, não cria lote e não confirma recebimento automaticamente.'
         )
 
         if (!confirmarBusca) {
@@ -719,27 +729,61 @@ export function Compras() {
         try {
             setSincronizandoNotasOlist(true)
             setStatus('carregando')
-            setMensagem('Buscando NFs de compra no Olist...')
+            setMensagem('Iniciando busca progressiva de NFs de compra no Olist...')
             setUltimoResultadoSincronizacaoOlist(null)
+            setProgressoSincronizacaoOlist(null)
+            setResumoSincronizacaoOlist(null)
 
-            const resultado = await buscarNotasEntradaOlistCompras()
+            const resumoFinal = await buscarTodasNotasEntradaOlistCompras({
+                offsetInicial: 0,
+                maxNotas: 30,
+                itemDelayMs: 2000,
+                intervaloEntreChamadasMs: 1200,
+                onProgresso: (progresso, resultadoParcial) => {
+                    setProgressoSincronizacaoOlist(progresso)
+                    setUltimoResultadoSincronizacaoOlist(resultadoParcial)
 
-            setUltimoResultadoSincronizacaoOlist(resultado)
+                    const totalTexto =
+                        typeof progresso.totalReportado === 'number'
+                            ? progresso.totalReportado
+                            : '?'
+
+                    setMensagem(
+                        [
+                            'Buscando NFs Olist...',
+                            `Chamada ${progresso.chamadasRealizadas}.`,
+                            `Offset atual: ${progresso.offsetAtual}.`,
+                            `Próximo offset: ${progresso.proximoOffset}.`,
+                            `Total Olist: ${totalTexto}.`,
+                            progresso.ultimaNotaNumero
+                                ? `Última NF: ${progresso.ultimaNotaNumero}.`
+                                : '',
+                        ]
+                            .filter(Boolean)
+                            .join(' ')
+                    )
+                },
+            })
+
+            setResumoSincronizacaoOlist(resumoFinal)
             await recarregarComprasEItens()
-
-            const resumo = resultado.result
 
             setStatus('sucesso')
             setMensagem(
                 [
-                    'Busca de NFs Olist concluída.',
-                    `Notas lidas: ${resumo?.received_count ?? 0}.`,
-                    `Notas inseridas: ${resumo?.inserted_notas_count ?? 0}.`,
-                    `Notas atualizadas: ${resumo?.updated_notas_count ?? 0}.`,
-                    `Itens inseridos: ${resumo?.inserted_items_count ?? 0}.`,
-                    `Itens atualizados: ${resumo?.updated_items_count ?? 0}.`,
-                    `Erros em notas: ${resumo?.notas_errors_count ?? 0}.`,
-                    `Erros em itens: ${resumo?.items_errors_count ?? 0}.`,
+                    'Busca progressiva de NFs Olist concluída.',
+                    `Total informado pela Olist: ${resumoFinal.totalReportado ?? '?'}.`,
+                    `Chamadas realizadas: ${resumoFinal.chamadasRealizadas}.`,
+                    `Notas lidas: ${resumoFinal.notasLidas}.`,
+                    `Notas inseridas: ${resumoFinal.notasInseridas}.`,
+                    `Notas atualizadas: ${resumoFinal.notasAtualizadas}.`,
+                    `Itens inseridos: ${resumoFinal.itensInseridos}.`,
+                    `Itens atualizados: ${resumoFinal.itensAtualizados}.`,
+                    `Erros em notas: ${resumoFinal.errosNotas}.`,
+                    `Erros em itens: ${resumoFinal.errosItens}.`,
+                    resumoFinal.limiteAtingido
+                        ? 'Limite de segurança atingido; rode novamente para continuar.'
+                        : 'Varredura concluída dentro do total informado pela Olist.',
                 ].join(' ')
             )
         } catch (error) {
@@ -1987,10 +2031,128 @@ export function Compras() {
 
                 <p className="mt-3 text-slate-300">{mensagem}</p>
 
+                {progressoSincronizacaoOlist && (
+                    <div className="mt-4 rounded-2xl border border-cyan-900/60 bg-cyan-950/20 p-4">
+                        <p className="text-sm font-semibold text-cyan-200">
+                            Progresso da busca Olist
+                        </p>
+
+                        <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-5">
+                            <div>
+                                <p className="text-slate-500">Total Olist</p>
+                                <p className="font-semibold text-slate-100">
+                                    {progressoSincronizacaoOlist.totalReportado ?? '?'}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Chamadas</p>
+                                <p className="font-semibold text-slate-100">
+                                    {progressoSincronizacaoOlist.chamadasRealizadas}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Offset atual</p>
+                                <p className="font-semibold text-cyan-300">
+                                    {progressoSincronizacaoOlist.offsetAtual}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Próximo offset</p>
+                                <p className="font-semibold text-cyan-300">
+                                    {progressoSincronizacaoOlist.proximoOffset}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Última NF</p>
+                                <p className="font-semibold text-slate-100">
+                                    {progressoSincronizacaoOlist.ultimaNotaNumero ?? '-'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                            <div>
+                                <p className="text-slate-500">Notas lidas acumuladas</p>
+                                <p className="font-semibold text-slate-100">
+                                    {progressoSincronizacaoOlist.notasLidas}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Notas inseridas</p>
+                                <p className="font-semibold text-emerald-300">
+                                    {progressoSincronizacaoOlist.notasInseridas}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Notas atualizadas</p>
+                                <p className="font-semibold text-cyan-300">
+                                    {progressoSincronizacaoOlist.notasAtualizadas}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Erros acumulados</p>
+                                <p className="font-semibold text-red-300">
+                                    {progressoSincronizacaoOlist.errosNotas +
+                                        progressoSincronizacaoOlist.errosItens}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {resumoSincronizacaoOlist && (
+                    <div className="mt-4 rounded-2xl border border-emerald-900/60 bg-emerald-950/20 p-4">
+                        <p className="text-sm font-semibold text-emerald-200">
+                            Resumo final da busca Olist
+                        </p>
+
+                        <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                            <div>
+                                <p className="text-slate-500">Total informado</p>
+                                <p className="font-semibold text-slate-100">
+                                    {resumoSincronizacaoOlist.totalReportado ?? '?'}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Chamadas realizadas</p>
+                                <p className="font-semibold text-slate-100">
+                                    {resumoSincronizacaoOlist.chamadasRealizadas}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Notas inseridas</p>
+                                <p className="font-semibold text-emerald-300">
+                                    {resumoSincronizacaoOlist.notasInseridas}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Notas atualizadas</p>
+                                <p className="font-semibold text-cyan-300">
+                                    {resumoSincronizacaoOlist.notasAtualizadas}
+                                </p>
+                            </div>
+                        </div>
+
+                        <p className="mt-3 text-xs text-slate-500">
+                            A busca importa/atualiza snapshots da Olist em chamadas pequenas. Estoque, lotes e recebimentos não são criados automaticamente.
+                        </p>
+                    </div>
+                )}
+
                 {ultimoResultadoSincronizacaoOlist?.result && (
                     <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950 p-4">
                         <p className="text-sm font-semibold text-slate-200">
-                            Última busca Olist
+                            Última chamada Olist
                         </p>
 
                         <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
@@ -2025,7 +2187,7 @@ export function Compras() {
                         </div>
 
                         <p className="mt-3 text-xs text-slate-500">
-                            A busca apenas importa/atualiza snapshots da Olist. Estoque, lotes e recebimentos não são criados automaticamente.
+                            Esta é apenas a última chamada individual feita durante a busca progressiva.
                         </p>
                     </div>
                 )}

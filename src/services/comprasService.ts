@@ -254,6 +254,16 @@ export type ResultadoSincronizacaoNotasEntradaOlist = {
     message?: string
     authorization_mode?: string
     token_refreshed_before_sync?: boolean
+    wrapper_service?: string
+    wrapper_note?: string
+    wrapper_lote_seguro?: {
+        limit?: number
+        maxPages?: number
+        offset?: number
+        itemDelayMs?: number
+        processar?: boolean
+        dryRun?: boolean
+    }
     result?: {
         limit?: number
         start_offset?: number
@@ -285,15 +295,125 @@ export type ResultadoSincronizacaoNotasEntradaOlist = {
     error?: string
 }
 
-export async function buscarNotasEntradaOlistCompras() {
+export type ProgressoSincronizacaoNotasEntradaOlist = {
+    offsetAtual: number
+    proximoOffset: number
+    totalReportado: number | null
+    chamadasRealizadas: number
+    notasLidas: number
+    notasInseridas: number
+    notasAtualizadas: number
+    itensInseridos: number
+    itensAtualizados: number
+    errosNotas: number
+    errosItens: number
+    ultimaNotaNumero: string | null
+    concluido: boolean
+    limiteAtingido: boolean
+}
+
+export type ResumoSincronizacaoNotasEntradaOlist = {
+    ok: true
+    totalReportado: number | null
+    offsetInicial: number
+    proximoOffset: number
+    chamadasRealizadas: number
+    notasLidas: number
+    notasInseridas: number
+    notasAtualizadas: number
+    itensInseridos: number
+    itensAtualizados: number
+    errosNotas: number
+    errosItens: number
+    ultimaNotaNumero: string | null
+    concluido: boolean
+    limiteAtingido: boolean
+    resultados: ResultadoSincronizacaoNotasEntradaOlist[]
+}
+
+type BuscarTodasNotasEntradaOlistComprasOptions = {
+    offsetInicial?: number
+    maxNotas?: number
+    itemDelayMs?: number
+    intervaloEntreChamadasMs?: number
+    onProgresso?: (
+        progresso: ProgressoSincronizacaoNotasEntradaOlist,
+        resultado: ResultadoSincronizacaoNotasEntradaOlist
+    ) => void
+}
+
+const CHAVE_OFFSET_NFS_COMPRAS_OLIST = 'primely:compras:olist:nfs:proximo-offset'
+
+function lerOffsetNotasEntradaOlistCompras() {
+    try {
+        const valorSalvo = window.localStorage.getItem(CHAVE_OFFSET_NFS_COMPRAS_OLIST)
+        const numero = Number(valorSalvo)
+
+        if (!Number.isFinite(numero) || numero < 0) {
+            return 0
+        }
+
+        return Math.trunc(numero)
+    } catch {
+        return 0
+    }
+}
+
+function salvarOffsetNotasEntradaOlistCompras(offset: number) {
+    try {
+        window.localStorage.setItem(
+            CHAVE_OFFSET_NFS_COMPRAS_OLIST,
+            String(Math.max(0, Math.trunc(offset)))
+        )
+    } catch {
+        // Se o navegador bloquear localStorage, a busca continua funcionando.
+    }
+}
+
+function calcularProximoOffsetNotasEntradaOlistCompras(
+    resultado: ResultadoSincronizacaoNotasEntradaOlist,
+    offsetAtual: number
+) {
+    const proximoOffset = resultado.result?.next_offset_if_continues
+    const totalReportado = resultado.result?.total_reported_by_api
+    const notasRecebidas = resultado.result?.received_count ?? 0
+
+    if (typeof proximoOffset === 'number' && proximoOffset >= 0) {
+        if (typeof totalReportado === 'number' && proximoOffset >= totalReportado) {
+            return 0
+        }
+
+        return proximoOffset
+    }
+
+    if (notasRecebidas <= 0) {
+        return 0
+    }
+
+    return offsetAtual + 1
+}
+
+function aguardar(ms: number) {
+    return new Promise((resolve) => {
+        window.setTimeout(() => resolve(undefined), ms)
+    })
+}
+
+async function buscarNotaEntradaOlistComprasPorOffset(
+    offsetAtual: number,
+    itemDelayMs = 2000
+) {
     const { data, error } =
         await supabase.functions.invoke<ResultadoSincronizacaoNotasEntradaOlist>(
             'compras-olist-notas-entrada-sync',
             {
                 body: {
-                    limit: 3,
-                    maxPages: 3,
-                    offset: 0,
+                    // Lote pequeno para evitar WORKER_RESOURCE_LIMIT no Supabase
+                    // e reduzir risco de bloqueio 429 na Olist.
+                    limit: 1,
+                    maxPages: 1,
+                    offset: offsetAtual,
+                    itemDelayMs,
                 },
             }
         )
@@ -311,6 +431,155 @@ export async function buscarNotasEntradaOlistCompras() {
     }
 
     return data
+}
+
+export async function buscarNotasEntradaOlistCompras() {
+    const offsetAtual = lerOffsetNotasEntradaOlistCompras()
+    const data = await buscarNotaEntradaOlistComprasPorOffset(offsetAtual)
+
+    salvarOffsetNotasEntradaOlistCompras(
+        calcularProximoOffsetNotasEntradaOlistCompras(data, offsetAtual)
+    )
+
+    return data
+}
+
+export function resetarOffsetNotasEntradaOlistCompras() {
+    salvarOffsetNotasEntradaOlistCompras(0)
+}
+
+export async function buscarTodasNotasEntradaOlistCompras(
+    options: BuscarTodasNotasEntradaOlistComprasOptions = {}
+): Promise<ResumoSincronizacaoNotasEntradaOlist> {
+    const offsetInicial = Math.max(0, Math.trunc(options.offsetInicial ?? 0))
+    const maxNotas = Math.min(
+        Math.max(1, Math.trunc(options.maxNotas ?? 30)),
+        50
+    )
+    const itemDelayMs = Math.min(
+        Math.max(1000, Math.trunc(options.itemDelayMs ?? 2000)),
+        2500
+    )
+    const intervaloEntreChamadasMs = Math.min(
+        Math.max(500, Math.trunc(options.intervaloEntreChamadasMs ?? 1200)),
+        5000
+    )
+
+    let offsetAtual = offsetInicial
+    let totalReportado: number | null = null
+    let proximoOffset = offsetInicial
+    let ultimaNotaNumero: string | null = null
+    let concluido = false
+
+    const resultados: ResultadoSincronizacaoNotasEntradaOlist[] = []
+    const acumulado = {
+        chamadasRealizadas: 0,
+        notasLidas: 0,
+        notasInseridas: 0,
+        notasAtualizadas: 0,
+        itensInseridos: 0,
+        itensAtualizados: 0,
+        errosNotas: 0,
+        errosItens: 0,
+    }
+
+    for (let indice = 0; indice < maxNotas; indice += 1) {
+        const resultado = await buscarNotaEntradaOlistComprasPorOffset(
+            offsetAtual,
+            itemDelayMs
+        )
+
+        resultados.push(resultado)
+        acumulado.chamadasRealizadas += 1
+
+        const resumo = resultado.result
+        const notasLidas = resumo?.received_count ?? 0
+        const totalDaApi = resumo?.total_reported_by_api
+
+        if (typeof totalDaApi === 'number') {
+            totalReportado = totalDaApi
+        }
+
+        ultimaNotaNumero = resumo?.preview?.[0]?.numero ?? ultimaNotaNumero
+        acumulado.notasLidas += notasLidas
+        acumulado.notasInseridas += resumo?.inserted_notas_count ?? 0
+        acumulado.notasAtualizadas += resumo?.updated_notas_count ?? 0
+        acumulado.itensInseridos += resumo?.inserted_items_count ?? 0
+        acumulado.itensAtualizados += resumo?.updated_items_count ?? 0
+        acumulado.errosNotas += resumo?.notas_errors_count ?? 0
+        acumulado.errosItens += resumo?.items_errors_count ?? 0
+
+        if (typeof resumo?.next_offset_if_continues === 'number') {
+            proximoOffset = resumo.next_offset_if_continues
+        } else if (notasLidas <= 0) {
+            proximoOffset = offsetAtual
+        } else {
+            proximoOffset = offsetAtual + 1
+        }
+
+        if (notasLidas <= 0) {
+            concluido = true
+        }
+
+        if (typeof totalReportado === 'number' && proximoOffset >= totalReportado) {
+            concluido = true
+        }
+
+        const limiteAtingidoParcial = !concluido && indice === maxNotas - 1
+
+        options.onProgresso?.(
+            {
+                offsetAtual,
+                proximoOffset,
+                totalReportado,
+                chamadasRealizadas: acumulado.chamadasRealizadas,
+                notasLidas: acumulado.notasLidas,
+                notasInseridas: acumulado.notasInseridas,
+                notasAtualizadas: acumulado.notasAtualizadas,
+                itensInseridos: acumulado.itensInseridos,
+                itensAtualizados: acumulado.itensAtualizados,
+                errosNotas: acumulado.errosNotas,
+                errosItens: acumulado.errosItens,
+                ultimaNotaNumero,
+                concluido,
+                limiteAtingido: limiteAtingidoParcial,
+            },
+            resultado
+        )
+
+        if (concluido) {
+            break
+        }
+
+        offsetAtual = proximoOffset
+
+        if (indice < maxNotas - 1) {
+            await aguardar(intervaloEntreChamadasMs)
+        }
+    }
+
+    const limiteAtingido = !concluido
+
+    salvarOffsetNotasEntradaOlistCompras(limiteAtingido ? proximoOffset : 0)
+
+    return {
+        ok: true,
+        totalReportado,
+        offsetInicial,
+        proximoOffset,
+        chamadasRealizadas: acumulado.chamadasRealizadas,
+        notasLidas: acumulado.notasLidas,
+        notasInseridas: acumulado.notasInseridas,
+        notasAtualizadas: acumulado.notasAtualizadas,
+        itensInseridos: acumulado.itensInseridos,
+        itensAtualizados: acumulado.itensAtualizados,
+        errosNotas: acumulado.errosNotas,
+        errosItens: acumulado.errosItens,
+        ultimaNotaNumero,
+        concluido,
+        limiteAtingido,
+        resultados,
+    }
 }
 
 export async function cadastrarCompra(compra: NovaCompra) {
