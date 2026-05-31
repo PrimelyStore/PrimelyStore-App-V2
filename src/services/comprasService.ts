@@ -247,6 +247,72 @@ export async function buscarItensCompras() {
     }) as CompraItemDetalhado[]
 }
 
+
+export type ResultadoSincronizacaoNotasEntradaOlist = {
+    ok: boolean
+    service?: string
+    message?: string
+    authorization_mode?: string
+    token_refreshed_before_sync?: boolean
+    result?: {
+        limit?: number
+        start_offset?: number
+        next_offset_if_continues?: number
+        total_reported_by_api?: number
+        received_count?: number
+        saved_notas_count?: number
+        inserted_notas_count?: number
+        updated_notas_count?: number
+        saved_items_count?: number
+        inserted_items_count?: number
+        updated_items_count?: number
+        saved_suppliers_count?: number
+        inserted_suppliers_count?: number
+        updated_suppliers_count?: number
+        notas_errors_count?: number
+        items_errors_count?: number
+        synchronized_at?: string
+        stop_reason?: string
+        status?: string
+        preview?: Array<{
+            numero?: string
+            fornecedor_nome?: string
+            valor?: number
+            itens?: number
+            status_processamento?: string
+        }>
+    }
+    error?: string
+}
+
+export async function buscarNotasEntradaOlistCompras() {
+    const { data, error } =
+        await supabase.functions.invoke<ResultadoSincronizacaoNotasEntradaOlist>(
+            'compras-olist-notas-entrada-sync',
+            {
+                body: {
+                    limit: 3,
+                    maxPages: 3,
+                    offset: 0,
+                },
+            }
+        )
+
+    if (error) {
+        throw new Error(error.message)
+    }
+
+    if (!data) {
+        throw new Error('A sincronização Olist não retornou dados.')
+    }
+
+    if (!data.ok) {
+        throw new Error(data.error ?? data.message ?? 'Erro ao sincronizar NFs de compra no Olist.')
+    }
+
+    return data
+}
+
 export async function cadastrarCompra(compra: NovaCompra) {
     const { data, error } = await supabase
         .from('compras')

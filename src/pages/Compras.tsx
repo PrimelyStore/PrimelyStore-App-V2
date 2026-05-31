@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import {
     buscarComprasResumo,
     buscarItensCompras,
+    buscarNotasEntradaOlistCompras,
     cadastrarCompra,
     cadastrarItemCompra,
     definirControleRecebimentoCompra,
@@ -10,6 +11,7 @@ import {
     type CompraResumo,
     type NovaCompra,
     type NovoCompraItem,
+    type ResultadoSincronizacaoNotasEntradaOlist,
 } from '../services/comprasService'
 import {
     buscarFornecedores,
@@ -634,6 +636,11 @@ export function Compras() {
         useState<CompraItemDetalhado | null>(null)
     const [mostrarFormularioCompra, setMostrarFormularioCompra] = useState(false)
     const [mostrarFormularioItem, setMostrarFormularioItem] = useState(false)
+    const [sincronizandoNotasOlist, setSincronizandoNotasOlist] = useState(false)
+    const [
+        ultimoResultadoSincronizacaoOlist,
+        setUltimoResultadoSincronizacaoOlist,
+    ] = useState<ResultadoSincronizacaoNotasEntradaOlist | null>(null)
 
     const [formularioCompra, setFormularioCompra] =
         useState<FormularioCompra>(formularioInicial)
@@ -699,6 +706,54 @@ export function Compras() {
     useEffect(() => {
         carregarDadosIniciais()
     }, [])
+
+    async function buscarNotasOlistCompras() {
+        const confirmarBusca = window.confirm(
+            'Buscar novas NFs de compra no Olist?\n\nEsta ação apenas sincroniza as NFs e itens para conferência.\nEla não gera estoque, não cria lote e não confirma recebimento automaticamente.'
+        )
+
+        if (!confirmarBusca) {
+            return
+        }
+
+        try {
+            setSincronizandoNotasOlist(true)
+            setStatus('carregando')
+            setMensagem('Buscando NFs de compra no Olist...')
+            setUltimoResultadoSincronizacaoOlist(null)
+
+            const resultado = await buscarNotasEntradaOlistCompras()
+
+            setUltimoResultadoSincronizacaoOlist(resultado)
+            await recarregarComprasEItens()
+
+            const resumo = resultado.result
+
+            setStatus('sucesso')
+            setMensagem(
+                [
+                    'Busca de NFs Olist concluída.',
+                    `Notas lidas: ${resumo?.received_count ?? 0}.`,
+                    `Notas inseridas: ${resumo?.inserted_notas_count ?? 0}.`,
+                    `Notas atualizadas: ${resumo?.updated_notas_count ?? 0}.`,
+                    `Itens inseridos: ${resumo?.inserted_items_count ?? 0}.`,
+                    `Itens atualizados: ${resumo?.updated_items_count ?? 0}.`,
+                    `Erros em notas: ${resumo?.notas_errors_count ?? 0}.`,
+                    `Erros em itens: ${resumo?.items_errors_count ?? 0}.`,
+                ].join(' ')
+            )
+        } catch (error) {
+            setStatus('erro')
+
+            if (error instanceof Error) {
+                setMensagem(error.message)
+            } else {
+                setMensagem('Erro desconhecido ao buscar NFs de compra no Olist.')
+            }
+        } finally {
+            setSincronizandoNotasOlist(false)
+        }
+    }
 
     function atualizarCampoCompra(campo: keyof FormularioCompra, valor: string) {
         setFormularioCompra((formularioAtual) => ({
@@ -1156,6 +1211,17 @@ export function Compras() {
                             {mostrarFormularioItem
                                 ? 'Fechar item'
                                 : 'Adicionar item à compra'}
+                        </AppButton>
+
+                        <AppButton
+                            type="button"
+                            variant="secondary"
+                            disabled={sincronizandoNotasOlist}
+                            onClick={buscarNotasOlistCompras}
+                        >
+                            {sincronizandoNotasOlist
+                                ? 'Buscando NFs...'
+                                : 'Buscar NFs Olist'}
                         </AppButton>
                     </div>
                 </div>
@@ -1920,6 +1986,49 @@ export function Compras() {
                 </p>
 
                 <p className="mt-3 text-slate-300">{mensagem}</p>
+
+                {ultimoResultadoSincronizacaoOlist?.result && (
+                    <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950 p-4">
+                        <p className="text-sm font-semibold text-slate-200">
+                            Última busca Olist
+                        </p>
+
+                        <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                            <div>
+                                <p className="text-slate-500">Notas lidas</p>
+                                <p className="font-semibold text-slate-100">
+                                    {ultimoResultadoSincronizacaoOlist.result.received_count ?? 0}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Notas inseridas</p>
+                                <p className="font-semibold text-emerald-300">
+                                    {ultimoResultadoSincronizacaoOlist.result.inserted_notas_count ?? 0}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Notas atualizadas</p>
+                                <p className="font-semibold text-cyan-300">
+                                    {ultimoResultadoSincronizacaoOlist.result.updated_notas_count ?? 0}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Erros</p>
+                                <p className="font-semibold text-red-300">
+                                    {(ultimoResultadoSincronizacaoOlist.result.notas_errors_count ?? 0) +
+                                        (ultimoResultadoSincronizacaoOlist.result.items_errors_count ?? 0)}
+                                </p>
+                            </div>
+                        </div>
+
+                        <p className="mt-3 text-xs text-slate-500">
+                            A busca apenas importa/atualiza snapshots da Olist. Estoque, lotes e recebimentos não são criados automaticamente.
+                        </p>
+                    </div>
+                )}
             </AppCard>
 
             <AppCard className="sm:p-5 lg:p-6">
