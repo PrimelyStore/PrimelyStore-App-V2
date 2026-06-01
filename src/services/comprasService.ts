@@ -122,6 +122,17 @@ export type CompraItemDetalhado = CompraItem & {
     origem_controle_recebimento: string | null
 }
 
+export type NotaEntradaOlistConferencia = {
+    numero: string | null
+    fornecedor_nome: string | null
+    status_processamento: string | null
+    compra_id: string | null
+    status_conferencia: string | null
+    total_itens: number | null
+    total_itens_com_erro: number | null
+    total_itens_vinculados: number | null
+}
+
 export type NovoCompraItem = {
     compra_id: string
     produto_id: string
@@ -247,6 +258,23 @@ export async function buscarItensCompras() {
     }) as CompraItemDetalhado[]
 }
 
+
+
+export async function buscarConferenciaNotasEntradaOlistCompras() {
+    const { data, error } = await supabase
+        .from('olist_notas_entrada_conferencia')
+        .select(
+            'numero, fornecedor_nome, status_processamento, compra_id, status_conferencia, total_itens, total_itens_com_erro, total_itens_vinculados'
+        )
+        .order('numero', { ascending: false })
+        .limit(100)
+
+    if (error) {
+        throw new Error(error.message)
+    }
+
+    return (data ?? []) as NotaEntradaOlistConferencia[]
+}
 
 export type ResultadoSincronizacaoNotasEntradaOlist = {
     ok: boolean

@@ -2,7 +2,8 @@ import { Fragment, useEffect, useState, type FormEvent } from 'react'
 import {
     buscarComprasResumo,
     buscarItensCompras,
-    buscarNotasEntradaOlistCompras,
+    buscarConferenciaNotasEntradaOlistCompras,
+    buscarTodasNotasEntradaOlistCompras,
     cadastrarCompra,
     cadastrarItemCompra,
     definirControleRecebimentoCompra,
@@ -11,7 +12,10 @@ import {
     type CompraResumo,
     type NovaCompra,
     type NovoCompraItem,
+    type NotaEntradaOlistConferencia,
+    type ProgressoSincronizacaoNotasEntradaOlist,
     type ResultadoSincronizacaoNotasEntradaOlist,
+    type ResumoSincronizacaoNotasEntradaOlist,
 } from '../services/comprasService'
 import {
     buscarFornecedores,
@@ -198,6 +202,71 @@ function obterTomStatus(status?: string): StatusBadgeTone {
     }
 
     return 'warning'
+}
+
+
+function obterRotuloStatusProcessamentoOlist(status?: string | null) {
+    const rotulos: Record<string, string> = {
+        pendente: 'Pendente',
+        processado: 'Processada',
+        erro: 'Com erro',
+        ignorado: 'Ignorada',
+    }
+
+    return rotulos[status ?? ''] ?? status ?? '-'
+}
+
+function obterTomStatusProcessamentoOlist(status?: string | null): StatusBadgeTone {
+    if (status === 'processado') {
+        return 'success'
+    }
+
+    if (status === 'erro') {
+        return 'danger'
+    }
+
+    if (status === 'ignorado') {
+        return 'muted'
+    }
+
+    if (status === 'pendente') {
+        return 'warning'
+    }
+
+    return 'muted'
+}
+
+function obterRotuloStatusConferenciaOlist(status?: string | null) {
+    const rotulos: Record<string, string> = {
+        pronta_para_converter: 'Pronta para converter',
+        pendente_conversao_unidade: 'Pendente conversão',
+        itens_com_erro: 'Itens com erro',
+        sem_itens: 'Sem itens',
+        nota_ignorada: 'Ignorada',
+        ja_processada: 'Já processada',
+    }
+
+    return rotulos[status ?? ''] ?? status ?? '-'
+}
+
+function obterTomStatusConferenciaOlist(status?: string | null): StatusBadgeTone {
+    if (status === 'pronta_para_converter' || status === 'ja_processada') {
+        return 'success'
+    }
+
+    if (status === 'pendente_conversao_unidade') {
+        return 'warning'
+    }
+
+    if (status === 'itens_com_erro') {
+        return 'danger'
+    }
+
+    if (status === 'nota_ignorada' || status === 'sem_itens') {
+        return 'muted'
+    }
+
+    return 'info'
 }
 
 function obterStatusRecebimentoItem(item: CompraItemDetalhado) {
@@ -661,6 +730,7 @@ export function Compras() {
     const [mensagem, setMensagem] = useState('Carregando compras...')
     const [compras, setCompras] = useState<CompraResumo[]>([])
     const [itensCompras, setItensCompras] = useState<CompraItemDetalhado[]>([])
+    const [notasConferenciaOlist, setNotasConferenciaOlist] = useState<NotaEntradaOlistConferencia[]>([])
     const [fornecedores, setFornecedores] = useState<Fornecedor[]>([])
     const [locaisEstoque, setLocaisEstoque] = useState<LocalEstoque[]>([])
     const [produtos, setProdutos] = useState<Produto[]>([])
@@ -679,6 +749,14 @@ export function Compras() {
         ultimoResultadoSincronizacaoOlist,
         setUltimoResultadoSincronizacaoOlist,
     ] = useState<ResultadoSincronizacaoNotasEntradaOlist | null>(null)
+    const [
+        progressoSincronizacaoOlist,
+        setProgressoSincronizacaoOlist,
+    ] = useState<ProgressoSincronizacaoNotasEntradaOlist | null>(null)
+    const [
+        resumoSincronizacaoOlist,
+        setResumoSincronizacaoOlist,
+    ] = useState<ResumoSincronizacaoNotasEntradaOlist | null>(null)
 
     const [formularioCompra, setFormularioCompra] =
         useState<FormularioCompra>(formularioInicial)
@@ -687,13 +765,15 @@ export function Compras() {
         useState<FormularioItemCompra>(formularioItemInicial)
 
     async function recarregarComprasEItens() {
-        const [comprasResumo, itensDados] = await Promise.all([
+        const [comprasResumo, itensDados, notasConferenciaDados] = await Promise.all([
             buscarComprasResumo(),
             buscarItensCompras(),
+            buscarConferenciaNotasEntradaOlistCompras(),
         ])
 
         setCompras(comprasResumo)
         setItensCompras(itensDados)
+        setNotasConferenciaOlist(notasConferenciaDados)
 
         if (comprasResumo.length === 0) {
             setMensagem('Consulta realizada com sucesso, mas nenhuma compra foi encontrada.')
@@ -710,16 +790,19 @@ export function Compras() {
                 fornecedoresDados,
                 locaisDados,
                 produtosDados,
+                notasConferenciaDados,
             ] = await Promise.all([
                 buscarComprasResumo(),
                 buscarItensCompras(),
                 buscarFornecedores(),
                 buscarLocaisEstoqueAtivos(),
                 buscarProdutos(),
+                buscarConferenciaNotasEntradaOlistCompras(),
             ])
 
             setCompras(comprasResumo)
             setItensCompras(itensDados)
+            setNotasConferenciaOlist(notasConferenciaDados)
             setFornecedores(fornecedoresDados)
             setLocaisEstoque(locaisDados)
             setProdutos(produtosDados)
@@ -747,7 +830,7 @@ export function Compras() {
 
     async function buscarNotasOlistCompras() {
         const confirmarBusca = window.confirm(
-            'Buscar novas NFs de compra no Olist?\n\nEsta ação apenas sincroniza as NFs e itens para conferência.\nEla não gera estoque, não cria lote e não confirma recebimento automaticamente.'
+            'Buscar NFs de compra no Olist?\n\nO sistema vai consultar as notas em chamadas pequenas, uma por vez, para evitar limite da Edge Function.\nEsta ação apenas sincroniza as NFs e itens para conferência. Ela não gera estoque, não cria lote e não confirma recebimento automaticamente.'
         )
 
         if (!confirmarBusca) {
@@ -757,27 +840,61 @@ export function Compras() {
         try {
             setSincronizandoNotasOlist(true)
             setStatus('carregando')
-            setMensagem('Buscando NFs de compra no Olist...')
+            setMensagem('Iniciando busca progressiva de NFs de compra no Olist...')
             setUltimoResultadoSincronizacaoOlist(null)
+            setProgressoSincronizacaoOlist(null)
+            setResumoSincronizacaoOlist(null)
 
-            const resultado = await buscarNotasEntradaOlistCompras()
+            const resumoFinal = await buscarTodasNotasEntradaOlistCompras({
+                offsetInicial: 0,
+                maxNotas: 30,
+                itemDelayMs: 2000,
+                intervaloEntreChamadasMs: 1200,
+                onProgresso: (progresso, resultadoParcial) => {
+                    setProgressoSincronizacaoOlist(progresso)
+                    setUltimoResultadoSincronizacaoOlist(resultadoParcial)
 
-            setUltimoResultadoSincronizacaoOlist(resultado)
+                    const totalTexto =
+                        typeof progresso.totalReportado === 'number'
+                            ? progresso.totalReportado
+                            : '?'
+
+                    setMensagem(
+                        [
+                            'Buscando NFs Olist...',
+                            `Chamada ${progresso.chamadasRealizadas}.`,
+                            `Offset atual: ${progresso.offsetAtual}.`,
+                            `Próximo offset: ${progresso.proximoOffset}.`,
+                            `Total Olist: ${totalTexto}.`,
+                            progresso.ultimaNotaNumero
+                                ? `Última NF: ${progresso.ultimaNotaNumero}.`
+                                : '',
+                        ]
+                            .filter(Boolean)
+                            .join(' ')
+                    )
+                },
+            })
+
+            setResumoSincronizacaoOlist(resumoFinal)
             await recarregarComprasEItens()
-
-            const resumo = resultado.result
 
             setStatus('sucesso')
             setMensagem(
                 [
-                    'Busca de NFs Olist concluída.',
-                    `Notas lidas: ${resumo?.received_count ?? 0}.`,
-                    `Notas inseridas: ${resumo?.inserted_notas_count ?? 0}.`,
-                    `Notas atualizadas: ${resumo?.updated_notas_count ?? 0}.`,
-                    `Itens inseridos: ${resumo?.inserted_items_count ?? 0}.`,
-                    `Itens atualizados: ${resumo?.updated_items_count ?? 0}.`,
-                    `Erros em notas: ${resumo?.notas_errors_count ?? 0}.`,
-                    `Erros em itens: ${resumo?.items_errors_count ?? 0}.`,
+                    'Busca progressiva de NFs Olist concluída.',
+                    `Total informado pela Olist: ${resumoFinal.totalReportado ?? '?'}.`,
+                    `Chamadas realizadas: ${resumoFinal.chamadasRealizadas}.`,
+                    `Notas lidas: ${resumoFinal.notasLidas}.`,
+                    `Notas inseridas: ${resumoFinal.notasInseridas}.`,
+                    `Notas atualizadas: ${resumoFinal.notasAtualizadas}.`,
+                    `Itens inseridos: ${resumoFinal.itensInseridos}.`,
+                    `Itens atualizados: ${resumoFinal.itensAtualizados}.`,
+                    `Erros em notas: ${resumoFinal.errosNotas}.`,
+                    `Erros em itens: ${resumoFinal.errosItens}.`,
+                    resumoFinal.limiteAtingido
+                        ? 'Limite de segurança atingido; rode novamente para continuar.'
+                        : 'Varredura concluída dentro do total informado pela Olist.',
                 ].join(' ')
             )
         } catch (error) {
@@ -1169,7 +1286,7 @@ export function Compras() {
         }
     )
 
-    const comprasPorId = new Map(
+    const comprasPorId = new Map<string, CompraResumo>(
         compras.map((compra) => [compra.compra_id, compra])
     )
 
@@ -1214,6 +1331,55 @@ export function Compras() {
             percentualRecebido,
         }
     })
+
+
+    const resumoConferenciaOlist = notasConferenciaOlist.reduce(
+        (resumo, nota) => {
+            resumo.total += 1
+
+            if (nota.status_processamento === 'processado') {
+                resumo.processadas += 1
+            }
+
+            if (nota.status_processamento === 'pendente') {
+                resumo.pendentes += 1
+            }
+
+            if (nota.status_processamento === 'erro') {
+                resumo.comErro += 1
+            }
+
+            if (nota.status_processamento === 'ignorado') {
+                resumo.ignoradas += 1
+            }
+
+            if (nota.status_conferencia === 'pronta_para_converter') {
+                resumo.prontasParaConverter += 1
+            }
+
+            if (nota.status_conferencia === 'pendente_conversao_unidade') {
+                resumo.pendentesConversao += 1
+            }
+
+            resumo.itens += Number(nota.total_itens ?? 0)
+            resumo.itensComErro += Number(nota.total_itens_com_erro ?? 0)
+            resumo.itensVinculados += Number(nota.total_itens_vinculados ?? 0)
+
+            return resumo
+        },
+        {
+            total: 0,
+            processadas: 0,
+            pendentes: 0,
+            comErro: 0,
+            ignoradas: 0,
+            prontasParaConverter: 0,
+            pendentesConversao: 0,
+            itens: 0,
+            itensComErro: 0,
+            itensVinculados: 0,
+        }
+    )
 
     const valorFreteFormulario = converterNumeroSeguro(formularioCompra.valor_frete)
     const valorDescontoFormulario = converterNumeroSeguro(formularioCompra.valor_desconto)
@@ -2081,10 +2247,128 @@ export function Compras() {
 
                 <p className="mt-3 text-slate-300">{mensagem}</p>
 
+                {progressoSincronizacaoOlist && (
+                    <div className="mt-4 rounded-2xl border border-cyan-900/60 bg-cyan-950/20 p-4">
+                        <p className="text-sm font-semibold text-cyan-200">
+                            Progresso da busca Olist
+                        </p>
+
+                        <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-5">
+                            <div>
+                                <p className="text-slate-500">Total Olist</p>
+                                <p className="font-semibold text-slate-100">
+                                    {progressoSincronizacaoOlist.totalReportado ?? '?'}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Chamadas</p>
+                                <p className="font-semibold text-slate-100">
+                                    {progressoSincronizacaoOlist.chamadasRealizadas}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Offset atual</p>
+                                <p className="font-semibold text-cyan-300">
+                                    {progressoSincronizacaoOlist.offsetAtual}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Próximo offset</p>
+                                <p className="font-semibold text-cyan-300">
+                                    {progressoSincronizacaoOlist.proximoOffset}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Última NF</p>
+                                <p className="font-semibold text-slate-100">
+                                    {progressoSincronizacaoOlist.ultimaNotaNumero ?? '-'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                            <div>
+                                <p className="text-slate-500">Notas lidas acumuladas</p>
+                                <p className="font-semibold text-slate-100">
+                                    {progressoSincronizacaoOlist.notasLidas}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Notas inseridas</p>
+                                <p className="font-semibold text-emerald-300">
+                                    {progressoSincronizacaoOlist.notasInseridas}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Notas atualizadas</p>
+                                <p className="font-semibold text-cyan-300">
+                                    {progressoSincronizacaoOlist.notasAtualizadas}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Erros acumulados</p>
+                                <p className="font-semibold text-red-300">
+                                    {progressoSincronizacaoOlist.errosNotas +
+                                        progressoSincronizacaoOlist.errosItens}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {resumoSincronizacaoOlist && (
+                    <div className="mt-4 rounded-2xl border border-emerald-900/60 bg-emerald-950/20 p-4">
+                        <p className="text-sm font-semibold text-emerald-200">
+                            Resumo final da busca Olist
+                        </p>
+
+                        <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                            <div>
+                                <p className="text-slate-500">Total informado</p>
+                                <p className="font-semibold text-slate-100">
+                                    {resumoSincronizacaoOlist.totalReportado ?? '?'}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Chamadas realizadas</p>
+                                <p className="font-semibold text-slate-100">
+                                    {resumoSincronizacaoOlist.chamadasRealizadas}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Notas inseridas</p>
+                                <p className="font-semibold text-emerald-300">
+                                    {resumoSincronizacaoOlist.notasInseridas}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-slate-500">Notas atualizadas</p>
+                                <p className="font-semibold text-cyan-300">
+                                    {resumoSincronizacaoOlist.notasAtualizadas}
+                                </p>
+                            </div>
+                        </div>
+
+                        <p className="mt-3 text-xs text-slate-500">
+                            A busca importa/atualiza snapshots da Olist em chamadas pequenas. Estoque, lotes e recebimentos não são criados automaticamente.
+                        </p>
+                    </div>
+                )}
+
                 {ultimoResultadoSincronizacaoOlist?.result && (
                     <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950 p-4">
                         <p className="text-sm font-semibold text-slate-200">
-                            Última busca Olist
+                            Última chamada Olist
                         </p>
 
                         <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
@@ -2119,10 +2403,133 @@ export function Compras() {
                         </div>
 
                         <p className="mt-3 text-xs text-slate-500">
-                            A busca apenas importa/atualiza snapshots da Olist. Estoque, lotes e recebimentos não são criados automaticamente.
+                            Esta é apenas a última chamada individual feita durante a busca progressiva.
                         </p>
                     </div>
                 )}
+            </AppCard>
+
+            <AppCard className="sm:p-5 lg:p-6">
+                <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                        <h2 className="text-xl font-semibold">Conferência das NFs Olist</h2>
+                        <p className="mt-2 text-sm text-slate-400">
+                            Acompanhamento das notas importadas da Olist antes de virarem compra ou antes da conferência operacional.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                        <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                            Total: {resumoConferenciaOlist.total}
+                        </span>
+                        <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                            Itens: {resumoConferenciaOlist.itens}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                        <p className="text-xs text-slate-400">Importadas</p>
+                        <p className="mt-2 text-2xl font-bold text-slate-100">{resumoConferenciaOlist.total}</p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                        <p className="text-xs text-slate-400">Processadas</p>
+                        <p className="mt-2 text-2xl font-bold text-emerald-300">{resumoConferenciaOlist.processadas}</p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                        <p className="text-xs text-slate-400">Pendentes</p>
+                        <p className="mt-2 text-2xl font-bold text-yellow-300">{resumoConferenciaOlist.pendentes}</p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                        <p className="text-xs text-slate-400">Com erro</p>
+                        <p className="mt-2 text-2xl font-bold text-red-300">{resumoConferenciaOlist.comErro}</p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                        <p className="text-xs text-slate-400">Ignoradas</p>
+                        <p className="mt-2 text-2xl font-bold text-slate-300">{resumoConferenciaOlist.ignoradas}</p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                        <p className="text-xs text-slate-400">Prontas</p>
+                        <p className="mt-2 text-2xl font-bold text-cyan-300">{resumoConferenciaOlist.prontasParaConverter}</p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                        <p className="text-xs text-slate-400">Pendente conversão</p>
+                        <p className="mt-2 text-2xl font-bold text-orange-300">{resumoConferenciaOlist.pendentesConversao}</p>
+                    </div>
+                </div>
+
+                {notasConferenciaOlist.length === 0 ? (
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-5 text-sm text-slate-400">
+                        Nenhuma NF Olist importada para conferência no momento.
+                    </div>
+                ) : (
+                    <DataTableContainer>
+                        <table className="w-full min-w-[980px] border-collapse text-left text-sm">
+                            <thead className={`${stickyTableHeadClassName} text-slate-400`}>
+                                <tr>
+                                    <th className="px-4 py-3 font-medium">NF</th>
+                                    <th className="px-4 py-3 font-medium">Fornecedor</th>
+                                    <th className="px-4 py-3 font-medium">Processamento</th>
+                                    <th className="px-4 py-3 font-medium">Conferência</th>
+                                    <th className="px-4 py-3 font-medium">Itens</th>
+                                    <th className="px-4 py-3 font-medium">Vinculados</th>
+                                    <th className="px-4 py-3 font-medium">Erros</th>
+                                    <th className="px-4 py-3 font-medium">Compra</th>
+                                </tr>
+                            </thead>
+
+                            <tbody className="divide-y divide-slate-800 bg-slate-900">
+                                {notasConferenciaOlist.map((nota) => (
+                                    <tr key={`${nota.numero}-${nota.compra_id ?? 'sem-compra'}`} className="hover:bg-slate-800/70">
+                                        <td className="px-4 py-3 font-semibold text-slate-100">
+                                            {nota.numero ?? '-'}
+                                        </td>
+                                        <td className="max-w-[320px] px-4 py-3 text-slate-300">
+                                            <span className="line-clamp-2 break-words">
+                                                {nota.fornecedor_nome ?? '-'}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <StatusBadge tone={obterTomStatusProcessamentoOlist(nota.status_processamento)}>
+                                                {obterRotuloStatusProcessamentoOlist(nota.status_processamento)}
+                                            </StatusBadge>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <StatusBadge tone={obterTomStatusConferenciaOlist(nota.status_conferencia)}>
+                                                {obterRotuloStatusConferenciaOlist(nota.status_conferencia)}
+                                            </StatusBadge>
+                                        </td>
+                                        <td className="px-4 py-3 font-semibold text-slate-100">
+                                            {nota.total_itens ?? 0}
+                                        </td>
+                                        <td className="px-4 py-3 font-semibold text-emerald-300">
+                                            {nota.total_itens_vinculados ?? 0}
+                                        </td>
+                                        <td className={(nota.total_itens_com_erro ?? 0) > 0 ? 'px-4 py-3 font-semibold text-red-300' : 'px-4 py-3 font-semibold text-slate-400'}>
+                                            {nota.total_itens_com_erro ?? 0}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <StatusBadge tone={nota.compra_id ? 'success' : 'muted'}>
+                                                {nota.compra_id ? 'Vinculada' : 'Aguardando'}
+                                            </StatusBadge>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </DataTableContainer>
+                )}
+
+                <p className="mt-3 text-xs text-slate-500">
+                    Este painel é apenas de conferência. Ele não cria estoque, lote ou recebimento automático.
+                </p>
             </AppCard>
 
             <AppCard className="sm:p-5 lg:p-6">
