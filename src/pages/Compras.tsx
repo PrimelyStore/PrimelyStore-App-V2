@@ -2412,15 +2412,15 @@ export function Compras() {
             <AppCard className="sm:p-5 lg:p-6">
                 <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                        <h2 className="text-xl font-semibold">Conferência das NFs Olist</h2>
+                        <h2 className="text-xl font-semibold">Conferência dos snapshots Olist</h2>
                         <p className="mt-2 text-sm text-slate-400">
-                            Acompanhamento das notas importadas da Olist antes de virarem compra ou antes da conferência operacional.
+                            Acompanhamento dos snapshots salvos no Supabase. Este painel não representa necessariamente o total atual filtrado na Olist; ele mostra o que já foi importado para conferência antes de virar compra.
                         </p>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
                         <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
-                            Total: {resumoConferenciaOlist.total}
+                            Snapshots: {resumoConferenciaOlist.total}
                         </span>
                         <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
                             Itens: {resumoConferenciaOlist.itens}
@@ -2430,17 +2430,17 @@ export function Compras() {
 
                 <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-                        <p className="text-xs text-slate-400">Importadas</p>
+                        <p className="text-xs text-slate-400">Snapshots no banco</p>
                         <p className="mt-2 text-2xl font-bold text-slate-100">{resumoConferenciaOlist.total}</p>
                     </div>
 
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-                        <p className="text-xs text-slate-400">Processadas</p>
+                        <p className="text-xs text-slate-400">Viraram compra</p>
                         <p className="mt-2 text-2xl font-bold text-emerald-300">{resumoConferenciaOlist.processadas}</p>
                     </div>
 
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-                        <p className="text-xs text-slate-400">Pendentes</p>
+                        <p className="text-xs text-slate-400">Pendentes no snapshot</p>
                         <p className="mt-2 text-2xl font-bold text-yellow-300">{resumoConferenciaOlist.pendentes}</p>
                     </div>
 
@@ -2455,19 +2455,26 @@ export function Compras() {
                     </div>
 
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-                        <p className="text-xs text-slate-400">Prontas</p>
+                        <p className="text-xs text-slate-400">Prontas para compra</p>
                         <p className="mt-2 text-2xl font-bold text-cyan-300">{resumoConferenciaOlist.prontasParaConverter}</p>
                     </div>
 
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-                        <p className="text-xs text-slate-400">Pendente conversão</p>
+                        <p className="text-xs text-slate-400">Pend. conversão/produto</p>
                         <p className="mt-2 text-2xl font-bold text-orange-300">{resumoConferenciaOlist.pendentesConversao}</p>
                     </div>
                 </div>
 
+                <div className="mb-5 rounded-2xl border border-cyan-900/50 bg-cyan-950/20 p-4 text-sm text-cyan-100">
+                    <p className="font-semibold">Como ler este painel</p>
+                    <p className="mt-2 text-cyan-100/80">
+                        O número de snapshots pode ser diferente do total exibido na Olist, porque aqui aparecem registros já salvos no Supabase, inclusive notas ignoradas ou importadas em testes anteriores. Para saber o total atual informado pela Olist, use o resumo final exibido logo após clicar em “Buscar NFs Olist”.
+                    </p>
+                </div>
+
                 {notasConferenciaOlist.length === 0 ? (
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-5 text-sm text-slate-400">
-                        Nenhuma NF Olist importada para conferência no momento.
+                        Nenhum snapshot Olist importado para conferência no momento.
                     </div>
                 ) : (
                     <DataTableContainer>
