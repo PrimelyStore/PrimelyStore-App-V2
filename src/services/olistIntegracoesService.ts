@@ -137,11 +137,14 @@ type PedidoResumoRow = {
     ultima_sincronizacao: string | null
 }
 
-type NotaEntradaSnapshotRow = {
-    id: string
-    status_processamento: string | null
-    valor: NumeroBanco
-    sincronizado_em: string | null
+type NotaEntradaResumoGerencialRow = {
+    total_notas: NumeroBanco
+    notas_pendentes: NumeroBanco
+    notas_processadas: NumeroBanco
+    notas_com_erro: NumeroBanco
+    notas_ignoradas: NumeroBanco
+    valor_total: NumeroBanco
+    ultima_sincronizacao: string | null
 }
 
 type OlistSyncLogGerencialRow = {
@@ -360,54 +363,27 @@ async function buscarPedidosRecentesOlist() {
 
 async function buscarResumoNotasEntradaOlist(): Promise<OlistResumoNotasEntrada> {
     const { data, error } = await supabase
-        .from('olist_notas_entrada_snapshot')
-        .select('id, status_processamento, valor, sincronizado_em')
-        .order('sincronizado_em', { ascending: false })
-        .limit(5000)
+        .from('olist_notas_entrada_resumo_gerencial_view')
+        .select(
+            'total_notas, notas_pendentes, notas_processadas, notas_com_erro, notas_ignoradas, valor_total, ultima_sincronizacao'
+        )
+        .maybeSingle()
 
     if (error) {
         throw new Error(error.message)
     }
 
-    const notas = (data ?? []) as NotaEntradaSnapshotRow[]
+    const resumo = data as NotaEntradaResumoGerencialRow | null
 
-    return notas.reduce<OlistResumoNotasEntrada>(
-        (resumo, nota) => {
-            resumo.total += 1
-            resumo.valorTotal += numeroSeguro(nota.valor)
-            resumo.ultimaSincronizacao = obterDataMaisRecente([
-                resumo.ultimaSincronizacao,
-                nota.sincronizado_em,
-            ])
-
-            if (nota.status_processamento === 'pendente') {
-                resumo.pendentes += 1
-            }
-
-            if (nota.status_processamento === 'processado') {
-                resumo.processadas += 1
-            }
-
-            if (nota.status_processamento === 'erro') {
-                resumo.comErro += 1
-            }
-
-            if (nota.status_processamento === 'ignorado') {
-                resumo.ignoradas += 1
-            }
-
-            return resumo
-        },
-        {
-            total: 0,
-            pendentes: 0,
-            processadas: 0,
-            comErro: 0,
-            ignoradas: 0,
-            valorTotal: 0,
-            ultimaSincronizacao: null,
-        }
-    )
+    return {
+        total: numeroSeguro(resumo?.total_notas),
+        pendentes: numeroSeguro(resumo?.notas_pendentes),
+        processadas: numeroSeguro(resumo?.notas_processadas),
+        comErro: numeroSeguro(resumo?.notas_com_erro),
+        ignoradas: numeroSeguro(resumo?.notas_ignoradas),
+        valorTotal: numeroSeguro(resumo?.valor_total),
+        ultimaSincronizacao: resumo?.ultima_sincronizacao ?? null,
+    }
 }
 
 async function buscarLogsRecentesOlist() {
