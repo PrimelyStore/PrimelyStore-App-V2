@@ -331,6 +331,24 @@ export function IntegracoesOlist() {
         })
     }, [filtroEstoqueBusca, filtroEstoqueDeposito, filtroEstoqueStatus, painel])
 
+    const resumoEstoquePorSituacao = useMemo(() => {
+        const base = painel?.estoqueDetalhado ?? []
+
+        return base.reduce(
+            (acc, item) => {
+                const statusItem = obterStatusEstoqueOlist(item).valor
+                acc[statusItem] += 1
+                return acc
+            },
+            {
+                ok: 0,
+                baixo: 0,
+                zerado: 0,
+                com_reserva: 0,
+            } as Record<StatusEstoqueOlist, number>
+        )
+    }, [painel])
+
     const existemFiltrosEstoque = Boolean(
         filtroEstoqueBusca || filtroEstoqueDeposito || filtroEstoqueStatus !== 'todos'
     )
@@ -727,22 +745,44 @@ export function IntegracoesOlist() {
                             <p className="mt-3 text-xs text-slate-500">
                                 Status calculado na tela: Zerado quando disponível ≤ 0, Com reserva quando há reserva, Baixo quando disponível entre 1 e 5, OK acima disso.
                             </p>
+
+                            <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-300">OK</p>
+                                    <p className="mt-1 text-lg font-bold text-emerald-200">{formatarNumero(resumoEstoquePorSituacao.ok)}</p>
+                                </div>
+
+                                <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 px-3 py-2">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-yellow-300">Baixo</p>
+                                    <p className="mt-1 text-lg font-bold text-yellow-200">{formatarNumero(resumoEstoquePorSituacao.baixo)}</p>
+                                </div>
+
+                                <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-red-300">Zerado</p>
+                                    <p className="mt-1 text-lg font-bold text-red-200">{formatarNumero(resumoEstoquePorSituacao.zerado)}</p>
+                                </div>
+
+                                <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 px-3 py-2">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-purple-300">Com reserva</p>
+                                    <p className="mt-1 text-lg font-bold text-purple-200">{formatarNumero(resumoEstoquePorSituacao.com_reserva)}</p>
+                                </div>
+                            </div>
                         </div>
 
-                        <DataTableContainer className="mt-5" maxHeightClassName="max-h-[520px]">
-                            <table className="min-w-[1150px] divide-y divide-slate-800 text-left text-sm">
+                        <DataTableContainer className="mt-5" maxHeightClassName="max-h-[460px]">
+                            <table className="min-w-[980px] divide-y divide-slate-800 text-left text-xs">
                                 <thead className={stickyTableHeadClassName}>
                                     <tr>
-                                        <th className="px-4 py-3 font-semibold">SKU</th>
-                                        <th className="px-4 py-3 font-semibold">Produto</th>
-                                        <th className="px-4 py-3 font-semibold">Depósito</th>
-                                        <th className="px-4 py-3 font-semibold">Un.</th>
-                                        <th className="px-4 py-3 font-semibold">Saldo</th>
-                                        <th className="px-4 py-3 font-semibold">Reservado</th>
-                                        <th className="px-4 py-3 font-semibold">Disponível</th>
-                                        <th className="px-4 py-3 font-semibold">Situação</th>
-                                        <th className="px-4 py-3 font-semibold">Localização</th>
-                                        <th className="px-4 py-3 font-semibold">Sincronizado em</th>
+                                        <th className="px-3 py-2.5 font-semibold">SKU</th>
+                                        <th className="px-3 py-2.5 font-semibold">Produto</th>
+                                        <th className="px-3 py-2.5 font-semibold">Depósito</th>
+                                        <th className="px-3 py-2.5 font-semibold">Un.</th>
+                                        <th className="px-3 py-2.5 font-semibold">Saldo</th>
+                                        <th className="px-3 py-2.5 font-semibold">Reservado</th>
+                                        <th className="px-3 py-2.5 font-semibold">Disponível</th>
+                                        <th className="px-3 py-2.5 font-semibold">Situação</th>
+                                        <th className="px-3 py-2.5 font-semibold">Localização</th>
+                                        <th className="px-3 py-2.5 font-semibold">Sincronizado em</th>
                                     </tr>
                                 </thead>
 
@@ -751,7 +791,7 @@ export function IntegracoesOlist() {
                                         <tr>
                                             <td
                                                 colSpan={10}
-                                                className="px-4 py-8 text-center text-sm text-slate-500"
+                                                className="px-3 py-8 text-center text-sm text-slate-500"
                                             >
                                                 Nenhum item de estoque encontrado com os filtros aplicados.
                                             </td>
@@ -766,36 +806,36 @@ export function IntegracoesOlist() {
                                                 key={`${item.id_produto_olist}-${item.deposito_nome}-${index}`}
                                                 className="hover:bg-slate-800/40"
                                             >
-                                                <td className="px-4 py-3 font-mono text-xs text-cyan-300">
+                                                <td className="px-3 py-2.5 font-mono text-[11px] leading-4 text-cyan-300">
                                                     {item.sku ?? '-'}
                                                 </td>
-                                                <td className="px-4 py-3 text-slate-300">
+                                                <td className="max-w-[240px] whitespace-normal px-3 py-2.5 leading-5 text-slate-300">
                                                     {item.produto_nome ?? '-'}
                                                 </td>
-                                                <td className="px-4 py-3 text-slate-300">
+                                                <td className="px-3 py-2.5 text-slate-300">
                                                     {item.deposito_nome ?? '-'}
                                                 </td>
-                                                <td className="px-4 py-3 text-slate-300">
+                                                <td className="px-3 py-2.5 text-slate-300">
                                                     {item.unidade ?? '-'}
                                                 </td>
-                                                <td className="px-4 py-3 text-slate-300">
+                                                <td className="px-3 py-2.5 text-slate-300">
                                                     {formatarNumero(item.saldo_deposito)}
                                                 </td>
-                                                <td className="px-4 py-3 text-yellow-300">
+                                                <td className="px-3 py-2.5 text-yellow-300">
                                                     {formatarNumero(item.reservado_deposito)}
                                                 </td>
-                                                <td className="px-4 py-3 font-semibold text-emerald-300">
+                                                <td className="px-3 py-2.5 font-semibold text-emerald-300">
                                                     {formatarNumero(item.disponivel_deposito)}
                                                 </td>
-                                                <td className="px-4 py-3">
+                                                <td className="px-3 py-2.5">
                                                     <StatusBadge tone={statusItem.tone}>
                                                         {statusItem.label}
                                                     </StatusBadge>
                                                 </td>
-                                                <td className="px-4 py-3 text-slate-300">
+                                                <td className="px-3 py-2.5 text-slate-300">
                                                     {item.localizacao ?? '-'}
                                                 </td>
-                                                <td className="px-4 py-3 text-slate-300">
+                                                <td className="px-3 py-2.5 text-slate-300">
                                                     {formatarDataHora(item.sincronizado_em)}
                                                 </td>
                                             </tr>
@@ -1012,21 +1052,21 @@ export function IntegracoesOlist() {
                             </p>
                         </div>
 
-                        <DataTableContainer className="mt-5" maxHeightClassName="max-h-[520px]">
-                            <table className="min-w-[1250px] divide-y divide-slate-800 text-left text-sm">
+                        <DataTableContainer className="mt-5" maxHeightClassName="max-h-[460px]">
+                            <table className="min-w-[1060px] divide-y divide-slate-800 text-left text-xs">
                                 <thead className={stickyTableHeadClassName}>
                                     <tr>
-                                        <th className="px-4 py-3 font-semibold">Pedido</th>
-                                        <th className="px-4 py-3 font-semibold">Data</th>
-                                        <th className="px-4 py-3 font-semibold">Marketplace</th>
-                                        <th className="px-4 py-3 font-semibold">Canal</th>
-                                        <th className="px-4 py-3 font-semibold">Depósito</th>
-                                        <th className="px-4 py-3 font-semibold">SKU</th>
-                                        <th className="px-4 py-3 font-semibold">Produto</th>
-                                        <th className="px-4 py-3 font-semibold">Qtd.</th>
-                                        <th className="px-4 py-3 font-semibold">Valor item</th>
-                                        <th className="px-4 py-3 font-semibold">Status</th>
-                                        <th className="px-4 py-3 font-semibold">Produto vinculado</th>
+                                        <th className="px-3 py-2.5 font-semibold">Pedido</th>
+                                        <th className="px-3 py-2.5 font-semibold">Data</th>
+                                        <th className="px-3 py-2.5 font-semibold">Marketplace</th>
+                                        <th className="px-3 py-2.5 font-semibold">Canal</th>
+                                        <th className="px-3 py-2.5 font-semibold">Depósito</th>
+                                        <th className="px-3 py-2.5 font-semibold">SKU</th>
+                                        <th className="px-3 py-2.5 font-semibold">Produto</th>
+                                        <th className="px-3 py-2.5 font-semibold">Qtd.</th>
+                                        <th className="px-3 py-2.5 font-semibold">Valor item</th>
+                                        <th className="px-3 py-2.5 font-semibold">Status</th>
+                                        <th className="px-3 py-2.5 font-semibold">Produto vinculado</th>
                                     </tr>
                                 </thead>
 
@@ -1035,7 +1075,7 @@ export function IntegracoesOlist() {
                                         <tr>
                                             <td
                                                 colSpan={11}
-                                                className="px-4 py-8 text-center text-sm text-slate-500"
+                                                className="px-3 py-8 text-center text-sm text-slate-500"
                                             >
                                                 Nenhum pedido encontrado com os filtros aplicados.
                                             </td>
@@ -1047,34 +1087,34 @@ export function IntegracoesOlist() {
                                             key={`${pedido.id_pedido_olist}-${pedido.sku_olist}-${index}`}
                                             className="hover:bg-slate-800/40"
                                         >
-                                            <td className="px-4 py-3 text-slate-200">
+                                            <td className="px-3 py-2.5 text-slate-200">
                                                 {pedido.numero_pedido ?? '-'}
                                             </td>
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-2.5 text-slate-300">
                                                 {formatarDataHora(obterDataReferenciaPedido(pedido))}
                                             </td>
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-2.5 text-slate-300">
                                                 {pedido.numero_pedido_ecommerce ?? '-'}
                                             </td>
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-2.5 text-slate-300">
                                                 {obterCanalPedido(pedido)}
                                             </td>
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-2.5 text-slate-300">
                                                 {pedido.deposito_nome ?? '-'}
                                             </td>
-                                            <td className="px-4 py-3 font-mono text-xs text-cyan-300">
+                                            <td className="px-3 py-2.5 font-mono text-[11px] leading-4 text-cyan-300">
                                                 {pedido.sku_olist ?? '-'}
                                             </td>
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="max-w-[250px] whitespace-normal px-3 py-2.5 leading-5 text-slate-300">
                                                 {pedido.descricao_olist ?? '-'}
                                             </td>
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-2.5 text-slate-300">
                                                 {formatarNumero(pedido.quantidade)}
                                             </td>
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-2.5 text-slate-300">
                                                 {formatarMoeda(pedido.valor_total_item)}
                                             </td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-3 py-2.5">
                                                 <StatusBadge
                                                     tone={obterTomStatus(
                                                         pedido.status_gerencial
@@ -1083,7 +1123,7 @@ export function IntegracoesOlist() {
                                                     {pedido.status_gerencial ?? '-'}
                                                 </StatusBadge>
                                             </td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-3 py-2.5">
                                                 <StatusBadge
                                                     tone={
                                                         pedido.produto_vinculado
@@ -1108,19 +1148,19 @@ export function IntegracoesOlist() {
                             Últimos logs de sincronização
                         </h2>
 
-                        <DataTableContainer className="mt-5" maxHeightClassName="max-h-[420px]">
-                            <table className="min-w-[900px] divide-y divide-slate-800 text-left text-sm">
+                        <DataTableContainer className="mt-5" maxHeightClassName="max-h-[360px]">
+                            <table className="min-w-[760px] divide-y divide-slate-800 text-left text-xs">
                                 <thead className={stickyTableHeadClassName}>
                                     <tr>
-                                        <th className="px-4 py-3 font-semibold">Origem</th>
-                                        <th className="px-4 py-3 font-semibold">Status</th>
-                                        <th className="px-4 py-3 font-semibold">Início</th>
-                                        <th className="px-4 py-3 font-semibold">Fim</th>
-                                        <th className="px-4 py-3 font-semibold">Lidos</th>
-                                        <th className="px-4 py-3 font-semibold">Inseridos</th>
-                                        <th className="px-4 py-3 font-semibold">Atualizados</th>
-                                        <th className="px-4 py-3 font-semibold">Erros</th>
-                                        <th className="px-4 py-3 font-semibold">Mensagem</th>
+                                        <th className="px-3 py-2.5 font-semibold">Origem</th>
+                                        <th className="px-3 py-2.5 font-semibold">Status</th>
+                                        <th className="px-3 py-2.5 font-semibold">Início</th>
+                                        <th className="px-3 py-2.5 font-semibold">Fim</th>
+                                        <th className="px-3 py-2.5 font-semibold">Lidos</th>
+                                        <th className="px-3 py-2.5 font-semibold">Inseridos</th>
+                                        <th className="px-3 py-2.5 font-semibold">Atualizados</th>
+                                        <th className="px-3 py-2.5 font-semibold">Erros</th>
+                                        <th className="px-3 py-2.5 font-semibold">Mensagem</th>
                                     </tr>
                                 </thead>
 
@@ -1130,33 +1170,33 @@ export function IntegracoesOlist() {
                                             key={`${log.origem}-${log.data_inicio}-${index}`}
                                             className="hover:bg-slate-800/40"
                                         >
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-2.5 text-slate-300">
                                                 {formatarOrigemLog(log.origem)}
                                             </td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-3 py-2.5">
                                                 <StatusBadge tone={obterTomStatus(log.status)}>
                                                     {log.status ?? '-'}
                                                 </StatusBadge>
                                             </td>
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-2.5 text-slate-300">
                                                 {formatarDataHora(log.data_inicio)}
                                             </td>
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-2.5 text-slate-300">
                                                 {formatarDataHora(log.data_fim)}
                                             </td>
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-2.5 text-slate-300">
                                                 {formatarNumero(log.lidos)}
                                             </td>
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-2.5 text-slate-300">
                                                 {formatarNumero(log.inseridos)}
                                             </td>
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-2.5 text-slate-300">
                                                 {formatarNumero(log.atualizados)}
                                             </td>
-                                            <td className="px-4 py-3 text-slate-300">
+                                            <td className="px-3 py-2.5 text-slate-300">
                                                 {formatarNumero(log.erros)}
                                             </td>
-                                            <td className="px-4 py-3 text-slate-400">
+                                            <td className="px-3 py-2.5 text-slate-400">
                                                 {log.mensagem ?? '-'}
                                             </td>
                                         </tr>
