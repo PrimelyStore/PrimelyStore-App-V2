@@ -84,6 +84,34 @@ export type OlistResumoNotasEntrada = {
     ultimaSincronizacao: string | null
 }
 
+export type OlistNotaEntradaGerencial = {
+    nota_snapshot_id: string
+    id_nota_olist: NumeroBanco
+    numero_nf: string | null
+    serie: string | null
+    chave_acesso: string | null
+    data_emissao: string | null
+    data_prevista: string | null
+    data_inclusao: string | null
+    fornecedor_nome: string | null
+    fornecedor_cpf_cnpj: string | null
+    valor_total_nf: NumeroBanco
+    valor_produtos_nf: NumeroBanco
+    valor_frete_nf: NumeroBanco
+    valor_ipi_nf: NumeroBanco
+    valor_icms_st_nf: NumeroBanco
+    status_processamento: string | null
+    mensagem_erro: string | null
+    compra_id: string | null
+    compra_vinculada: boolean | null
+    total_itens_nf: NumeroBanco
+    total_itens_com_produto: NumeroBanco
+    total_itens_sem_produto: NumeroBanco
+    total_itens_com_erro: NumeroBanco
+    sincronizado_em: string | null
+    updated_at: string | null
+}
+
 export type OlistSyncLogResumo = {
     origem: 'pedidos' | 'notas_entrada'
     status: string | null
@@ -104,6 +132,7 @@ export type PainelIntegracoesOlist = {
     pedidos: OlistResumoPedidos
     pedidosRecentes: OlistPedidoGerencial[]
     notasEntrada: OlistResumoNotasEntrada
+    notasEntradaRecentes: OlistNotaEntradaGerencial[]
     logsRecentes: OlistSyncLogResumo[]
 }
 
@@ -386,6 +415,22 @@ async function buscarResumoNotasEntradaOlist(): Promise<OlistResumoNotasEntrada>
     }
 }
 
+async function buscarNotasEntradaRecentesOlist() {
+    const { data, error } = await supabase
+        .from('olist_notas_entrada_recentes_gerencial_view')
+        .select(
+            'nota_snapshot_id, id_nota_olist, numero_nf, serie, chave_acesso, data_emissao, data_prevista, data_inclusao, fornecedor_nome, fornecedor_cpf_cnpj, valor_total_nf, valor_produtos_nf, valor_frete_nf, valor_ipi_nf, valor_icms_st_nf, status_processamento, mensagem_erro, compra_id, compra_vinculada, total_itens_nf, total_itens_com_produto, total_itens_sem_produto, total_itens_com_erro, sincronizado_em, updated_at'
+        )
+        .order('sincronizado_em', { ascending: false, nullsFirst: false })
+        .limit(100)
+
+    if (error) {
+        throw new Error(error.message)
+    }
+
+    return (data ?? []) as OlistNotaEntradaGerencial[]
+}
+
 async function buscarLogsRecentesOlist() {
     const { data, error } = await supabase
         .from('olist_sync_logs_gerencial_view')
@@ -650,6 +695,7 @@ export async function buscarPainelIntegracoesOlist(): Promise<PainelIntegracoesO
         pedidos,
         pedidosRecentes,
         notasEntrada,
+        notasEntradaRecentes,
         logsRecentes,
     ] = await Promise.all([
         buscarResumoProdutosOlist(),
@@ -659,6 +705,7 @@ export async function buscarPainelIntegracoesOlist(): Promise<PainelIntegracoesO
         buscarResumoPedidosOlist(),
         buscarPedidosRecentesOlist(),
         buscarResumoNotasEntradaOlist(),
+        buscarNotasEntradaRecentesOlist(),
         buscarLogsRecentesOlist(),
     ])
 
@@ -670,6 +717,7 @@ export async function buscarPainelIntegracoesOlist(): Promise<PainelIntegracoesO
         pedidos,
         pedidosRecentes,
         notasEntrada,
+        notasEntradaRecentes,
         logsRecentes,
     }
 }

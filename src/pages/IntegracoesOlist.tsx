@@ -1408,6 +1408,117 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                     </AppCard>
 
                     <AppCard>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-100">
+                                    Notas de entrada Olist recentes
+                                </h2>
+
+                                <p className="mt-1 text-sm text-slate-400">
+                                    Últimas notas de entrada importadas para conferência gerencial. Esta tabela é somente leitura e não gera compra, estoque, lote ou recebimento automático.
+                                </p>
+
+                                <p className="mt-2 text-xs text-slate-500">
+                                    Exibindo {formatarNumero(painel.notasEntradaRecentes.length)} nota(s) carregada(s).
+                                </p>
+                            </div>
+
+                            <StatusBadge tone="info">Snapshot</StatusBadge>
+                        </div>
+
+                        <DataTableContainer className="mt-5" maxHeightClassName="max-h-[420px]">
+                            <table className="min-w-[1120px] divide-y divide-slate-800 text-left text-xs">
+                                <thead className={stickyTableHeadClassName}>
+                                    <tr>
+                                        <th className="px-3 py-2.5 font-semibold">Nota</th>
+                                        <th className="px-3 py-2.5 font-semibold">Emissão</th>
+                                        <th className="px-3 py-2.5 font-semibold">Fornecedor</th>
+                                        <th className="px-3 py-2.5 font-semibold">CPF/CNPJ</th>
+                                        <th className="px-3 py-2.5 font-semibold">Valor NF</th>
+                                        <th className="px-3 py-2.5 font-semibold">Itens</th>
+                                        <th className="px-3 py-2.5 font-semibold">Itens vinculados</th>
+                                        <th className="px-3 py-2.5 font-semibold">Status</th>
+                                        <th className="px-3 py-2.5 font-semibold">Compra</th>
+                                        <th className="px-3 py-2.5 font-semibold">Sincronizado em</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody className="divide-y divide-slate-800">
+                                    {painel.notasEntradaRecentes.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan={10}
+                                                className="px-3 py-8 text-center text-sm text-slate-500"
+                                            >
+                                                Nenhuma nota de entrada encontrada no snapshot.
+                                            </td>
+                                        </tr>
+                                    ) : null}
+
+                                    {painel.notasEntradaRecentes.map((nota) => (
+                                        <tr
+                                            key={nota.nota_snapshot_id}
+                                            className="hover:bg-slate-800/40"
+                                        >
+                                            <td className="px-3 py-2.5 text-slate-200">
+                                                <div className="font-semibold">
+                                                    {nota.numero_nf ?? '-'}
+                                                </div>
+                                                <div className="mt-1 text-[11px] text-slate-500">
+                                                    Série: {nota.serie ?? '-'}
+                                                </div>
+                                            </td>
+                                            <td className="px-3 py-2.5 text-slate-300">
+                                                {formatarDataHora(nota.data_emissao)}
+                                            </td>
+                                            <td className="max-w-[260px] whitespace-normal px-3 py-2.5 leading-5 text-slate-300">
+                                                {nota.fornecedor_nome ?? '-'}
+                                            </td>
+                                            <td className="px-3 py-2.5 font-mono text-[11px] text-slate-300">
+                                                {nota.fornecedor_cpf_cnpj ?? '-'}
+                                            </td>
+                                            <td className="px-3 py-2.5 font-semibold text-emerald-300">
+                                                {formatarMoeda(nota.valor_total_nf)}
+                                            </td>
+                                            <td className="px-3 py-2.5 text-slate-300">
+                                                {formatarNumero(nota.total_itens_nf)}
+                                            </td>
+                                            <td className="px-3 py-2.5 text-slate-300">
+                                                {formatarNumero(nota.total_itens_com_produto)} / {formatarNumero(nota.total_itens_nf)}
+                                            </td>
+                                            <td className="px-3 py-2.5">
+                                                <StatusBadge
+                                                    tone={obterTomStatus(
+                                                        nota.status_processamento
+                                                    )}
+                                                >
+                                                    {nota.status_processamento ?? '-'}
+                                                </StatusBadge>
+                                            </td>
+                                            <td className="px-3 py-2.5">
+                                                <StatusBadge
+                                                    tone={
+                                                        nota.compra_vinculada
+                                                            ? 'success'
+                                                            : 'muted'
+                                                    }
+                                                >
+                                                    {nota.compra_vinculada
+                                                        ? 'Vinculada'
+                                                        : 'Sem vínculo'}
+                                                </StatusBadge>
+                                            </td>
+                                            <td className="px-3 py-2.5 text-slate-300">
+                                                {formatarDataHora(nota.sincronizado_em)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </DataTableContainer>
+                    </AppCard>
+
+                    <AppCard>
                         <h2 className="text-lg font-bold text-slate-100">
                             Últimos logs de sincronização
                         </h2>
