@@ -11,6 +11,7 @@ const menuItems = [
     { label: 'Estoque', shortLabel: 'ES', path: '/estoque' },
     { label: 'Amazon FBA', shortLabel: 'FBA', path: '/amazon-fba' },
     { label: 'Integrações Olist', shortLabel: 'OL', path: '/integracoes-olist' },
+    { label: 'Curva ABC', shortLabel: 'ABC', path: '/curva-abc' },
     {
         label: 'Conciliação Olist x Amazon',
         shortLabel: 'OA',

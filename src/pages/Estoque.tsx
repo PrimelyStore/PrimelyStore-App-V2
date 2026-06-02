@@ -1,18 +1,11 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import {
     buscarEstoque,
     buscarMovimentacoesEstoque,
-    transferirEstoqueFIFO,
     type EstoqueSaldo,
     type MovimentacaoEstoqueDetalhada,
-    type NovaTransferenciaEstoque,
 } from '../services/estoqueService'
 import {
-    buscarLocaisEstoqueAtivos,
-    type LocalEstoque,
-} from '../services/locaisEstoqueService'
-import {
-    AppButton,
     AppCard,
     DataTableContainer,
     PageHeader,
@@ -29,38 +22,6 @@ type StatusBadgeTone =
     | 'info'
     | 'purple'
     | 'muted'
-
-type FormularioTransferencia = {
-    produto_id: string
-    local_origem_id: string
-    local_destino_id: string
-    quantidade: string
-    documento_origem: string
-    observacoes: string
-}
-
-function gerarDocumentoTransferencia() {
-    const agora = new Date()
-    const ano = agora.getFullYear()
-    const mes = String(agora.getMonth() + 1).padStart(2, '0')
-    const dia = String(agora.getDate()).padStart(2, '0')
-    const hora = String(agora.getHours()).padStart(2, '0')
-    const minuto = String(agora.getMinutes()).padStart(2, '0')
-    const segundo = String(agora.getSeconds()).padStart(2, '0')
-
-    return `TRANSF-APP-${ano}${mes}${dia}-${hora}${minuto}${segundo}`
-}
-
-function criarFormularioInicial(): FormularioTransferencia {
-    return {
-        produto_id: '',
-        local_origem_id: '',
-        local_destino_id: '',
-        quantidade: '1',
-        documento_origem: gerarDocumentoTransferencia(),
-        observacoes: '',
-    }
-}
 
 function formatarNumero(valor?: number | null) {
     if (typeof valor !== 'number') {
@@ -85,32 +46,6 @@ function formatarDataHora(data?: string | null) {
         dateStyle: 'short',
         timeStyle: 'short',
     }).format(dataConvertida)
-}
-
-function transformarTextoEmNull(valor: string) {
-    const texto = valor.trim()
-
-    if (!texto) {
-        return null
-    }
-
-    return texto
-}
-
-function converterInteiro(valor: string) {
-    const texto = valor.trim().replace(',', '.')
-
-    if (!texto) {
-        return 0
-    }
-
-    const numero = Number(texto)
-
-    if (Number.isNaN(numero)) {
-        return NaN
-    }
-
-    return numero
 }
 
 function obterTomSaldo(saldo?: number | null): StatusBadgeTone {
@@ -180,40 +115,17 @@ export function Estoque() {
     const [movimentacoes, setMovimentacoes] = useState<
         MovimentacaoEstoqueDetalhada[]
     >([])
-    const [locaisEstoque, setLocaisEstoque] = useState<LocalEstoque[]>([])
-    const [transferindo, setTransferindo] = useState(false)
-
-    const [formulario, setFormulario] =
-        useState<FormularioTransferencia>(criarFormularioInicial)
-
-    async function recarregarEstoqueEMovimentacoes() {
-        const [dadosEstoque, dadosMovimentacoes] = await Promise.all([
-            buscarEstoque(),
-            buscarMovimentacoesEstoque(),
-        ])
-
-        setEstoque(dadosEstoque)
-        setMovimentacoes(dadosMovimentacoes)
-
-        if (dadosEstoque.length === 0) {
-            setMensagem('Consulta realizada com sucesso, mas nenhum item de estoque foi encontrado.')
-        } else {
-            setMensagem(`${dadosEstoque.length} item(ns) de estoque encontrado(s).`)
-        }
-    }
 
     async function carregarDadosIniciais() {
         try {
-            const [dadosEstoque, dadosMovimentacoes, dadosLocais] =
+            const [dadosEstoque, dadosMovimentacoes] =
                 await Promise.all([
                     buscarEstoque(),
                     buscarMovimentacoesEstoque(),
-                    buscarLocaisEstoqueAtivos(),
                 ])
 
             setEstoque(dadosEstoque)
             setMovimentacoes(dadosMovimentacoes)
-            setLocaisEstoque(dadosLocais)
             setStatus('sucesso')
 
             if (dadosEstoque.length === 0) {
@@ -235,165 +147,6 @@ export function Estoque() {
     useEffect(() => {
         carregarDadosIniciais()
     }, [])
-
-    const produtosComEstoque = useMemo(() => {
-        const mapa = new Map<
-            string,
-            {
-                produto_id: string
-                produto_nome: string
-                produto_sku: string | null
-                produto_asin: string | null
-            }
-        >()
-
-        estoque.forEach((item) => {
-            if (formatarNumero(item.saldo_atual) > 0) {
-                mapa.set(item.produto_id, {
-                    produto_id: item.produto_id,
-                    produto_nome: item.produto_nome,
-                    produto_sku: item.produto_sku,
-                    produto_asin: item.produto_asin,
-                })
-            }
-        })
-
-        return Array.from(mapa.values()).sort((a, b) =>
-            a.produto_nome.localeCompare(b.produto_nome)
-        )
-    }, [estoque])
-
-    const locaisOrigemDisponiveis = useMemo(() => {
-        if (!formulario.produto_id) {
-            return []
-        }
-
-        return estoque.filter((item) => {
-            return (
-                item.produto_id === formulario.produto_id &&
-                formatarNumero(item.saldo_atual) > 0
-            )
-        })
-    }, [estoque, formulario.produto_id])
-
-    const saldoOrigemSelecionada = useMemo(() => {
-        const item = estoque.find((saldo) => {
-            return (
-                saldo.produto_id === formulario.produto_id &&
-                saldo.local_estoque_id === formulario.local_origem_id
-            )
-        })
-
-        return formatarNumero(item?.saldo_atual)
-    }, [estoque, formulario.produto_id, formulario.local_origem_id])
-
-    const locaisDestinoDisponiveis = locaisEstoque.filter((local) => {
-        return local.id !== formulario.local_origem_id
-    })
-
-    function atualizarCampo(campo: keyof FormularioTransferencia, valor: string) {
-        setFormulario((formularioAtual) => {
-            const novoFormulario = {
-                ...formularioAtual,
-                [campo]: valor,
-            }
-
-            if (campo === 'produto_id') {
-                novoFormulario.local_origem_id = ''
-            }
-
-            if (campo === 'local_origem_id') {
-                novoFormulario.local_destino_id =
-                    formularioAtual.local_destino_id === valor
-                        ? ''
-                        : formularioAtual.local_destino_id
-            }
-
-            return novoFormulario
-        })
-    }
-
-    function limparFormulario() {
-        setFormulario(criarFormularioInicial())
-    }
-
-    function validarFormularioTransferencia() {
-        if (!formulario.produto_id) {
-            return 'Selecione o produto que será transferido.'
-        }
-
-        if (!formulario.local_origem_id) {
-            return 'Selecione o local de origem.'
-        }
-
-        if (!formulario.local_destino_id) {
-            return 'Selecione o local de destino.'
-        }
-
-        if (formulario.local_origem_id === formulario.local_destino_id) {
-            return 'O local de origem e o local de destino não podem ser iguais.'
-        }
-
-        const quantidade = converterInteiro(formulario.quantidade)
-
-        if (Number.isNaN(quantidade) || quantidade <= 0) {
-            return 'A quantidade precisa ser maior que zero.'
-        }
-
-        if (!Number.isInteger(quantidade)) {
-            return 'A quantidade precisa ser um número inteiro.'
-        }
-
-        if (quantidade > saldoOrigemSelecionada) {
-            return `A quantidade não pode ser maior que o saldo disponível na origem (${saldoOrigemSelecionada}).`
-        }
-
-        return null
-    }
-
-    async function enviarTransferencia(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault()
-
-        const erroValidacao = validarFormularioTransferencia()
-
-        if (erroValidacao) {
-            setStatus('erro')
-            setMensagem(erroValidacao)
-            return
-        }
-
-        const novaTransferencia: NovaTransferenciaEstoque = {
-            produto_id: formulario.produto_id,
-            local_origem_id: formulario.local_origem_id,
-            local_destino_id: formulario.local_destino_id,
-            quantidade: converterInteiro(formulario.quantidade),
-            documento_origem: transformarTextoEmNull(formulario.documento_origem),
-            observacoes: transformarTextoEmNull(formulario.observacoes),
-        }
-
-        try {
-            setTransferindo(true)
-            setMensagem('Transferindo estoque via FIFO...')
-
-            await transferirEstoqueFIFO(novaTransferencia)
-
-            limparFormulario()
-            await recarregarEstoqueEMovimentacoes()
-
-            setStatus('sucesso')
-            setMensagem('Transferência FIFO realizada com sucesso. Estoque e histórico atualizados.')
-        } catch (error) {
-            setStatus('erro')
-
-            if (error instanceof Error) {
-                setMensagem(error.message)
-            } else {
-                setMensagem('Erro desconhecido ao transferir estoque.')
-            }
-        } finally {
-            setTransferindo(false)
-        }
-    }
 
     const quantidadeTotal = estoque.reduce((total, item) => {
         return total + formatarNumero(item.saldo_atual)
@@ -424,157 +177,8 @@ export function Estoque() {
             <PageHeader
                 tag="MÓDULO"
                 title="Estoque"
-                description="Saldos atuais, transferência FIFO entre locais e histórico detalhado de movimentações."
+                description="Saldos atuais e histórico detalhado de movimentações de estoque consolidadas."
             />
-
-            <AppCard>
-                <form onSubmit={enviarTransferencia}>
-                <div className="mb-6">
-                    <h2 className="text-xl font-semibold">
-                        Transferir estoque FIFO
-                    </h2>
-
-                    <p className="mt-2 text-sm text-slate-400">
-                        Use esta área para transferir produtos entre locais, como Prep Center North para Amazon FBA.
-                        A função do banco preserva a lógica FIFO e os custos dos lotes.
-                    </p>
-                </div>
-
-                <div className="grid gap-4 lg:grid-cols-2">
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Produto *
-                        </label>
-
-                        <select
-                            value={formulario.produto_id}
-                            onChange={(event) =>
-                                atualizarCampo('produto_id', event.target.value)
-                            }
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        >
-                            <option value="">Selecione o produto</option>
-
-                            {produtosComEstoque.map((produto) => (
-                                <option key={produto.produto_id} value={produto.produto_id}>
-                                    {produto.produto_nome} — SKU: {produto.produto_sku ?? '-'}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Local de origem *
-                        </label>
-
-                        <select
-                            value={formulario.local_origem_id}
-                            onChange={(event) =>
-                                atualizarCampo('local_origem_id', event.target.value)
-                            }
-                            disabled={!formulario.produto_id}
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            <option value="">Selecione a origem</option>
-
-                            {locaisOrigemDisponiveis.map((item) => (
-                                <option
-                                    key={item.local_estoque_id}
-                                    value={item.local_estoque_id}
-                                >
-                                    {item.local_estoque_nome} — saldo: {formatarNumero(item.saldo_atual)}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Local de destino *
-                        </label>
-
-                        <select
-                            value={formulario.local_destino_id}
-                            onChange={(event) =>
-                                atualizarCampo('local_destino_id', event.target.value)
-                            }
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        >
-                            <option value="">Selecione o destino</option>
-
-                            {locaisDestinoDisponiveis.map((local) => (
-                                <option key={local.id} value={local.id}>
-                                    {local.nome} — {local.tipo}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Quantidade *
-                        </label>
-
-                        <input
-                            value={formulario.quantidade}
-                            onChange={(event) =>
-                                atualizarCampo('quantidade', event.target.value)
-                            }
-                            placeholder="Ex: 1"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-
-                        {formulario.local_origem_id && (
-                            <p className="mt-2 text-xs text-slate-500">
-                                Saldo disponível na origem: {saldoOrigemSelecionada}
-                            </p>
-                        )}
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Documento de origem
-                        </label>
-
-                        <input
-                            value={formulario.documento_origem}
-                            onChange={(event) =>
-                                atualizarCampo('documento_origem', event.target.value)
-                            }
-                            placeholder="Ex: TRANSF-APP-001"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div className="md:col-span-2">
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Observações
-                        </label>
-
-                        <textarea
-                            value={formulario.observacoes}
-                            onChange={(event) =>
-                                atualizarCampo('observacoes', event.target.value)
-                            }
-                            rows={3}
-                            placeholder="Observações sobre a transferência"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-                </div>
-
-                <div className="mt-6 flex flex-col justify-end gap-3 sm:flex-row">
-                    <AppButton
-                        type="submit"
-                        variant="primary"
-                        disabled={transferindo}
-                    >
-                        {transferindo ? 'Transferindo...' : 'Transferir estoque'}
-                    </AppButton>
-                </div>
-                </form>
-            </AppCard>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <AppCard>
@@ -850,7 +454,6 @@ export function Estoque() {
                         </table>
                     </DataTableContainer>
                 )}
-
             </AppCard>
         </div>
     )

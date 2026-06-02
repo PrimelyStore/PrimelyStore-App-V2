@@ -11,6 +11,7 @@ import { AppLayout } from './components/layout/AppLayout'
 import { AuthProvider } from './contexts/AuthContext'
 import { useAuth } from './hooks/useAuth'
 import { Alertas } from './pages/Alertas'
+import { CurvaABC } from './pages/CurvaABC'
 import { AmazonFBA } from './pages/AmazonFBA'
 import { ConciliacaoAmazonOlistPrimelyFba } from './pages/ConciliacaoAmazonOlistPrimelyFba'
 import { Compras } from './pages/Compras'
@@ -84,6 +85,7 @@ function AppRoutes() {
             path="/conciliacao-amazon-olist-primely-fba"
             element={<ConciliacaoAmazonOlistPrimelyFba />}
           />
+          <Route path="/curva-abc" element={<CurvaABC />} />
           <Route path="/lotes" element={<Lotes />} />
           <Route path="/movimentacoes" element={<Movimentacoes />} />
           <Route path="/alertas" element={<Alertas />} />

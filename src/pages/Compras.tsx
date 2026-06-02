@@ -1,31 +1,18 @@
-import { Fragment, useEffect, useState, type FormEvent } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import {
     buscarComprasResumo,
     buscarItensCompras,
     buscarConferenciaNotasEntradaOlistCompras,
     buscarTodasNotasEntradaOlistCompras,
-    cadastrarCompra,
-    cadastrarItemCompra,
     definirControleRecebimentoCompra,
     receberItemCompra,
     type CompraItemDetalhado,
     type CompraResumo,
-    type NovaCompra,
-    type NovoCompraItem,
     type NotaEntradaOlistConferencia,
     type ProgressoSincronizacaoNotasEntradaOlist,
     type ResultadoSincronizacaoNotasEntradaOlist,
     type ResumoSincronizacaoNotasEntradaOlist,
 } from '../services/comprasService'
-import {
-    buscarFornecedores,
-    type Fornecedor,
-} from '../services/fornecedoresService'
-import {
-    buscarLocaisEstoqueAtivos,
-    type LocalEstoque,
-} from '../services/locaisEstoqueService'
-import { buscarProdutos, type Produto } from '../services/produtosService'
 import {
     AppButton,
     AppCard,
@@ -45,71 +32,7 @@ type StatusBadgeTone =
     | 'purple'
     | 'muted'
 
-type FormularioCompra = {
-    fornecedor_id: string
-    local_destino_id: string
-    numero_pedido: string
-    numero_nota_fiscal: string
-    data_compra: string
-    data_prevista_entrega: string
-    data_recebimento: string
-    status: string
-    valor_frete: string
-    valor_desconto: string
-    outros_custos: string
-    observacoes: string
-}
 
-type FormularioItemCompra = {
-    compra_id: string
-    produto_id: string
-    quantidade: string
-    quantidade_recebida: string
-    custo_unitario: string
-    valor_desconto_item: string
-    valor_impostos_item: string
-    outros_custos_item: string
-    codigo_produto_fornecedor: string
-    lote: string
-    validade: string
-    status: string
-    observacoes: string
-}
-
-function obterDataHoje() {
-    return new Date().toISOString().slice(0, 10)
-}
-
-const formularioInicial: FormularioCompra = {
-    fornecedor_id: '',
-    local_destino_id: '',
-    numero_pedido: '',
-    numero_nota_fiscal: '',
-    data_compra: obterDataHoje(),
-    data_prevista_entrega: '',
-    data_recebimento: '',
-    status: 'rascunho',
-    valor_frete: '0',
-    valor_desconto: '0',
-    outros_custos: '0',
-    observacoes: '',
-}
-
-const formularioItemInicial: FormularioItemCompra = {
-    compra_id: '',
-    produto_id: '',
-    quantidade: '1',
-    quantidade_recebida: '0',
-    custo_unitario: '0',
-    valor_desconto_item: '0',
-    valor_impostos_item: '0',
-    outros_custos_item: '0',
-    codigo_produto_fornecedor: '',
-    lote: '',
-    validade: '',
-    status: 'pendente',
-    observacoes: '',
-}
 
 function formatarMoeda(valor?: number | null) {
     if (typeof valor !== 'number') {
@@ -136,51 +59,7 @@ function formatarData(data?: string | null) {
     return new Intl.DateTimeFormat('pt-BR').format(dataConvertida)
 }
 
-function transformarTextoEmNull(valor: string) {
-    const texto = valor.trim()
 
-    if (!texto) {
-        return null
-    }
-
-    return texto
-}
-
-function transformarDataEmNull(valor: string) {
-    const texto = valor.trim()
-
-    if (!texto) {
-        return null
-    }
-
-    return texto
-}
-
-function converterNumero(valor: string) {
-    const texto = valor.trim().replace(',', '.')
-
-    if (!texto) {
-        return 0
-    }
-
-    const numero = Number(texto)
-
-    if (Number.isNaN(numero)) {
-        return NaN
-    }
-
-    return numero
-}
-
-function converterNumeroSeguro(valor: string) {
-    const numero = converterNumero(valor)
-
-    if (Number.isNaN(numero)) {
-        return 0
-    }
-
-    return numero
-}
 
 function obterTomStatus(status?: string): StatusBadgeTone {
     const valor = status?.toLowerCase() ?? ''
@@ -464,11 +343,7 @@ function ControleRecebimentoResumo({
     )
 }
 
-function compraBloqueadaParaRecebimento(
-    compra?: Pick<CompraResumo, 'bloqueia_recebimento'> | null
-) {
-    return compra?.bloqueia_recebimento === true
-}
+
 
 function itemBloqueadoParaRecebimento(
     item?: Pick<CompraItemDetalhado, 'bloqueia_recebimento'> | null
@@ -620,110 +495,7 @@ function calcularPercentualRecebidoGrupo(
     return Math.min(100, Math.max(0, (quantidadeRecebida / quantidadeTotal) * 100))
 }
 
-function validarFormularioCompra(formulario: FormularioCompra) {
-    if (!formulario.fornecedor_id) {
-        return 'Selecione um fornecedor.'
-    }
 
-    if (!formulario.local_destino_id) {
-        return 'Selecione o local de destino.'
-    }
-
-    if (!formulario.data_compra) {
-        return 'Informe a data da compra.'
-    }
-
-    if (!formulario.status) {
-        return 'Informe o status da compra.'
-    }
-
-    const statusPermitidos = [
-        'rascunho',
-        'pedido_realizado',
-        'recebido',
-        'cancelado',
-    ]
-
-    if (!statusPermitidos.includes(formulario.status)) {
-        return 'Status da compra inválido.'
-    }
-
-    const valorFrete = converterNumero(formulario.valor_frete)
-    const valorDesconto = converterNumero(formulario.valor_desconto)
-    const outrosCustos = converterNumero(formulario.outros_custos)
-
-    if (Number.isNaN(valorFrete) || valorFrete < 0) {
-        return 'O valor do frete precisa ser um número maior ou igual a zero.'
-    }
-
-    if (Number.isNaN(valorDesconto) || valorDesconto < 0) {
-        return 'O valor do desconto precisa ser um número maior ou igual a zero.'
-    }
-
-    if (Number.isNaN(outrosCustos) || outrosCustos < 0) {
-        return 'O valor de outros custos precisa ser um número maior ou igual a zero.'
-    }
-
-    return null
-}
-
-function validarFormularioItem(formulario: FormularioItemCompra) {
-    if (!formulario.compra_id) {
-        return 'Selecione a compra para adicionar o item.'
-    }
-
-    if (!formulario.produto_id) {
-        return 'Selecione o produto da compra.'
-    }
-
-    const quantidade = converterNumero(formulario.quantidade)
-    const quantidadeRecebida = converterNumero(formulario.quantidade_recebida)
-    const custoUnitario = converterNumero(formulario.custo_unitario)
-    const descontoItem = converterNumero(formulario.valor_desconto_item)
-    const impostosItem = converterNumero(formulario.valor_impostos_item)
-    const outrosCustosItem = converterNumero(formulario.outros_custos_item)
-
-    if (Number.isNaN(quantidade) || quantidade <= 0) {
-        return 'A quantidade precisa ser maior que zero.'
-    }
-
-    if (
-        Number.isNaN(quantidadeRecebida) ||
-        quantidadeRecebida < 0 ||
-        quantidadeRecebida > quantidade
-    ) {
-        return 'A quantidade recebida precisa ser entre 0 e a quantidade comprada.'
-    }
-
-    if (Number.isNaN(custoUnitario) || custoUnitario < 0) {
-        return 'O custo unitário precisa ser maior ou igual a zero.'
-    }
-
-    if (Number.isNaN(descontoItem) || descontoItem < 0) {
-        return 'O desconto do item precisa ser maior ou igual a zero.'
-    }
-
-    if (Number.isNaN(impostosItem) || impostosItem < 0) {
-        return 'O imposto do item precisa ser maior ou igual a zero.'
-    }
-
-    if (Number.isNaN(outrosCustosItem) || outrosCustosItem < 0) {
-        return 'Outros custos do item precisa ser maior ou igual a zero.'
-    }
-
-    const statusPermitidos = [
-        'pendente',
-        'parcialmente_recebido',
-        'recebido',
-        'cancelado',
-    ]
-
-    if (!statusPermitidos.includes(formulario.status)) {
-        return 'Status do item inválido.'
-    }
-
-    return null
-}
 
 export function Compras() {
     const [status, setStatus] = useState<StatusCarregamento>('carregando')
@@ -731,18 +503,11 @@ export function Compras() {
     const [compras, setCompras] = useState<CompraResumo[]>([])
     const [itensCompras, setItensCompras] = useState<CompraItemDetalhado[]>([])
     const [notasConferenciaOlist, setNotasConferenciaOlist] = useState<NotaEntradaOlistConferencia[]>([])
-    const [fornecedores, setFornecedores] = useState<Fornecedor[]>([])
-    const [locaisEstoque, setLocaisEstoque] = useState<LocalEstoque[]>([])
-    const [produtos, setProdutos] = useState<Produto[]>([])
-    const [salvandoCompra, setSalvandoCompra] = useState(false)
-    const [salvandoItem, setSalvandoItem] = useState(false)
     const [recebendoItemId, setRecebendoItemId] = useState<string | null>(null)
     const [liberandoRecebimentoCompraId, setLiberandoRecebimentoCompraId] =
         useState<string | null>(null)
     const [itemSelecionadoParaReceber, setItemSelecionadoParaReceber] =
         useState<CompraItemDetalhado | null>(null)
-    const [mostrarFormularioCompra, setMostrarFormularioCompra] = useState(false)
-    const [mostrarFormularioItem, setMostrarFormularioItem] = useState(false)
     const [sincronizandoNotasOlist, setSincronizandoNotasOlist] = useState(false)
     const [comprasItensExpandidas, setComprasItensExpandidas] = useState<string[]>([])
     const [
@@ -757,12 +522,6 @@ export function Compras() {
         resumoSincronizacaoOlist,
         setResumoSincronizacaoOlist,
     ] = useState<ResumoSincronizacaoNotasEntradaOlist | null>(null)
-
-    const [formularioCompra, setFormularioCompra] =
-        useState<FormularioCompra>(formularioInicial)
-
-    const [formularioItem, setFormularioItem] =
-        useState<FormularioItemCompra>(formularioItemInicial)
 
     async function recarregarComprasEItens() {
         const [comprasResumo, itensDados, notasConferenciaDados] = await Promise.all([
@@ -787,25 +546,16 @@ export function Compras() {
             const [
                 comprasResumo,
                 itensDados,
-                fornecedoresDados,
-                locaisDados,
-                produtosDados,
                 notasConferenciaDados,
             ] = await Promise.all([
                 buscarComprasResumo(),
                 buscarItensCompras(),
-                buscarFornecedores(),
-                buscarLocaisEstoqueAtivos(),
-                buscarProdutos(),
                 buscarConferenciaNotasEntradaOlistCompras(),
             ])
 
             setCompras(comprasResumo)
             setItensCompras(itensDados)
             setNotasConferenciaOlist(notasConferenciaDados)
-            setFornecedores(fornecedoresDados)
-            setLocaisEstoque(locaisDados)
-            setProdutos(produtosDados)
             setStatus('sucesso')
 
             if (comprasResumo.length === 0) {
@@ -910,55 +660,7 @@ export function Compras() {
         }
     }
 
-    function atualizarCampoCompra(campo: keyof FormularioCompra, valor: string) {
-        setFormularioCompra((formularioAtual) => ({
-            ...formularioAtual,
-            [campo]: valor,
-        }))
-    }
 
-    function atualizarCampoItem(campo: keyof FormularioItemCompra, valor: string) {
-        setFormularioItem((formularioAtual) => ({
-            ...formularioAtual,
-            [campo]: valor,
-        }))
-    }
-
-    function limparFormularioCompra() {
-        setFormularioCompra({
-            ...formularioInicial,
-            data_compra: obterDataHoje(),
-        })
-    }
-
-    function limparFormularioItem(compraIdParaManter = '') {
-        setFormularioItem({
-            ...formularioItemInicial,
-            compra_id: compraIdParaManter,
-        })
-    }
-
-    function selecionarCompraParaItem(compra: CompraResumo) {
-        if (compraBloqueadaParaRecebimento(compra)) {
-            setStatus('erro')
-            setMensagem(
-                compra.motivo_bloqueio_recebimento ??
-                'Esta compra está bloqueada para recebimento e inclusão operacional de itens.'
-            )
-            return
-        }
-
-        setFormularioItem((formularioAtual) => ({
-            ...formularioAtual,
-            compra_id: compra.compra_id,
-        }))
-        setMostrarFormularioItem(true)
-
-        setStatus('sucesso')
-        setMensagem(
-            `Compra ${compra.numero_pedido ?? 'sem número'} selecionada para adicionar itens.`
-        )
-    }
 
     function selecionarItemParaRecebimento(item: CompraItemDetalhado) {
         if (itemBloqueadoParaRecebimento(item)) {
@@ -985,144 +687,7 @@ export function Compras() {
         )
     }
 
-    async function enviarFormularioCompra(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault()
 
-        const erroValidacao = validarFormularioCompra(formularioCompra)
-
-        if (erroValidacao) {
-            setStatus('erro')
-            setMensagem(erroValidacao)
-            return
-        }
-
-        const novaCompra: NovaCompra = {
-            fornecedor_id: formularioCompra.fornecedor_id,
-            local_destino_id: formularioCompra.local_destino_id,
-            numero_pedido: transformarTextoEmNull(formularioCompra.numero_pedido),
-            numero_nota_fiscal: transformarTextoEmNull(
-                formularioCompra.numero_nota_fiscal
-            ),
-            data_compra: formularioCompra.data_compra,
-            data_prevista_entrega: transformarDataEmNull(
-                formularioCompra.data_prevista_entrega
-            ),
-            data_recebimento: transformarDataEmNull(
-                formularioCompra.data_recebimento
-            ),
-            status: formularioCompra.status,
-            valor_frete: converterNumero(formularioCompra.valor_frete),
-            valor_desconto: converterNumero(formularioCompra.valor_desconto),
-            outros_custos: converterNumero(formularioCompra.outros_custos),
-            observacoes: transformarTextoEmNull(formularioCompra.observacoes),
-        }
-
-        try {
-            setSalvandoCompra(true)
-            setMensagem('Cadastrando compra...')
-
-            const compraCadastrada = await cadastrarCompra(novaCompra)
-
-            limparFormularioCompra()
-            setMostrarFormularioCompra(false)
-            setMostrarFormularioItem(true)
-            await recarregarComprasEItens()
-
-            setFormularioItem((formularioAtual) => ({
-                ...formularioAtual,
-                compra_id: compraCadastrada.id,
-            }))
-
-            setStatus('sucesso')
-            setMensagem(
-                'Compra cadastrada com sucesso. Ela já foi selecionada para receber itens.'
-            )
-        } catch (error) {
-            setStatus('erro')
-
-            if (error instanceof Error) {
-                setMensagem(error.message)
-            } else {
-                setMensagem('Erro desconhecido ao cadastrar compra.')
-            }
-        } finally {
-            setSalvandoCompra(false)
-        }
-    }
-
-    async function enviarFormularioItem(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault()
-
-        const erroValidacao = validarFormularioItem(formularioItem)
-
-        if (erroValidacao) {
-            setStatus('erro')
-            setMensagem(erroValidacao)
-            return
-        }
-
-        const compraSelecionadaAtual = compras.find(
-            (compra) => compra.compra_id === formularioItem.compra_id
-        )
-
-        if (compraBloqueadaParaRecebimento(compraSelecionadaAtual)) {
-            setStatus('erro')
-            setMensagem(
-                compraSelecionadaAtual?.motivo_bloqueio_recebimento ??
-                'Esta compra está bloqueada para inclusão de itens e recebimento.'
-            )
-            return
-        }
-
-        const compraSelecionadaParaManter = formularioItem.compra_id
-
-        const novoItem: NovoCompraItem = {
-            compra_id: formularioItem.compra_id,
-            produto_id: formularioItem.produto_id,
-            quantidade: converterNumero(formularioItem.quantidade),
-            quantidade_recebida: converterNumero(formularioItem.quantidade_recebida),
-            custo_unitario: converterNumero(formularioItem.custo_unitario),
-            valor_desconto_item: converterNumero(
-                formularioItem.valor_desconto_item
-            ),
-            valor_impostos_item: converterNumero(
-                formularioItem.valor_impostos_item
-            ),
-            outros_custos_item: converterNumero(formularioItem.outros_custos_item),
-            codigo_produto_fornecedor: transformarTextoEmNull(
-                formularioItem.codigo_produto_fornecedor
-            ),
-            lote: transformarTextoEmNull(formularioItem.lote),
-            validade: transformarDataEmNull(formularioItem.validade),
-            status: formularioItem.status,
-            observacoes: transformarTextoEmNull(formularioItem.observacoes),
-        }
-
-        try {
-            setSalvandoItem(true)
-            setMensagem('Adicionando item à compra...')
-
-            await cadastrarItemCompra(novoItem)
-
-            limparFormularioItem(compraSelecionadaParaManter)
-            await recarregarComprasEItens()
-
-            setStatus('sucesso')
-            setMensagem(
-                'Item adicionado à compra com sucesso. A compra continua selecionada para adicionar novos itens.'
-            )
-        } catch (error) {
-            setStatus('erro')
-
-            if (error instanceof Error) {
-                setMensagem(error.message)
-            } else {
-                setMensagem('Erro desconhecido ao adicionar item da compra.')
-            }
-        } finally {
-            setSalvandoItem(false)
-        }
-    }
 
     function obterItensDaCompra(compraId: string) {
         return itensCompras.filter((item) => item.compra_id === compraId)
@@ -1381,18 +946,6 @@ export function Compras() {
         }
     )
 
-    const valorFreteFormulario = converterNumeroSeguro(formularioCompra.valor_frete)
-    const valorDescontoFormulario = converterNumeroSeguro(formularioCompra.valor_desconto)
-    const outrosCustosFormulario = converterNumeroSeguro(formularioCompra.outros_custos)
-    const valorAjustesCabecalho =
-        valorFreteFormulario + outrosCustosFormulario - valorDescontoFormulario
-
-    const compraSelecionada =
-        compras.find((compra) => compra.compra_id === formularioItem.compra_id) ?? null
-
-    const produtoSelecionado =
-        produtos.find((produto) => produto.id === formularioItem.produto_id) ?? null
-
     const compraDoItemSelecionadoParaReceber = itemSelecionadoParaReceber
         ? compras.find(
             (compra) => compra.compra_id === itemSelecionadoParaReceber.compra_id
@@ -1407,37 +960,12 @@ export function Compras() {
         ? quantidadePendenteItemSelecionado * itemSelecionadoParaReceber.custo_unitario
         : 0
 
-    const quantidadeItemFormulario = converterNumeroSeguro(formularioItem.quantidade)
-    const custoUnitarioFormulario = converterNumeroSeguro(formularioItem.custo_unitario)
-    const descontoItemFormulario = converterNumeroSeguro(
-        formularioItem.valor_desconto_item
-    )
-    const impostosItemFormulario = converterNumeroSeguro(
-        formularioItem.valor_impostos_item
-    )
-    const outrosCustosItemFormulario = converterNumeroSeguro(
-        formularioItem.outros_custos_item
-    )
-
-    const valorBrutoItemFormulario = quantidadeItemFormulario * custoUnitarioFormulario
-    const valorTotalItemFormulario =
-        valorBrutoItemFormulario -
-        descontoItemFormulario +
-        impostosItemFormulario +
-        outrosCustosItemFormulario
-
-    const valorTotalAtualCompraSelecionada = Number(
-        compraSelecionada?.valor_total_estimado ?? 0
-    )
-    const valorTotalSimuladoCompraSelecionada =
-        valorTotalAtualCompraSelecionada + valorTotalItemFormulario
-
     return (
         <div className="w-full min-w-0 space-y-5">
             <PageHeader
                 tag="Módulo"
                 title="Compras"
-                description="Cadastro do cabeçalho da compra, inclusão de itens, recebimento e listagem consolidada."
+                description="Painel de conferência e liberação gerencial de Notas Fiscais de Entrada importadas do Olist. Esta tela realiza a conferência física e liberação de recebimento gerencial dos lotes de compra."
             />
 
             <AppCard className="sm:p-5 lg:p-6">
@@ -1448,34 +976,14 @@ export function Compras() {
                         </h2>
 
                         <p className="mt-2 text-sm text-slate-400">
-                            Os formulários ficam recolhidos para deixar a tela mais limpa. Abra somente quando precisar cadastrar uma compra ou adicionar item.
+                            Utilize o botão ao lado para sincronizar e atualizar as Notas Fiscais diretamente do Olist.
                         </p>
                     </div>
 
                     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
                         <AppButton
                             type="button"
-                            variant={mostrarFormularioCompra ? 'secondary' : 'primary'}
-                            onClick={() => setMostrarFormularioCompra((aberto) => !aberto)}
-                        >
-                            {mostrarFormularioCompra
-                                ? 'Fechar cabeçalho'
-                                : 'Cadastrar cabeçalho da compra'}
-                        </AppButton>
-
-                        <AppButton
-                            type="button"
-                            variant={mostrarFormularioItem ? 'secondary' : 'success'}
-                            onClick={() => setMostrarFormularioItem((aberto) => !aberto)}
-                        >
-                            {mostrarFormularioItem
-                                ? 'Fechar item'
-                                : 'Adicionar item à compra'}
-                        </AppButton>
-
-                        <AppButton
-                            type="button"
-                            variant="secondary"
+                            variant="primary"
                             disabled={sincronizandoNotasOlist}
                             onClick={buscarNotasOlistCompras}
                         >
@@ -1487,724 +995,7 @@ export function Compras() {
                 </div>
             </AppCard>
 
-            {mostrarFormularioCompra && (
-                <form
-                onSubmit={enviarFormularioCompra}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6"
-            >
-                <div className="mb-6">
-                    <h2 className="text-xl font-semibold">
-                        Cadastrar cabeçalho da compra
-                    </h2>
 
-                    <p className="mt-2 text-sm text-slate-400">
-                        Primeiro cadastre os dados principais da compra. Depois adicione os produtos no formulário abaixo.
-                    </p>
-                </div>
-
-                <div className="grid gap-4 lg:grid-cols-2">
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Fornecedor *
-                        </label>
-
-                        <select
-                            value={formularioCompra.fornecedor_id}
-                            onChange={(event) =>
-                                atualizarCampoCompra('fornecedor_id', event.target.value)
-                            }
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        >
-                            <option value="">Selecione um fornecedor</option>
-
-                            {fornecedores.map((fornecedor) => (
-                                <option key={fornecedor.id} value={fornecedor.id}>
-                                    {fornecedor.nome}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Local de destino *
-                        </label>
-
-                        <select
-                            value={formularioCompra.local_destino_id}
-                            onChange={(event) =>
-                                atualizarCampoCompra('local_destino_id', event.target.value)
-                            }
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        >
-                            <option value="">Selecione o local de destino</option>
-
-                            {locaisEstoque.map((local) => (
-                                <option key={local.id} value={local.id}>
-                                    {local.nome} — {local.tipo}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Número do pedido
-                        </label>
-
-                        <input
-                            value={formularioCompra.numero_pedido}
-                            onChange={(event) =>
-                                atualizarCampoCompra('numero_pedido', event.target.value)
-                            }
-                            placeholder="Ex: COMPRA-001"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Número da nota fiscal
-                        </label>
-
-                        <input
-                            value={formularioCompra.numero_nota_fiscal}
-                            onChange={(event) =>
-                                atualizarCampoCompra('numero_nota_fiscal', event.target.value)
-                            }
-                            placeholder="Ex: NF-12345"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Data da compra *
-                        </label>
-
-                        <input
-                            type="date"
-                            value={formularioCompra.data_compra}
-                            onChange={(event) =>
-                                atualizarCampoCompra('data_compra', event.target.value)
-                            }
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Data prevista de entrega
-                        </label>
-
-                        <input
-                            type="date"
-                            value={formularioCompra.data_prevista_entrega}
-                            onChange={(event) =>
-                                atualizarCampoCompra(
-                                    'data_prevista_entrega',
-                                    event.target.value
-                                )
-                            }
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Data de recebimento
-                        </label>
-
-                        <input
-                            type="date"
-                            value={formularioCompra.data_recebimento}
-                            onChange={(event) =>
-                                atualizarCampoCompra('data_recebimento', event.target.value)
-                            }
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Status *
-                        </label>
-
-                        <select
-                            value={formularioCompra.status}
-                            onChange={(event) =>
-                                atualizarCampoCompra('status', event.target.value)
-                            }
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        >
-                            <option value="rascunho">rascunho</option>
-                            <option value="pedido_realizado">pedido realizado</option>
-                            <option value="recebido">recebido</option>
-                            <option value="cancelado">cancelado</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Valor do frete
-                        </label>
-
-                        <input
-                            value={formularioCompra.valor_frete}
-                            onChange={(event) =>
-                                atualizarCampoCompra('valor_frete', event.target.value)
-                            }
-                            placeholder="0,00"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Valor de desconto
-                        </label>
-
-                        <input
-                            value={formularioCompra.valor_desconto}
-                            onChange={(event) =>
-                                atualizarCampoCompra('valor_desconto', event.target.value)
-                            }
-                            placeholder="0,00"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Outros custos
-                        </label>
-
-                        <input
-                            value={formularioCompra.outros_custos}
-                            onChange={(event) =>
-                                atualizarCampoCompra('outros_custos', event.target.value)
-                            }
-                            placeholder="0,00"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div className="lg:col-span-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-5">
-                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                            <div>
-                                <p className="text-sm font-semibold text-cyan-200">
-                                    Resumo financeiro do cabeçalho
-                                </p>
-
-                                <p className="mt-2 text-sm text-cyan-100/80">
-                                    Estes valores serão somados ao total dos itens da compra pela view de resumo do Supabase.
-                                </p>
-                            </div>
-
-                            <div className="rounded-xl border border-slate-700 bg-slate-950 px-5 py-4 text-right">
-                                <p className="text-xs text-slate-400">
-                                    Ajuste do cabeçalho
-                                </p>
-
-                                <p className="mt-1 text-2xl font-bold text-cyan-300">
-                                    {formatarMoeda(valorAjustesCabecalho)}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                            <div className="rounded-xl bg-slate-950 p-4">
-                                <p className="text-xs text-slate-400">Frete</p>
-                                <p className="mt-1 font-semibold text-slate-100">
-                                    {formatarMoeda(valorFreteFormulario)}
-                                </p>
-                            </div>
-
-                            <div className="rounded-xl bg-slate-950 p-4">
-                                <p className="text-xs text-slate-400">Desconto da compra</p>
-                                <p className="mt-1 font-semibold text-slate-100">
-                                    - {formatarMoeda(valorDescontoFormulario)}
-                                </p>
-                            </div>
-
-                            <div className="rounded-xl bg-slate-950 p-4">
-                                <p className="text-xs text-slate-400">Outros custos</p>
-                                <p className="mt-1 font-semibold text-slate-100">
-                                    {formatarMoeda(outrosCustosFormulario)}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="lg:col-span-2">
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Observações
-                        </label>
-
-                        <textarea
-                            value={formularioCompra.observacoes}
-                            onChange={(event) =>
-                                atualizarCampoCompra('observacoes', event.target.value)
-                            }
-                            rows={4}
-                            placeholder="Observações sobre a compra"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-                </div>
-
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-                    <AppButton
-                        type="submit"
-                        variant="primary"
-                        disabled={salvandoCompra}
-                    >
-                        {salvandoCompra ? 'Cadastrando...' : 'Cadastrar compra'}
-                    </AppButton>
-                </div>
-                </form>
-            )}
-
-            {mostrarFormularioItem && (
-                <form
-                onSubmit={enviarFormularioItem}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-lg sm:p-5 lg:p-6"
-            >
-                <div className="mb-6">
-                    <h2 className="text-xl font-semibold">
-                        Adicionar item à compra
-                    </h2>
-
-                    <p className="mt-2 text-sm text-slate-400">
-                        Adicione produtos a uma compra já cadastrada. Para entrada no estoque, use o botão Receber pendente na lista de itens.
-                    </p>
-                </div>
-
-                {compraSelecionada ? (
-                    <div className="mb-6 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-5">
-                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                            <div>
-                                <p className="text-sm font-semibold text-cyan-200">
-                                    Compra selecionada para adicionar itens
-                                </p>
-
-                                <p className="mt-2 text-lg font-bold text-slate-100">
-                                    {compraSelecionada.numero_pedido ?? 'Compra sem número'}
-                                </p>
-
-                                <p className="mt-1 text-sm text-cyan-100/80">
-                                    Fornecedor: {compraSelecionada.fornecedor_nome ?? 'não informado'} · Local: {compraSelecionada.local_destino_nome ?? 'não informado'}
-                                </p>
-
-                                {compraSelecionada.classificacao_operacional_recebimento && (
-                                    <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-4">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <StatusBadge
-                                                tone={obterTomClassificacaoOperacional(
-                                                    compraSelecionada.classificacao_operacional_recebimento
-                                                )}
-                                            >
-                                                {obterRotuloClassificacaoOperacional(
-                                                    compraSelecionada.classificacao_operacional_recebimento
-                                                ) ?? 'Controle operacional'}
-                                            </StatusBadge>
-
-                                            <span
-                                                className={
-                                                    compraBloqueadaParaRecebimento(compraSelecionada)
-                                                        ? 'inline-flex w-max whitespace-nowrap rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-200'
-                                                        : 'inline-flex w-max whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-200'
-                                                }
-                                            >
-                                                {obterRotuloBloqueioRecebimento(
-                                                    compraSelecionada.bloqueia_recebimento
-                                                )}
-                                            </span>
-                                        </div>
-
-                                        {compraSelecionada.motivo_bloqueio_recebimento && (
-                                            <p className="mt-3 text-xs leading-relaxed text-slate-300">
-                                                <span className="font-semibold text-slate-200">Motivo: </span>
-                                                {compraSelecionada.motivo_bloqueio_recebimento}
-                                            </p>
-                                        )}
-
-                                        {compraSelecionada.origem_controle_recebimento && (
-                                            <p className="mt-2 text-xs text-slate-500">
-                                                Origem: {compraSelecionada.origem_controle_recebimento}
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                                <div className="rounded-xl border border-slate-700 bg-slate-950 px-5 py-4 text-right">
-                                    <p className="text-xs text-slate-400">Total atual</p>
-                                    <p className="mt-1 text-xl font-bold text-cyan-300">
-                                        {formatarMoeda(valorTotalAtualCompraSelecionada)}
-                                    </p>
-                                </div>
-
-                                <AppButton
-                                    type="button"
-                                    onClick={() => limparFormularioItem()}
-                                    className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
-                                >
-                                    Limpar seleção
-                                </AppButton>
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="mb-6 rounded-xl border border-slate-700 bg-slate-950 p-5">
-                        <p className="text-sm font-semibold text-slate-200">
-                            Nenhuma compra selecionada
-                        </p>
-
-                        <p className="mt-2 text-sm text-slate-400">
-                            Selecione uma compra no campo abaixo ou clique em Usar compra na tabela de compras encontradas.
-                        </p>
-                    </div>
-                )}
-
-                <div className="grid gap-4 lg:grid-cols-2">
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Compra *
-                        </label>
-
-                        <select
-                            value={formularioItem.compra_id}
-                            onChange={(event) =>
-                                atualizarCampoItem('compra_id', event.target.value)
-                            }
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        >
-                            <option value="">Selecione a compra</option>
-
-                            {compras.map((compra) => (
-                                <option
-                                    key={compra.compra_id}
-                                    value={compra.compra_id}
-                                    disabled={compraBloqueadaParaRecebimento(compra)}
-                                >
-                                    {compra.numero_pedido ?? 'Compra sem número'} —{' '}
-                                    {compra.fornecedor_nome ?? 'Fornecedor não informado'}
-                                    {compraBloqueadaParaRecebimento(compra)
-                                        ? ' — bloqueada'
-                                        : ''}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Produto *
-                        </label>
-
-                        <select
-                            value={formularioItem.produto_id}
-                            onChange={(event) =>
-                                atualizarCampoItem('produto_id', event.target.value)
-                            }
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        >
-                            <option value="">Selecione o produto</option>
-
-                            {produtos.map((produto) => (
-                                <option key={produto.id} value={produto.id}>
-                                    {produto.nome} — SKU: {produto.sku}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Quantidade *
-                        </label>
-
-                        <input
-                            value={formularioItem.quantidade}
-                            onChange={(event) =>
-                                atualizarCampoItem('quantidade', event.target.value)
-                            }
-                            placeholder="Ex: 10"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Quantidade recebida *
-                        </label>
-
-                        <input
-                            value={formularioItem.quantidade_recebida}
-                            onChange={(event) =>
-                                atualizarCampoItem('quantidade_recebida', event.target.value)
-                            }
-                            placeholder="Ex: 0"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Custo unitário *
-                        </label>
-
-                        <input
-                            value={formularioItem.custo_unitario}
-                            onChange={(event) =>
-                                atualizarCampoItem('custo_unitario', event.target.value)
-                            }
-                            placeholder="Ex: 13,18"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Código do produto no fornecedor
-                        </label>
-
-                        <input
-                            value={formularioItem.codigo_produto_fornecedor}
-                            onChange={(event) =>
-                                atualizarCampoItem(
-                                    'codigo_produto_fornecedor',
-                                    event.target.value
-                                )
-                            }
-                            placeholder="Código usado pelo fornecedor"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Desconto do item
-                        </label>
-
-                        <input
-                            value={formularioItem.valor_desconto_item}
-                            onChange={(event) =>
-                                atualizarCampoItem('valor_desconto_item', event.target.value)
-                            }
-                            placeholder="0,00"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Impostos do item
-                        </label>
-
-                        <input
-                            value={formularioItem.valor_impostos_item}
-                            onChange={(event) =>
-                                atualizarCampoItem('valor_impostos_item', event.target.value)
-                            }
-                            placeholder="0,00"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Outros custos do item
-                        </label>
-
-                        <input
-                            value={formularioItem.outros_custos_item}
-                            onChange={(event) =>
-                                atualizarCampoItem('outros_custos_item', event.target.value)
-                            }
-                            placeholder="0,00"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Lote
-                        </label>
-
-                        <input
-                            value={formularioItem.lote}
-                            onChange={(event) =>
-                                atualizarCampoItem('lote', event.target.value)
-                            }
-                            placeholder="Ex: LOTE-001"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Validade
-                        </label>
-
-                        <input
-                            type="date"
-                            value={formularioItem.validade}
-                            onChange={(event) =>
-                                atualizarCampoItem('validade', event.target.value)
-                            }
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Status do item *
-                        </label>
-
-                        <select
-                            value={formularioItem.status}
-                            onChange={(event) =>
-                                atualizarCampoItem('status', event.target.value)
-                            }
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        >
-                            <option value="pendente">pendente</option>
-                            <option value="parcialmente_recebido">
-                                parcialmente recebido
-                            </option>
-                            <option value="recebido">recebido</option>
-                            <option value="cancelado">cancelado</option>
-                        </select>
-                    </div>
-
-                    <div className="lg:col-span-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5">
-                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                            <div>
-                                <p className="text-sm font-semibold text-emerald-200">
-                                    Cálculo automático do item
-                                </p>
-
-                                <p className="mt-2 text-sm text-emerald-100/80">
-                                    O sistema calcula o valor do item usando quantidade, custo unitário, desconto, impostos e outros custos.
-                                </p>
-                            </div>
-
-                            <div className="rounded-xl border border-slate-700 bg-slate-950 px-5 py-4 text-right">
-                                <p className="text-xs text-slate-400">
-                                    Total estimado do item
-                                </p>
-
-                                <p className="mt-1 text-2xl font-bold text-emerald-300">
-                                    {formatarMoeda(valorTotalItemFormulario)}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                            <div className="rounded-xl bg-slate-950 p-4">
-                                <p className="text-xs text-slate-400">Produto</p>
-                                <p className="mt-1 font-semibold text-slate-100">
-                                    {produtoSelecionado?.nome ?? 'Selecione um produto'}
-                                </p>
-                            </div>
-
-                            <div className="rounded-xl bg-slate-950 p-4">
-                                <p className="text-xs text-slate-400">Valor bruto</p>
-                                <p className="mt-1 font-semibold text-slate-100">
-                                    {formatarMoeda(valorBrutoItemFormulario)}
-                                </p>
-                            </div>
-
-                            <div className="rounded-xl bg-slate-950 p-4">
-                                <p className="text-xs text-slate-400">Desconto</p>
-                                <p className="mt-1 font-semibold text-slate-100">
-                                    - {formatarMoeda(descontoItemFormulario)}
-                                </p>
-                            </div>
-
-                            <div className="rounded-xl bg-slate-950 p-4">
-                                <p className="text-xs text-slate-400">Impostos</p>
-                                <p className="mt-1 font-semibold text-slate-100">
-                                    {formatarMoeda(impostosItemFormulario)}
-                                </p>
-                            </div>
-
-                            <div className="rounded-xl bg-slate-950 p-4">
-                                <p className="text-xs text-slate-400">Outros custos</p>
-                                <p className="mt-1 font-semibold text-slate-100">
-                                    {formatarMoeda(outrosCustosItemFormulario)}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {compraSelecionada && (
-                        <div className="lg:col-span-2 rounded-xl border border-slate-700 bg-slate-950 p-5">
-                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                                <div>
-                                    <p className="text-sm font-semibold text-slate-100">
-                                        Simulação da compra selecionada
-                                    </p>
-
-                                    <p className="mt-2 text-sm text-slate-400">
-                                        Este resumo mostra o total atual da compra e como ficaria depois de adicionar o item preenchido acima.
-                                    </p>
-                                </div>
-
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    <div className="rounded-xl border border-slate-800 bg-slate-900 px-5 py-4 text-right">
-                                        <p className="text-xs text-slate-400">Total atual</p>
-                                        <p className="mt-1 text-xl font-bold text-slate-100">
-                                            {formatarMoeda(valorTotalAtualCompraSelecionada)}
-                                        </p>
-                                    </div>
-
-                                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4 text-right">
-                                        <p className="text-xs text-emerald-100/80">Com este item</p>
-                                        <p className="mt-1 text-xl font-bold text-emerald-300">
-                                            {formatarMoeda(valorTotalSimuladoCompraSelecionada)}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="lg:col-span-2">
-                        <label className="mb-2 block text-sm text-slate-300">
-                            Observações do item
-                        </label>
-
-                        <textarea
-                            value={formularioItem.observacoes}
-                            onChange={(event) =>
-                                atualizarCampoItem('observacoes', event.target.value)
-                            }
-                            rows={3}
-                            placeholder="Observações sobre este item da compra"
-                            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                        />
-                    </div>
-                </div>
-
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-                    <AppButton
-                        type="submit"
-                        variant="success"
-                        disabled={salvandoItem || compraBloqueadaParaRecebimento(compraSelecionada)}
-                    >
-                        {compraBloqueadaParaRecebimento(compraSelecionada)
-                            ? 'Compra bloqueada'
-                            : salvandoItem
-                                ? 'Adicionando...'
-                                : 'Adicionar item à compra'}
-                    </AppButton>
-                </div>
-                </form>
-            )}
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <AppCard className="sm:p-5 lg:p-6">
@@ -3114,10 +1905,8 @@ export function Compras() {
                                 </tr>
                             </thead>
 
-                            <tbody className="divide-y divide-slate-800 bg-slate-900">
+<tbody className="divide-y divide-slate-800 bg-slate-900">
                                 {compras.map((compra) => {
-                                    const bloqueadaParaRecebimento =
-                                        compraBloqueadaParaRecebimento(compra)
                                     const itensDaCompra = obterItensDaCompra(compra.compra_id)
                                     const candidataLiberacaoRecebimentoReal =
                                         compraCandidataLiberacaoRecebimentoReal(compra)
@@ -3135,11 +1924,7 @@ export function Compras() {
                                     return (
                                         <tr
                                             key={compra.compra_id}
-                                            className={
-                                                compraSelecionada?.compra_id === compra.compra_id
-                                                    ? 'bg-cyan-500/10 hover:bg-cyan-500/20'
-                                                    : 'hover:bg-slate-800/60'
-                                            }
+                                            className="hover:bg-slate-800/60"
                                         >
                                         <td className="px-4 py-3 text-slate-100">
                                             {compra.numero_pedido ?? '-'}
@@ -3241,17 +2026,7 @@ export function Compras() {
                                                         )}
                                                     </>
                                                 ) : (
-                                                    <AppButton
-                                                        type="button"
-                                                        variant="secondary"
-                                                        size="sm"
-                                                        disabled={bloqueadaParaRecebimento}
-                                                        onClick={() => selecionarCompraParaItem(compra)}
-                                                    >
-                                                        {bloqueadaParaRecebimento
-                                                            ? 'Bloqueada'
-                                                            : 'Usar compra'}
-                                                    </AppButton>
+                                                    <span className="text-xs text-slate-500">-</span>
                                                 )}
                                             </div>
                                         </td>
