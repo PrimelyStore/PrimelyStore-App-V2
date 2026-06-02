@@ -128,25 +128,15 @@ type NotaEntradaSnapshotRow = {
     sincronizado_em: string | null
 }
 
-type PedidoSyncLogRow = {
+type OlistSyncLogGerencialRow = {
+    origem: 'pedidos' | 'notas_entrada'
     status: string | null
     data_inicio: string | null
     data_fim: string | null
-    pedidos_lidos: number | null
-    pedidos_inseridos: number | null
-    pedidos_atualizados: number | null
-    pedidos_com_erro: number | null
-    mensagem: string | null
-}
-
-type NotaEntradaSyncLogRow = {
-    status: string | null
-    data_inicio: string | null
-    data_fim: string | null
-    notas_lidas: number | null
-    notas_inseridas: number | null
-    notas_atualizadas: number | null
-    notas_com_erro: number | null
+    lidos: number | string | null
+    inseridos: number | string | null
+    atualizados: number | string | null
+    erros: number | string | null
     mensagem: string | null
 }
 
@@ -378,66 +368,31 @@ async function buscarResumoNotasEntradaOlist(): Promise<OlistResumoNotasEntrada>
 }
 
 async function buscarLogsRecentesOlist() {
-    const { data: logsPedidos, error: erroPedidos } = await supabase
-        .from('olist_pedidos_sync_log')
+    const { data, error } = await supabase
+        .from('olist_sync_logs_gerencial_view')
         .select(
-            'status, data_inicio, data_fim, pedidos_lidos, pedidos_inseridos, pedidos_atualizados, pedidos_com_erro, mensagem'
+            'origem, status, data_inicio, data_fim, lidos, inseridos, atualizados, erros, mensagem'
         )
-        .order('data_inicio', { ascending: false })
-        .limit(5)
+        .order('data_inicio', { ascending: false, nullsFirst: false })
+        .limit(10)
 
-    if (erroPedidos) {
-        throw new Error(erroPedidos.message)
+    if (error) {
+        throw new Error(error.message)
     }
 
-    const { data: logsNotas, error: erroNotas } = await supabase
-        .from('olist_notas_entrada_sync_log')
-        .select(
-            'status, data_inicio, data_fim, notas_lidas, notas_inseridas, notas_atualizadas, notas_com_erro, mensagem'
-        )
-        .order('data_inicio', { ascending: false })
-        .limit(5)
-
-    if (erroNotas) {
-        throw new Error(erroNotas.message)
-    }
-
-    const pedidos = ((logsPedidos ?? []) as PedidoSyncLogRow[]).map(
+    return ((data ?? []) as OlistSyncLogGerencialRow[]).map(
         (log): OlistSyncLogResumo => ({
-            origem: 'pedidos',
+            origem: log.origem,
             status: log.status,
             data_inicio: log.data_inicio,
             data_fim: log.data_fim,
-            lidos: Number(log.pedidos_lidos ?? 0),
-            inseridos: Number(log.pedidos_inseridos ?? 0),
-            atualizados: Number(log.pedidos_atualizados ?? 0),
-            erros: Number(log.pedidos_com_erro ?? 0),
+            lidos: numeroSeguro(log.lidos),
+            inseridos: numeroSeguro(log.inseridos),
+            atualizados: numeroSeguro(log.atualizados),
+            erros: numeroSeguro(log.erros),
             mensagem: log.mensagem,
         })
     )
-
-    const notas = ((logsNotas ?? []) as NotaEntradaSyncLogRow[]).map(
-        (log): OlistSyncLogResumo => ({
-            origem: 'notas_entrada',
-            status: log.status,
-            data_inicio: log.data_inicio,
-            data_fim: log.data_fim,
-            lidos: Number(log.notas_lidas ?? 0),
-            inseridos: Number(log.notas_inseridas ?? 0),
-            atualizados: Number(log.notas_atualizadas ?? 0),
-            erros: Number(log.notas_com_erro ?? 0),
-            mensagem: log.mensagem,
-        })
-    )
-
-    return [...pedidos, ...notas]
-        .sort((a, b) => {
-            const dataA = new Date(a.data_inicio ?? 0).getTime()
-            const dataB = new Date(b.data_inicio ?? 0).getTime()
-
-            return dataB - dataA
-        })
-        .slice(0, 10)
 }
 
 export async function buscarPainelIntegracoesOlist(): Promise<PainelIntegracoesOlist> {
