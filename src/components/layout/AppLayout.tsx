@@ -2,35 +2,40 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router'
 import { useAuth } from '../../hooks/useAuth'
 
-const menuItems = [
-    { label: 'Dashboard', shortLabel: 'DB', path: '/' },
-    { label: 'Produtos', shortLabel: 'PR', path: '/produtos' },
-    { label: 'Fornecedores', shortLabel: 'FN', path: '/fornecedores' },
-    { label: 'Compras', shortLabel: 'CP', path: '/compras' },
-    { label: 'Vendas', shortLabel: 'VD', path: '/vendas' },
-    { label: 'Estoque', shortLabel: 'ES', path: '/estoque' },
-    { label: 'Amazon FBA', shortLabel: 'FBA', path: '/amazon-fba' },
-    { label: 'Integrações Olist', shortLabel: 'OL', path: '/integracoes-olist' },
-    { label: 'Curva ABC', shortLabel: 'ABC', path: '/curva-abc' },
+type MenuItem = { label: string; shortLabel: string; path: string }
+type MenuSection = { section: string; items: MenuItem[] }
+
+const menuSections: MenuSection[] = [
     {
-        label: 'Conciliação Olist x Amazon',
-        shortLabel: 'OA',
-        path: '/conciliacao-olist-amazon',
+        section: 'Gerencial',
+        items: [
+            { label: 'Dashboard', shortLabel: 'DB', path: '/' },
+            { label: 'Produtos', shortLabel: 'PR', path: '/produtos' },
+            { label: 'Estoque Consolidado', shortLabel: 'ES', path: '/estoque' },
+            { label: 'Vendas Analíticas', shortLabel: 'VD', path: '/vendas' },
+            { label: 'Curva ABC', shortLabel: 'ABC', path: '/curva-abc' },
+        ],
     },
     {
-        label: 'Conciliação Olist x Primely',
-        shortLabel: 'OP',
-        path: '/conciliacao-olist-primely-estoque',
+        section: 'Integrações',
+        items: [
+            { label: 'Saúde dos Dados', shortLabel: 'SD', path: '/integracoes-olist' },
+            { label: 'Amazon FBA', shortLabel: 'FBA', path: '/amazon-fba' },
+        ],
     },
     {
-        label: 'Conciliação FBA 3 Pontas',
-        shortLabel: '3P',
-        path: '/conciliacao-amazon-olist-primely-fba',
+        section: 'Análises',
+        items: [
+            { label: 'Conciliação Olist × Amazon', shortLabel: 'OA', path: '/conciliacao-olist-amazon' },
+            { label: 'Conciliação Olist × Primely', shortLabel: 'OP', path: '/conciliacao-olist-primely-estoque' },
+            { label: 'Conciliação FBA 3 Pontas', shortLabel: '3P', path: '/conciliacao-amazon-olist-primely-fba' },
+            { label: 'Alertas', shortLabel: 'AL', path: '/alertas' },
+        ],
     },
-    { label: 'Lotes', shortLabel: 'LT', path: '/lotes' },
-    { label: 'Movimentações', shortLabel: 'MV', path: '/movimentacoes' },
-    { label: 'Alertas', shortLabel: 'AL', path: '/alertas' },
 ]
+
+// Lista plana para navegação mobile
+const menuItems = menuSections.flatMap((s) => s.items)
 
 function obterClasseLink(isActive: boolean, compacto = false) {
     const base = compacto
@@ -112,19 +117,35 @@ export function AppLayout() {
                         </button>
                     </div>
 
-                    <nav className="mt-8 flex-1 space-y-1 overflow-y-auto pr-1">
-                        {menuItems.map((item) => (
-                            <NavLink
-                                key={item.path}
-                                to={item.path}
-                                end={item.path === '/'}
-                                title={menuRecolhido ? item.label : undefined}
-                                className={({ isActive }) =>
-                                    obterClasseLink(isActive, menuRecolhido)
-                                }
-                            >
-                                {menuRecolhido ? item.shortLabel : item.label}
-                            </NavLink>
+                    <nav className="mt-8 flex-1 overflow-y-auto pr-1">
+                        {menuSections.map((section, sectionIndex) => (
+                            <div key={section.section} className={sectionIndex > 0 ? 'mt-5' : ''}>
+                                {!menuRecolhido && (
+                                    <p className="mb-2 px-4 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                                        {section.section}
+                                    </p>
+                                )}
+
+                                {menuRecolhido && sectionIndex > 0 && (
+                                    <div className="mx-auto mb-2 w-8 border-t border-slate-700" />
+                                )}
+
+                                <div className="space-y-1">
+                                    {section.items.map((item) => (
+                                        <NavLink
+                                            key={item.path}
+                                            to={item.path}
+                                            end={item.path === '/'}
+                                            title={menuRecolhido ? item.label : undefined}
+                                            className={({ isActive }) =>
+                                                obterClasseLink(isActive, menuRecolhido)
+                                            }
+                                        >
+                                            {menuRecolhido ? item.shortLabel : item.label}
+                                        </NavLink>
+                                    ))}
+                                </div>
+                            </div>
                         ))}
                     </nav>
 

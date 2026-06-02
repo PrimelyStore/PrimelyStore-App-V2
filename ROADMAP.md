@@ -12,19 +12,23 @@
 
 ## Módulo 1 — Auditoria e Governança
 
-Status: [ ] Pendente  
+Status: [~] Em progresso  
 Prioridade: Alta  
 Objetivo: garantir que o projeto siga o conceito de painel gerencial e não volte a virar ERP.
 
 Etapas:
 
-- [ ] 1.1 Verificar `git status`
-- [ ] 1.2 Validar `.gitignore`
-- [ ] 1.3 Validar `.env.local` e `.env.example`
-- [ ] 1.4 Validar `AGENTS.md`
-- [ ] 1.5 Validar Skills
-- [ ] 1.6 Validar MCP em modo somente leitura
-- [ ] 1.7 Classificar módulos atuais
+- [x] 1.1 Verificar `git status` — limpo, checkpoint feito
+- [x] 1.2 Validar `.gitignore` — protege .env.local ✅
+- [~] 1.3 Validar `.env.local` e `.env.example` — divergência de variável corrigida com fallback
+- [x] 1.4 Validar `AGENTS.md` — completo ✅
+- [x] 1.5 Validar Skills — 6 skills presentes e corretas ✅
+- [x] 1.6 Validar MCP em modo somente leitura — read_only=true ✅
+- [x] 1.7 Classificar módulos atuais — auditoria completa realizada
+- [~] 1.8 Corrigir variável VITE_SUPABASE_PUBLISHABLE_KEY → VITE_SUPABASE_ANON_KEY — fallback aplicado
+- [x] 1.9 Ocultar telas legado do menu (Compras, Fornecedores, Lotes, Movimentações)
+- [x] 1.10 Reorganizar menu do AppLayout em seções (Gerencial, Integrações, Análises)
+- [ ] 1.12 Verificar dashboardService não depende de tabelas legadas — diagnóstico feito, pendente ação
 
 Critério de conclusão:
 
