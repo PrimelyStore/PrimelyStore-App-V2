@@ -10,6 +10,9 @@ import {
 } from '../components/ui'
 import {
     buscarPainelIntegracoesOlist,
+    sincronizarSnapshotOlist,
+    type OlistSincronizacaoManualResultado,
+    type OlistTipoSincronizacao,
     type PainelIntegracoesOlist,
 } from '../services/olistIntegracoesService'
 
@@ -23,6 +26,47 @@ type StatusBadgeTone =
     | 'info'
     | 'purple'
     | 'muted'
+
+type OpcaoSincronizacaoOlist = {
+    tipo: OlistTipoSincronizacao
+    titulo: string
+    descricao: string
+    aviso: string
+}
+
+const opcoesSincronizacaoOlist: OpcaoSincronizacaoOlist[] = [
+    {
+        tipo: 'produtos',
+        titulo: 'Produtos',
+        descricao: 'Atualiza o snapshot de produtos ativos do Olist.',
+        aviso: 'Sincronizar produtos do Olist? Esta ação apenas atualiza snapshots no Supabase.',
+    },
+    {
+        tipo: 'depositos',
+        titulo: 'Depósitos',
+        descricao: 'Atualiza a lista de depósitos cadastrados no Olist.',
+        aviso: 'Sincronizar depósitos do Olist? Esta ação apenas atualiza snapshots no Supabase.',
+    },
+    {
+        tipo: 'estoque',
+        titulo: 'Estoque',
+        descricao: 'Atualiza um lote seguro do estoque por depósito para evitar limite da API.',
+        aviso: 'Sincronizar estoque por depósito do Olist? Esta ação lê um lote seguro de produtos e não altera estoque operacional.',
+    },
+    {
+        tipo: 'pedidos',
+        titulo: 'Pedidos',
+        descricao: 'Atualiza um lote pequeno de pedidos e itens em snapshots gerenciais.',
+        aviso: 'Sincronizar pedidos do Olist? Esta ação usa processar=false e baixar_fifo=false. Não cria vendas oficiais e não baixa estoque.',
+    },
+    {
+        tipo: 'notas_entrada',
+        titulo: 'Notas de entrada',
+        descricao: 'Atualiza um lote pequeno de notas de entrada para conferência gerencial.',
+        aviso: 'Sincronizar notas de entrada do Olist? Esta ação apenas atualiza snapshots e não gera estoque, lote ou recebimento automático.',
+    },
+]
+
 
 function formatarNumero(valor?: number | string | null) {
     return new Intl.NumberFormat('pt-BR').format(Number(valor ?? 0))
@@ -172,6 +216,10 @@ export function IntegracoesOlist() {
         'Carregando painel gerencial do Olist...'
     )
     const [painel, setPainel] = useState<PainelIntegracoesOlist | null>(null)
+    const [sincronizandoTipo, setSincronizandoTipo] =
+        useState<OlistTipoSincronizacao | null>(null)
+    const [ultimoResultadoSincronizacao, setUltimoResultadoSincronizacao] =
+        useState<OlistSincronizacaoManualResultado | null>(null)
 
     const [filtroBusca, setFiltroBusca] = useState('')
     const [filtroCanal, setFiltroCanal] = useState('')
@@ -208,6 +256,46 @@ export function IntegracoesOlist() {
             } else {
                 setMensagem('Erro desconhecido ao carregar dados do Olist.')
             }
+        }
+    }
+
+
+    async function executarSincronizacaoManual(opcao: OpcaoSincronizacaoOlist) {
+        const confirmarSincronizacao = window.confirm(
+            `${opcao.aviso}
+
+Regra de segurança: esta ação não processa pedidos como vendas oficiais, não executa baixa FIFO e não altera o estoque operacional do Olist.`
+        )
+
+        if (!confirmarSincronizacao) {
+            return
+        }
+
+        try {
+            setSincronizandoTipo(opcao.tipo)
+            setUltimoResultadoSincronizacao(null)
+            setStatus('carregando')
+            setMensagem(`Sincronizando ${opcao.titulo.toLowerCase()} do Olist...`)
+
+            const resultado = await sincronizarSnapshotOlist(opcao.tipo)
+            const dadosAtualizados = await buscarPainelIntegracoesOlist()
+
+            setPainel(dadosAtualizados)
+            setUltimoResultadoSincronizacao(resultado)
+            setStatus('sucesso')
+            setMensagem(
+                `${resultado.rotulo} sincronizado com sucesso. ${resultado.resumo}`
+            )
+        } catch (error) {
+            setStatus('erro')
+
+            if (error instanceof Error) {
+                setMensagem(error.message)
+            } else {
+                setMensagem('Erro desconhecido ao sincronizar dados do Olist.')
+            }
+        } finally {
+            setSincronizandoTipo(null)
         }
     }
 
@@ -500,10 +588,73 @@ export function IntegracoesOlist() {
                     <AppButton
                         variant="secondary"
                         onClick={carregarPainel}
-                        disabled={status === 'carregando'}
+                        disabled={status === 'carregando' || sincronizandoTipo !== null}
                     >
                         Recarregar dados
                     </AppButton>
+                </div>
+            </AppCard>
+
+            <AppCard>
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-100">
+                            Sincronizações manuais controladas
+                        </h2>
+                        <p className="mt-1 text-sm text-slate-400">
+                            Estes botões chamam somente Edge Functions de snapshot. Eles não
+                            criam vendas oficiais, não processam pedidos e não executam baixa FIFO.
+                        </p>
+                    </div>
+
+                    {ultimoResultadoSincronizacao ? (
+                        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-200 lg:max-w-md">
+                            <p className="font-semibold text-emerald-100">
+                                Última sincronização: {ultimoResultadoSincronizacao.rotulo}
+                            </p>
+                            <p className="mt-1 text-emerald-200/80">
+                                {ultimoResultadoSincronizacao.resumo}
+                            </p>
+                            <p className="mt-1 text-emerald-200/60">
+                                {formatarDataHora(
+                                    ultimoResultadoSincronizacao.synchronizedAt
+                                )}
+                            </p>
+                        </div>
+                    ) : null}
+                </div>
+
+                <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    {opcoesSincronizacaoOlist.map((opcao) => {
+                        const estaSincronizando = sincronizandoTipo === opcao.tipo
+                        const existeSincronizacaoEmAndamento = sincronizandoTipo !== null
+
+                        return (
+                            <div
+                                key={opcao.tipo}
+                                className="flex min-h-36 flex-col justify-between rounded-2xl border border-slate-800 bg-slate-950 p-4"
+                            >
+                                <div>
+                                    <p className="text-sm font-bold text-slate-100">
+                                        {opcao.titulo}
+                                    </p>
+                                    <p className="mt-2 text-xs leading-relaxed text-slate-400">
+                                        {opcao.descricao}
+                                    </p>
+                                </div>
+
+                                <AppButton
+                                    className="mt-4 w-full"
+                                    size="sm"
+                                    variant={estaSincronizando ? 'success' : 'secondary'}
+                                    disabled={existeSincronizacaoEmAndamento}
+                                    onClick={() => executarSincronizacaoManual(opcao)}
+                                >
+                                    {estaSincronizando ? 'Sincronizando...' : 'Sincronizar'}
+                                </AppButton>
+                            </div>
+                        )
+                    })}
                 </div>
             </AppCard>
 

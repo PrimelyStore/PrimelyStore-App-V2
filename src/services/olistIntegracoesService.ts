@@ -438,6 +438,233 @@ async function buscarLogsRecentesOlist() {
     )
 }
 
+
+export type OlistTipoSincronizacao =
+    | 'produtos'
+    | 'depositos'
+    | 'estoque'
+    | 'pedidos'
+    | 'notas_entrada'
+
+export type OlistSincronizacaoManualResultado = {
+    tipo: OlistTipoSincronizacao
+    rotulo: string
+    ok: boolean
+    service: string | null
+    message: string | null
+    status: string | null
+    synchronizedAt: string | null
+    resumo: string
+    raw: Record<string, unknown>
+}
+
+type OlistSyncManualConfig = {
+    tipo: OlistTipoSincronizacao
+    rotulo: string
+    functionName: string
+    params?: Record<string, string | number | boolean>
+}
+
+type EdgeFunctionResponse = Record<string, unknown> & {
+    ok?: boolean
+    service?: string
+    message?: string
+    status?: string
+    result?: Record<string, unknown>
+}
+
+const configsSincronizacaoManual: Record<
+    OlistTipoSincronizacao,
+    OlistSyncManualConfig
+> = {
+    produtos: {
+        tipo: 'produtos',
+        rotulo: 'Produtos',
+        functionName: 'olist-produtos-sync',
+        params: {
+            limit: 100,
+            offset: 0,
+            maxPages: 1,
+            situacao: 'A',
+        },
+    },
+    depositos: {
+        tipo: 'depositos',
+        rotulo: 'Depósitos',
+        functionName: 'olist-depositos-sync',
+    },
+    estoque: {
+        tipo: 'estoque',
+        rotulo: 'Estoque por depósito',
+        functionName: 'olist-estoque-depositos-sync',
+        params: {
+            limit: 10,
+            offset: 0,
+            situacao: 'A',
+        },
+    },
+    pedidos: {
+        tipo: 'pedidos',
+        rotulo: 'Pedidos',
+        functionName: 'olist-pedidos-sync',
+        params: {
+            limit: 5,
+            offset: 0,
+            maxPages: 1,
+            detalhar: true,
+            processar: false,
+            baixar_fifo: false,
+            baixarFifo: false,
+            processarLimit: 1,
+        },
+    },
+    notas_entrada: {
+        tipo: 'notas_entrada',
+        rotulo: 'Notas de entrada',
+        functionName: 'olist-notas-entrada-sync',
+        params: {
+            limit: 3,
+            offset: 0,
+            maxPages: 1,
+            detalhar: true,
+            detalharItens: true,
+        },
+    },
+}
+
+function montarFunctionNameComQuery(config: OlistSyncManualConfig) {
+    const params = new URLSearchParams()
+
+    for (const [chave, valor] of Object.entries(config.params ?? {})) {
+        params.set(chave, String(valor))
+    }
+
+    const query = params.toString()
+
+    return query ? `${config.functionName}?${query}` : config.functionName
+}
+
+function obterNumeroDeObjeto(
+    objeto: Record<string, unknown> | undefined,
+    chaves: string[]
+) {
+    if (!objeto) {
+        return null
+    }
+
+    for (const chave of chaves) {
+        const valor = objeto[chave]
+        const numero = Number(valor)
+
+        if (Number.isFinite(numero)) {
+            return numero
+        }
+    }
+
+    return null
+}
+
+function criarResumoSincronizacao(data: EdgeFunctionResponse) {
+    const result =
+        data.result && typeof data.result === 'object'
+            ? (data.result as Record<string, unknown>)
+            : data
+
+    const partes: string[] = []
+
+    const totalApi = obterNumeroDeObjeto(result, [
+        'total_reported_by_api',
+        'total_reported',
+        'total',
+    ])
+    const recebidos = obterNumeroDeObjeto(result, ['received_count', 'received'])
+    const salvos = obterNumeroDeObjeto(result, [
+        'saved_count',
+        'saved_orders_count',
+        'rows_salvas',
+        'saved_items_count',
+    ])
+    const inseridos = obterNumeroDeObjeto(result, [
+        'inserted_count',
+        'inserted',
+        'pedidos_inseridos',
+        'notas_inseridas',
+    ])
+    const atualizados = obterNumeroDeObjeto(result, [
+        'updated_count',
+        'updated',
+        'pedidos_atualizados',
+        'notas_atualizadas',
+    ])
+    const erros = obterNumeroDeObjeto(result, [
+        'errors_count',
+        'produtos_com_erro',
+        'pedidos_com_erro',
+        'notas_com_erro',
+        'detail_errors_count',
+    ])
+
+    if (totalApi !== null) partes.push(`Total API: ${totalApi}`)
+    if (recebidos !== null) partes.push(`Lidos: ${recebidos}`)
+    if (salvos !== null) partes.push(`Salvos: ${salvos}`)
+    if (inseridos !== null) partes.push(`Inseridos: ${inseridos}`)
+    if (atualizados !== null) partes.push(`Atualizados: ${atualizados}`)
+    if (erros !== null) partes.push(`Erros: ${erros}`)
+
+    return partes.length > 0
+        ? partes.join(' • ')
+        : 'Sincronização concluída. Recarregue o painel para conferir os snapshots.'
+}
+
+export async function sincronizarSnapshotOlist(
+    tipo: OlistTipoSincronizacao
+): Promise<OlistSincronizacaoManualResultado> {
+    const config = configsSincronizacaoManual[tipo]
+    const functionName = montarFunctionNameComQuery(config)
+
+    const { data, error } = await supabase.functions.invoke<EdgeFunctionResponse>(
+        functionName,
+        {
+            method: 'POST',
+            body: {},
+        }
+    )
+
+    if (error) {
+        throw new Error(error.message)
+    }
+
+    if (!data) {
+        throw new Error('A sincronização Olist não retornou dados.')
+    }
+
+    if (data.ok === false) {
+        throw new Error(data.message || `Erro ao sincronizar ${config.rotulo}.`)
+    }
+
+    const result =
+        data.result && typeof data.result === 'object'
+            ? (data.result as Record<string, unknown>)
+            : null
+
+    const synchronizedAt =
+        typeof result?.synchronized_at === 'string'
+            ? result.synchronized_at
+            : new Date().toISOString()
+
+    return {
+        tipo,
+        rotulo: config.rotulo,
+        ok: true,
+        service: data.service ?? null,
+        message: data.message ?? null,
+        status: data.status ?? null,
+        synchronizedAt,
+        resumo: criarResumoSincronizacao(data),
+        raw: data,
+    }
+}
+
 export async function buscarPainelIntegracoesOlist(): Promise<PainelIntegracoesOlist> {
     const [
         produtos,
