@@ -19,6 +19,7 @@ import { ConciliacaoOlistPrimelyEstoque } from './pages/ConciliacaoOlistPrimelyE
 import { Dashboard } from './pages/Dashboard'
 import { Estoque } from './pages/Estoque'
 import { Fornecedores } from './pages/Fornecedores'
+import { IntegracoesOlist } from './pages/IntegracoesOlist'
 import { Login } from './pages/Login'
 import { Lotes } from './pages/Lotes'
 import { Movimentacoes } from './pages/Movimentacoes'
@@ -70,6 +71,7 @@ function AppRoutes() {
           <Route path="/vendas" element={<Vendas />} />
           <Route path="/estoque" element={<Estoque />} />
           <Route path="/amazon-fba" element={<AmazonFBA />} />
+          <Route path="/integracoes-olist" element={<IntegracoesOlist />} />
           <Route
             path="/conciliacao-olist-amazon"
             element={<ConciliacaoOlistAmazon />}
