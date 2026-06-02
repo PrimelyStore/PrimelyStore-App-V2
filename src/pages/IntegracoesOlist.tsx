@@ -52,6 +52,43 @@ function formatarDataHora(data?: string | null) {
     }).format(dataConvertida)
 }
 
+
+function normalizarTexto(valor?: string | number | null) {
+    return String(valor ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim()
+}
+
+function obterCanalPedido(pedido: PainelIntegracoesOlist['pedidosRecentes'][number]) {
+    return pedido.canal_gerencial ?? pedido.ecommerce_nome ?? 'Não informado'
+}
+
+function obterDataReferenciaPedido(
+    pedido: PainelIntegracoesOlist['pedidosRecentes'][number]
+) {
+    return pedido.data_pedido ?? pedido.pedido_sincronizado_em ?? null
+}
+
+function obterDataInput(data?: string | null) {
+    if (!data) {
+        return ''
+    }
+
+    const dataConvertida = new Date(data)
+
+    if (Number.isNaN(dataConvertida.getTime())) {
+        return ''
+    }
+
+    return dataConvertida.toISOString().slice(0, 10)
+}
+
+function ordenarTexto(a: string, b: string) {
+    return a.localeCompare(b, 'pt-BR')
+}
+
 function formatarOrigemLog(origem: string) {
     const nomes: Record<string, string> = {
         pedidos: 'Pedidos',
@@ -87,6 +124,16 @@ export function IntegracoesOlist() {
         'Carregando painel gerencial do Olist...'
     )
     const [painel, setPainel] = useState<PainelIntegracoesOlist | null>(null)
+
+    const [filtroBusca, setFiltroBusca] = useState('')
+    const [filtroCanal, setFiltroCanal] = useState('')
+    const [filtroDeposito, setFiltroDeposito] = useState('')
+    const [filtroStatusPedido, setFiltroStatusPedido] = useState('')
+    const [filtroProdutoVinculado, setFiltroProdutoVinculado] = useState<
+        'todos' | 'vinculados' | 'sem_vinculo'
+    >('todos')
+    const [filtroDataInicio, setFiltroDataInicio] = useState('')
+    const [filtroDataFim, setFiltroDataFim] = useState('')
 
     async function carregarPainel() {
         try {
@@ -136,6 +183,141 @@ export function IntegracoesOlist() {
 
         return new Date(Math.max(...datas)).toISOString()
     }, [painel])
+
+    const opcoesCanaisPedidos = useMemo(() => {
+        if (!painel) {
+            return []
+        }
+
+        return Array.from(
+            new Set(painel.pedidosRecentes.map((pedido) => obterCanalPedido(pedido)))
+        ).sort(ordenarTexto)
+    }, [painel])
+
+    const opcoesDepositosPedidos = useMemo(() => {
+        if (!painel) {
+            return []
+        }
+
+        return Array.from(
+            new Set(
+                painel.pedidosRecentes.map(
+                    (pedido) => pedido.deposito_nome ?? 'Não informado'
+                )
+            )
+        ).sort(ordenarTexto)
+    }, [painel])
+
+    const opcoesStatusPedidos = useMemo(() => {
+        if (!painel) {
+            return []
+        }
+
+        return Array.from(
+            new Set(
+                painel.pedidosRecentes.map(
+                    (pedido) => pedido.status_gerencial ?? 'Não informado'
+                )
+            )
+        ).sort(ordenarTexto)
+    }, [painel])
+
+    const pedidosFiltrados = useMemo(() => {
+        if (!painel) {
+            return []
+        }
+
+        const buscaNormalizada = normalizarTexto(filtroBusca)
+
+        return painel.pedidosRecentes.filter((pedido) => {
+            const canal = obterCanalPedido(pedido)
+            const deposito = pedido.deposito_nome ?? 'Não informado'
+            const statusGerencial = pedido.status_gerencial ?? 'Não informado'
+            const dataReferenciaInput = obterDataInput(obterDataReferenciaPedido(pedido))
+
+            if (filtroCanal && canal !== filtroCanal) {
+                return false
+            }
+
+            if (filtroDeposito && deposito !== filtroDeposito) {
+                return false
+            }
+
+            if (filtroStatusPedido && statusGerencial !== filtroStatusPedido) {
+                return false
+            }
+
+            if (
+                filtroProdutoVinculado === 'vinculados' &&
+                pedido.produto_vinculado !== true
+            ) {
+                return false
+            }
+
+            if (
+                filtroProdutoVinculado === 'sem_vinculo' &&
+                pedido.produto_vinculado === true
+            ) {
+                return false
+            }
+
+            if (filtroDataInicio && dataReferenciaInput < filtroDataInicio) {
+                return false
+            }
+
+            if (filtroDataFim && dataReferenciaInput > filtroDataFim) {
+                return false
+            }
+
+            if (buscaNormalizada) {
+                const conteudoBusca = normalizarTexto([
+                    pedido.numero_pedido,
+                    pedido.numero_pedido_ecommerce,
+                    pedido.sku_olist,
+                    pedido.descricao_olist,
+                    canal,
+                    deposito,
+                    statusGerencial,
+                ].join(' '))
+
+                if (!conteudoBusca.includes(buscaNormalizada)) {
+                    return false
+                }
+            }
+
+            return true
+        })
+    }, [
+        filtroBusca,
+        filtroCanal,
+        filtroDataFim,
+        filtroDataInicio,
+        filtroDeposito,
+        filtroProdutoVinculado,
+        filtroStatusPedido,
+        painel,
+    ])
+
+    const existemFiltrosPedidos = Boolean(
+        filtroBusca ||
+            filtroCanal ||
+            filtroDeposito ||
+            filtroStatusPedido ||
+            filtroProdutoVinculado !== 'todos' ||
+            filtroDataInicio ||
+            filtroDataFim
+    )
+
+    function limparFiltrosPedidos() {
+        setFiltroBusca('')
+        setFiltroCanal('')
+        setFiltroDeposito('')
+        setFiltroStatusPedido('')
+        setFiltroProdutoVinculado('todos')
+        setFiltroDataInicio('')
+        setFiltroDataFim('')
+    }
+
 
     return (
         <div className="space-y-6">
@@ -416,14 +598,146 @@ export function IntegracoesOlist() {
                                 <p className="mt-1 text-sm text-slate-400">
                                     Últimos itens importados na view gerencial de pedidos Olist.
                                 </p>
+
+                                <p className="mt-2 text-xs text-slate-500">
+                                    Exibindo {formatarNumero(pedidosFiltrados.length)} de{' '}
+                                    {formatarNumero(painel.pedidosRecentes.length)} item(ns) carregado(s).
+                                </p>
                             </div>
+
+                            <AppButton
+                                variant="secondary"
+                                onClick={limparFiltrosPedidos}
+                                disabled={!existemFiltrosPedidos}
+                            >
+                                Limpar filtros
+                            </AppButton>
+                        </div>
+
+                        <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                                <label className="space-y-1 text-xs font-semibold text-slate-400">
+                                    Buscar por pedido, SKU ou produto
+                                    <input
+                                        value={filtroBusca}
+                                        onChange={(event) =>
+                                            setFiltroBusca(event.target.value)
+                                        }
+                                        placeholder="Ex.: 751, AUT-LUX, Lava Seco"
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-cyan-500"
+                                    />
+                                </label>
+
+                                <label className="space-y-1 text-xs font-semibold text-slate-400">
+                                    Canal
+                                    <select
+                                        value={filtroCanal}
+                                        onChange={(event) =>
+                                            setFiltroCanal(event.target.value)
+                                        }
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition focus:border-cyan-500"
+                                    >
+                                        <option value="">Todos os canais</option>
+                                        {opcoesCanaisPedidos.map((canal) => (
+                                            <option key={canal} value={canal}>
+                                                {canal}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label className="space-y-1 text-xs font-semibold text-slate-400">
+                                    Depósito
+                                    <select
+                                        value={filtroDeposito}
+                                        onChange={(event) =>
+                                            setFiltroDeposito(event.target.value)
+                                        }
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition focus:border-cyan-500"
+                                    >
+                                        <option value="">Todos os depósitos</option>
+                                        {opcoesDepositosPedidos.map((deposito) => (
+                                            <option key={deposito} value={deposito}>
+                                                {deposito}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label className="space-y-1 text-xs font-semibold text-slate-400">
+                                    Status gerencial
+                                    <select
+                                        value={filtroStatusPedido}
+                                        onChange={(event) =>
+                                            setFiltroStatusPedido(event.target.value)
+                                        }
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition focus:border-cyan-500"
+                                    >
+                                        <option value="">Todos os status</option>
+                                        {opcoesStatusPedidos.map((statusPedido) => (
+                                            <option key={statusPedido} value={statusPedido}>
+                                                {statusPedido}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label className="space-y-1 text-xs font-semibold text-slate-400">
+                                    Vínculo com produto
+                                    <select
+                                        value={filtroProdutoVinculado}
+                                        onChange={(event) =>
+                                            setFiltroProdutoVinculado(
+                                                event.target.value as
+                                                    | 'todos'
+                                                    | 'vinculados'
+                                                    | 'sem_vinculo'
+                                            )
+                                        }
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition focus:border-cyan-500"
+                                    >
+                                        <option value="todos">Todos</option>
+                                        <option value="vinculados">Somente vinculados</option>
+                                        <option value="sem_vinculo">Somente sem vínculo</option>
+                                    </select>
+                                </label>
+
+                                <label className="space-y-1 text-xs font-semibold text-slate-400">
+                                    Data inicial
+                                    <input
+                                        type="date"
+                                        value={filtroDataInicio}
+                                        onChange={(event) =>
+                                            setFiltroDataInicio(event.target.value)
+                                        }
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition focus:border-cyan-500"
+                                    />
+                                </label>
+
+                                <label className="space-y-1 text-xs font-semibold text-slate-400">
+                                    Data final
+                                    <input
+                                        type="date"
+                                        value={filtroDataFim}
+                                        onChange={(event) =>
+                                            setFiltroDataFim(event.target.value)
+                                        }
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition focus:border-cyan-500"
+                                    />
+                                </label>
+                            </div>
+
+                            <p className="mt-3 text-xs text-slate-500">
+                                Os filtros são apenas de leitura e atuam sobre os pedidos carregados nesta tela.
+                            </p>
                         </div>
 
                         <DataTableContainer className="mt-5" maxHeightClassName="max-h-[520px]">
-                            <table className="min-w-[1100px] divide-y divide-slate-800 text-left text-sm">
+                            <table className="min-w-[1250px] divide-y divide-slate-800 text-left text-sm">
                                 <thead className={stickyTableHeadClassName}>
                                     <tr>
                                         <th className="px-4 py-3 font-semibold">Pedido</th>
+                                        <th className="px-4 py-3 font-semibold">Data</th>
                                         <th className="px-4 py-3 font-semibold">Marketplace</th>
                                         <th className="px-4 py-3 font-semibold">Canal</th>
                                         <th className="px-4 py-3 font-semibold">Depósito</th>
@@ -437,7 +751,18 @@ export function IntegracoesOlist() {
                                 </thead>
 
                                 <tbody className="divide-y divide-slate-800">
-                                    {painel.pedidosRecentes.map((pedido, index) => (
+                                    {pedidosFiltrados.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan={11}
+                                                className="px-4 py-8 text-center text-sm text-slate-500"
+                                            >
+                                                Nenhum pedido encontrado com os filtros aplicados.
+                                            </td>
+                                        </tr>
+                                    ) : null}
+
+                                    {pedidosFiltrados.map((pedido, index) => (
                                         <tr
                                             key={`${pedido.id_pedido_olist}-${pedido.sku_olist}-${index}`}
                                             className="hover:bg-slate-800/40"
@@ -446,10 +771,13 @@ export function IntegracoesOlist() {
                                                 {pedido.numero_pedido ?? '-'}
                                             </td>
                                             <td className="px-4 py-3 text-slate-300">
+                                                {formatarDataHora(obterDataReferenciaPedido(pedido))}
+                                            </td>
+                                            <td className="px-4 py-3 text-slate-300">
                                                 {pedido.numero_pedido_ecommerce ?? '-'}
                                             </td>
                                             <td className="px-4 py-3 text-slate-300">
-                                                {pedido.ecommerce_nome ?? '-'}
+                                                {obterCanalPedido(pedido)}
                                             </td>
                                             <td className="px-4 py-3 text-slate-300">
                                                 {pedido.deposito_nome ?? '-'}

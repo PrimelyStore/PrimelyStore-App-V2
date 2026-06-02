@@ -46,7 +46,9 @@ export type OlistPedidoGerencial = {
     numero_pedido: string | null
     numero_pedido_ecommerce: string | null
     canal_gerencial: string | null
+    canal_venda_olist?: string | null
     ecommerce_nome: string | null
+    data_pedido: string | null
     deposito_nome: string | null
     local_estoque_conceitual: string | null
     status_processamento_pedido: string | null
@@ -296,23 +298,33 @@ async function buscarResumoPedidosOlist(): Promise<OlistResumoPedidos> {
     )
 }
 
+type OlistPedidoGerencialViewRow = Omit<OlistPedidoGerencial, 'canal_gerencial'> & {
+    canal_venda_olist: string | null
+}
+
 async function buscarPedidosRecentesOlist() {
     const { data, error } = await supabase
         .from('olist_pedidos_gerencial_view')
         .select(
-            'id_pedido_olist, numero_pedido, numero_pedido_ecommerce, ecommerce_nome, deposito_nome, local_estoque_conceitual, status_processamento_pedido, status_gerencial, sku_olist, descricao_olist, quantidade, valor_total_item, produto_vinculado, pedido_sincronizado_em'
+            'id_pedido_olist, numero_pedido, numero_pedido_ecommerce, ecommerce_nome, canal_venda_olist, data_pedido, deposito_nome, local_estoque_conceitual, status_processamento_pedido, status_gerencial, sku_olist, descricao_olist, quantidade, valor_total_item, produto_vinculado, pedido_sincronizado_em'
         )
         .order('pedido_sincronizado_em', {
             ascending: false,
             nullsFirst: false,
         })
-        .limit(20)
+        .limit(200)
 
     if (error) {
         throw new Error(error.message)
     }
 
-    return (data ?? []) as OlistPedidoGerencial[]
+    return ((data ?? []) as OlistPedidoGerencialViewRow[]).map(
+        (pedido): OlistPedidoGerencial => ({
+            ...pedido,
+            canal_gerencial:
+                pedido.ecommerce_nome ?? pedido.canal_venda_olist ?? 'Não informado',
+        })
+    )
 }
 
 async function buscarResumoNotasEntradaOlist(): Promise<OlistResumoNotasEntrada> {
