@@ -220,6 +220,10 @@ export function IntegracoesOlist() {
         useState<OlistTipoSincronizacao | null>(null)
     const [ultimoResultadoSincronizacao, setUltimoResultadoSincronizacao] =
         useState<OlistSincronizacaoManualResultado | null>(null)
+    const [resultadosSincronizacaoPorTipo, setResultadosSincronizacaoPorTipo] =
+        useState<Partial<Record<OlistTipoSincronizacao, OlistSincronizacaoManualResultado>>>(
+            {}
+        )
 
     const [filtroBusca, setFiltroBusca] = useState('')
     const [filtroCanal, setFiltroCanal] = useState('')
@@ -282,6 +286,10 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
 
             setPainel(dadosAtualizados)
             setUltimoResultadoSincronizacao(resultado)
+            setResultadosSincronizacaoPorTipo((resultadosAtuais) => ({
+                ...resultadosAtuais,
+                [opcao.tipo]: resultado,
+            }))
             setStatus('sucesso')
             setMensagem(
                 `${resultado.rotulo} sincronizado com sucesso. ${resultado.resumo}`
@@ -605,6 +613,12 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                             Estes botões chamam somente Edge Functions de snapshot. Eles não
                             criam vendas oficiais, não processam pedidos e não executam baixa FIFO.
                         </p>
+
+                        <div className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-100">
+                            <span className="font-semibold">Modo seguro:</span> as
+                            sincronizações são manuais, bloqueiam duplo clique enquanto rodam
+                            e exibem o último resultado nesta sessão.
+                        </div>
                     </div>
 
                     {ultimoResultadoSincronizacao ? (
@@ -628,19 +642,57 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                     {opcoesSincronizacaoOlist.map((opcao) => {
                         const estaSincronizando = sincronizandoTipo === opcao.tipo
                         const existeSincronizacaoEmAndamento = sincronizandoTipo !== null
+                        const ultimoResultadoOpcao =
+                            resultadosSincronizacaoPorTipo[opcao.tipo]
 
                         return (
                             <div
                                 key={opcao.tipo}
-                                className="flex min-h-36 flex-col justify-between rounded-2xl border border-slate-800 bg-slate-950 p-4"
+                                className="flex min-h-48 flex-col justify-between rounded-2xl border border-slate-800 bg-slate-950 p-4"
                             >
                                 <div>
-                                    <p className="text-sm font-bold text-slate-100">
-                                        {opcao.titulo}
-                                    </p>
+                                    <div className="flex items-start justify-between gap-3">
+                                        <p className="text-sm font-bold text-slate-100">
+                                            {opcao.titulo}
+                                        </p>
+
+                                        <StatusBadge
+                                            tone={estaSincronizando ? 'warning' : 'info'}
+                                        >
+                                            {estaSincronizando ? 'Em execução' : 'Snapshot'}
+                                        </StatusBadge>
+                                    </div>
+
                                     <p className="mt-2 text-xs leading-relaxed text-slate-400">
                                         {opcao.descricao}
                                     </p>
+
+                                    <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-[11px] leading-relaxed text-slate-400">
+                                        {ultimoResultadoOpcao ? (
+                                            <>
+                                                <p className="font-semibold text-slate-200">
+                                                    Última execução nesta sessão
+                                                </p>
+                                                <p className="mt-1 text-slate-400">
+                                                    {formatarDataHora(
+                                                        ultimoResultadoOpcao.synchronizedAt
+                                                    )}
+                                                </p>
+                                                <p className="mt-1 line-clamp-2 text-emerald-200/80">
+                                                    {ultimoResultadoOpcao.resumo}
+                                                </p>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <p className="font-semibold text-slate-300">
+                                                    Ainda não executado nesta sessão
+                                                </p>
+                                                <p className="mt-1">
+                                                    Use somente quando precisar atualizar o snapshot.
+                                                </p>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <AppButton
@@ -650,7 +702,11 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                                     disabled={existeSincronizacaoEmAndamento}
                                     onClick={() => executarSincronizacaoManual(opcao)}
                                 >
-                                    {estaSincronizando ? 'Sincronizando...' : 'Sincronizar'}
+                                    {estaSincronizando
+                                        ? 'Sincronizando...'
+                                        : existeSincronizacaoEmAndamento
+                                          ? 'Aguarde finalizar'
+                                          : 'Sincronizar'}
                                 </AppButton>
                             </div>
                         )
@@ -1053,7 +1109,7 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                                 </p>
 
                                 <p>
-                                    A próxima evolução natural é adicionar filtros, botões controlados de sincronização e relatórios gerenciais, sempre mantendo o Olist como ERP operacional oficial.
+                                    A próxima evolução natural é transformar estes snapshots em relatórios gerenciais e alertas, sempre mantendo o Olist como ERP operacional oficial.
                                 </p>
                             </div>
                         </AppCard>
