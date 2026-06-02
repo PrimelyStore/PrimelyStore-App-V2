@@ -128,6 +128,25 @@ function obterDataReferenciaPedido(
     return pedido.data_pedido ?? pedido.pedido_sincronizado_em ?? null
 }
 
+function obterDataReferenciaNota(
+    nota: PainelIntegracoesOlist['notasEntradaRecentes'][number]
+) {
+    return nota.data_emissao ?? nota.data_inclusao ?? nota.sincronizado_em ?? null
+}
+
+function obterPercentual(valor: number, total: number) {
+    if (total <= 0) {
+        return 0
+    }
+
+    return Math.round((valor / total) * 100)
+}
+
+function obterLabelStatus(status?: string | null) {
+    return status ? status.replaceAll('_', ' ') : 'Não informado'
+}
+
+
 function obterDataInput(data?: string | null) {
     if (!data) {
         return ''
@@ -253,6 +272,17 @@ export function IntegracoesOlist() {
     const [filtroEstoqueStatus, setFiltroEstoqueStatus] = useState<
         'todos' | StatusEstoqueOlist
     >('todos')
+
+    const [filtroNotasBusca, setFiltroNotasBusca] = useState('')
+    const [filtroNotasStatus, setFiltroNotasStatus] = useState('')
+    const [filtroNotasCompraVinculada, setFiltroNotasCompraVinculada] = useState<
+        'todos' | 'vinculadas' | 'sem_vinculo'
+    >('todos')
+    const [filtroNotasProdutoVinculado, setFiltroNotasProdutoVinculado] = useState<
+        'todos' | 'com_produto' | 'sem_produto'
+    >('todos')
+    const [filtroNotasDataInicio, setFiltroNotasDataInicio] = useState('')
+    const [filtroNotasDataFim, setFiltroNotasDataFim] = useState('')
 
     async function carregarPainel() {
         try {
@@ -575,12 +605,12 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
 
     const existemFiltrosPedidos = Boolean(
         filtroBusca ||
-            filtroCanal ||
-            filtroDeposito ||
-            filtroStatusPedido ||
-            filtroProdutoVinculado !== 'todos' ||
-            filtroDataInicio ||
-            filtroDataFim
+        filtroCanal ||
+        filtroDeposito ||
+        filtroStatusPedido ||
+        filtroProdutoVinculado !== 'todos' ||
+        filtroDataInicio ||
+        filtroDataFim
     )
 
     function limparFiltrosPedidos() {
@@ -591,6 +621,151 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
         setFiltroProdutoVinculado('todos')
         setFiltroDataInicio('')
         setFiltroDataFim('')
+    }
+
+    const opcoesStatusNotas = useMemo(() => {
+        if (!painel) {
+            return []
+        }
+
+        return Array.from(
+            new Set(
+                painel.notasEntradaRecentes.map(
+                    (nota) => nota.status_processamento ?? 'Não informado'
+                )
+            )
+        ).sort(ordenarTexto)
+    }, [painel])
+
+    const notasEntradaFiltradas = useMemo(() => {
+        if (!painel) {
+            return []
+        }
+
+        const buscaNormalizada = normalizarTexto(filtroNotasBusca)
+
+        return painel.notasEntradaRecentes.filter((nota) => {
+            const statusNota = nota.status_processamento ?? 'Não informado'
+            const dataReferenciaInput = obterDataInput(obterDataReferenciaNota(nota))
+            const totalItens = obterNumeroSeguro(nota.total_itens_nf)
+            const totalItensComProduto = obterNumeroSeguro(nota.total_itens_com_produto)
+            const temProdutoVinculado = totalItens > 0 && totalItensComProduto >= totalItens
+            const temItemSemProduto = totalItens > 0 && totalItensComProduto < totalItens
+
+            if (filtroNotasStatus && statusNota !== filtroNotasStatus) {
+                return false
+            }
+
+            if (
+                filtroNotasCompraVinculada === 'vinculadas' &&
+                nota.compra_vinculada !== true
+            ) {
+                return false
+            }
+
+            if (
+                filtroNotasCompraVinculada === 'sem_vinculo' &&
+                nota.compra_vinculada === true
+            ) {
+                return false
+            }
+
+            if (
+                filtroNotasProdutoVinculado === 'com_produto' &&
+                !temProdutoVinculado
+            ) {
+                return false
+            }
+
+            if (
+                filtroNotasProdutoVinculado === 'sem_produto' &&
+                !temItemSemProduto
+            ) {
+                return false
+            }
+
+            if (filtroNotasDataInicio && dataReferenciaInput < filtroNotasDataInicio) {
+                return false
+            }
+
+            if (filtroNotasDataFim && dataReferenciaInput > filtroNotasDataFim) {
+                return false
+            }
+
+            if (buscaNormalizada) {
+                const conteudoBusca = normalizarTexto([
+                    nota.numero_nf,
+                    nota.serie,
+                    nota.chave_acesso,
+                    nota.fornecedor_nome,
+                    nota.fornecedor_cpf_cnpj,
+                    statusNota,
+                    nota.mensagem_erro,
+                ].join(' '))
+
+                if (!conteudoBusca.includes(buscaNormalizada)) {
+                    return false
+                }
+            }
+
+            return true
+        })
+    }, [
+        filtroNotasBusca,
+        filtroNotasCompraVinculada,
+        filtroNotasDataFim,
+        filtroNotasDataInicio,
+        filtroNotasProdutoVinculado,
+        filtroNotasStatus,
+        painel,
+    ])
+
+    const resumoNotasFiltradas = useMemo(() => {
+        return notasEntradaFiltradas.reduce(
+            (acc, nota) => {
+                acc.valorTotal += obterNumeroSeguro(nota.valor_total_nf)
+                acc.totalItens += obterNumeroSeguro(nota.total_itens_nf)
+                acc.itensComProduto += obterNumeroSeguro(nota.total_itens_com_produto)
+
+                if (nota.compra_vinculada) {
+                    acc.comCompra += 1
+                } else {
+                    acc.semCompra += 1
+                }
+
+                if (nota.status_processamento === 'erro') {
+                    acc.comErro += 1
+                }
+
+                return acc
+            },
+            {
+                valorTotal: 0,
+                totalItens: 0,
+                itensComProduto: 0,
+                comCompra: 0,
+                semCompra: 0,
+                comErro: 0,
+            }
+        )
+    }, [notasEntradaFiltradas])
+
+    const existemFiltrosNotas = Boolean(
+        filtroNotasBusca ||
+        filtroNotasStatus ||
+        filtroNotasCompraVinculada !== 'todos' ||
+        filtroNotasProdutoVinculado !== 'todos' ||
+        filtroNotasDataInicio ||
+        filtroNotasDataFim
+    )
+
+    function limparFiltrosNotas() {
+        setFiltroNotasBusca('')
+        setFiltroNotasStatus('')
+        setFiltroNotasCompraVinculada('todos')
+        setFiltroNotasProdutoVinculado('todos')
+        setFiltroNotasDataInicio('')
+        setFiltroNotasDataFim('')
     }
 
 
@@ -624,15 +799,15 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                             status === 'sucesso'
                                 ? 'success'
                                 : status === 'erro'
-                                  ? 'danger'
-                                  : 'warning'
+                                    ? 'danger'
+                                    : 'warning'
                         }
                     >
                         {status === 'sucesso'
                             ? 'Carregado'
                             : status === 'erro'
-                              ? 'Erro'
-                              : 'Carregando'}
+                                ? 'Erro'
+                                : 'Carregando'}
                     </StatusBadge>
 
                     <AppButton
@@ -762,8 +937,8 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                                     {estaSincronizando
                                         ? 'Sincronizando...'
                                         : existeSincronizacaoEmAndamento
-                                          ? 'Aguarde finalizar'
-                                          : 'Sincronizar'}
+                                            ? 'Aguarde finalizar'
+                                            : 'Sincronizar'}
                                 </AppButton>
                             </div>
                         )
@@ -1273,9 +1448,9 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                                         onChange={(event) =>
                                             setFiltroProdutoVinculado(
                                                 event.target.value as
-                                                    | 'todos'
-                                                    | 'vinculados'
-                                                    | 'sem_vinculo'
+                                                | 'todos'
+                                                | 'vinculados'
+                                                | 'sem_vinculo'
                                             )
                                         }
                                         className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition focus:border-cyan-500"
@@ -1408,7 +1583,7 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                     </AppCard>
 
                     <AppCard>
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div>
                                 <h2 className="text-lg font-bold text-slate-100">
                                     Notas de entrada Olist recentes
@@ -1419,11 +1594,160 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                                 </p>
 
                                 <p className="mt-2 text-xs text-slate-500">
-                                    Exibindo {formatarNumero(painel.notasEntradaRecentes.length)} nota(s) carregada(s).
+                                    Exibindo {formatarNumero(notasEntradaFiltradas.length)} de{' '}
+                                    {formatarNumero(painel.notasEntradaRecentes.length)} nota(s) carregada(s).
                                 </p>
                             </div>
 
-                            <StatusBadge tone="info">Snapshot</StatusBadge>
+                            <div className="flex flex-col gap-2 sm:items-end">
+                                <StatusBadge tone="info">Snapshot</StatusBadge>
+
+                                <AppButton
+                                    variant="secondary"
+                                    onClick={limparFiltrosNotas}
+                                    disabled={!existemFiltrosNotas}
+                                >
+                                    Limpar filtros
+                                </AppButton>
+                            </div>
+                        </div>
+
+                        <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                                <label className="space-y-1 text-xs font-semibold text-slate-400">
+                                    Buscar nota, fornecedor ou CPF/CNPJ
+                                    <input
+                                        type="search"
+                                        value={filtroNotasBusca}
+                                        onChange={(event) =>
+                                            setFiltroNotasBusca(event.target.value)
+                                        }
+                                        placeholder="Ex.: 1690, Amazon, 15.436"
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-cyan-500"
+                                    />
+                                </label>
+
+                                <label className="space-y-1 text-xs font-semibold text-slate-400">
+                                    Status
+                                    <select
+                                        value={filtroNotasStatus}
+                                        onChange={(event) =>
+                                            setFiltroNotasStatus(event.target.value)
+                                        }
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition focus:border-cyan-500"
+                                    >
+                                        <option value="">Todos os status</option>
+                                        {opcoesStatusNotas.map((statusNota) => (
+                                            <option key={statusNota} value={statusNota}>
+                                                {obterLabelStatus(statusNota)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label className="space-y-1 text-xs font-semibold text-slate-400">
+                                    Vínculo com compra
+                                    <select
+                                        value={filtroNotasCompraVinculada}
+                                        onChange={(event) =>
+                                            setFiltroNotasCompraVinculada(
+                                                event.target.value as
+                                                | 'todos'
+                                                | 'vinculadas'
+                                                | 'sem_vinculo'
+                                            )
+                                        }
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition focus:border-cyan-500"
+                                    >
+                                        <option value="todos">Todas</option>
+                                        <option value="vinculadas">Com compra vinculada</option>
+                                        <option value="sem_vinculo">Sem vínculo com compra</option>
+                                    </select>
+                                </label>
+
+                                <label className="space-y-1 text-xs font-semibold text-slate-400">
+                                    Vínculo dos itens
+                                    <select
+                                        value={filtroNotasProdutoVinculado}
+                                        onChange={(event) =>
+                                            setFiltroNotasProdutoVinculado(
+                                                event.target.value as
+                                                | 'todos'
+                                                | 'com_produto'
+                                                | 'sem_produto'
+                                            )
+                                        }
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition focus:border-cyan-500"
+                                    >
+                                        <option value="todos">Todos</option>
+                                        <option value="com_produto">Todos os itens vinculados</option>
+                                        <option value="sem_produto">Com item sem produto</option>
+                                    </select>
+                                </label>
+
+                                <label className="space-y-1 text-xs font-semibold text-slate-400">
+                                    Emissão inicial
+                                    <input
+                                        type="date"
+                                        value={filtroNotasDataInicio}
+                                        onChange={(event) =>
+                                            setFiltroNotasDataInicio(event.target.value)
+                                        }
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition focus:border-cyan-500"
+                                    />
+                                </label>
+
+                                <label className="space-y-1 text-xs font-semibold text-slate-400">
+                                    Emissão final
+                                    <input
+                                        type="date"
+                                        value={filtroNotasDataFim}
+                                        onChange={(event) =>
+                                            setFiltroNotasDataFim(event.target.value)
+                                        }
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition focus:border-cyan-500"
+                                    />
+                                </label>
+                            </div>
+
+                            <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-300">Valor filtrado</p>
+                                    <p className="mt-1 text-lg font-bold text-emerald-200">{formatarMoeda(resumoNotasFiltradas.valorTotal)}</p>
+                                </div>
+
+                                <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 px-3 py-2">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-cyan-300">Itens vinculados</p>
+                                    <p className="mt-1 text-lg font-bold text-cyan-200">
+                                        {formatarNumero(resumoNotasFiltradas.itensComProduto)} / {formatarNumero(resumoNotasFiltradas.totalItens)}
+                                        <span className="ml-2 text-xs font-semibold text-cyan-200/70">
+                                            {obterPercentual(
+                                                resumoNotasFiltradas.itensComProduto,
+                                                resumoNotasFiltradas.totalItens
+                                            )}%
+                                        </span>
+                                    </p>
+                                </div>
+
+                                <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 px-3 py-2">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-purple-300">Compra vinculada</p>
+                                    <p className="mt-1 text-lg font-bold text-purple-200">
+                                        {formatarNumero(resumoNotasFiltradas.comCompra)}
+                                        <span className="ml-2 text-xs font-semibold text-purple-200/70">
+                                            Sem vínculo: {formatarNumero(resumoNotasFiltradas.semCompra)}
+                                        </span>
+                                    </p>
+                                </div>
+
+                                <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-red-300">Erros</p>
+                                    <p className="mt-1 text-lg font-bold text-red-200">{formatarNumero(resumoNotasFiltradas.comErro)}</p>
+                                </div>
+                            </div>
+
+                            <p className="mt-3 text-xs text-slate-500">
+                                Os filtros são apenas visuais e atuam sobre as notas já carregadas nesta tela. Eles não consultam a API do Olist novamente e não alteram compras, estoque ou lotes.
+                            </p>
                         </div>
 
                         <DataTableContainer className="mt-5" maxHeightClassName="max-h-[420px]">
@@ -1444,18 +1768,18 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                                 </thead>
 
                                 <tbody className="divide-y divide-slate-800">
-                                    {painel.notasEntradaRecentes.length === 0 ? (
+                                    {notasEntradaFiltradas.length === 0 ? (
                                         <tr>
                                             <td
                                                 colSpan={10}
                                                 className="px-3 py-8 text-center text-sm text-slate-500"
                                             >
-                                                Nenhuma nota de entrada encontrada no snapshot.
+                                                Nenhuma nota de entrada encontrada com os filtros atuais.
                                             </td>
                                         </tr>
                                     ) : null}
 
-                                    {painel.notasEntradaRecentes.map((nota) => (
+                                    {notasEntradaFiltradas.map((nota) => (
                                         <tr
                                             key={nota.nota_snapshot_id}
                                             className="hover:bg-slate-800/40"
@@ -1492,7 +1816,7 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                                                         nota.status_processamento
                                                     )}
                                                 >
-                                                    {nota.status_processamento ?? '-'}
+                                                    {obterLabelStatus(nota.status_processamento)}
                                                 </StatusBadge>
                                             </td>
                                             <td className="px-3 py-2.5">
