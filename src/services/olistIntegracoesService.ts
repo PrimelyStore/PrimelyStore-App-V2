@@ -28,6 +28,19 @@ export type OlistEstoqueDepositoResumo = {
     ultima_sincronizacao: string | null
 }
 
+export type OlistEstoqueDepositoDetalhado = {
+    id_produto_olist: NumeroBanco
+    sku: string | null
+    produto_nome: string | null
+    unidade: string | null
+    deposito_nome: string | null
+    saldo_deposito: NumeroBanco
+    reservado_deposito: NumeroBanco
+    disponivel_deposito: NumeroBanco
+    localizacao: string | null
+    sincronizado_em: string | null
+}
+
 export type OlistResumoPedidos = {
     totalPedidos: number
     pendentes: number
@@ -87,6 +100,7 @@ export type PainelIntegracoesOlist = {
     produtos: OlistResumoProdutos
     depositos: OlistDepositoSnapshot[]
     estoquePorDeposito: OlistEstoqueDepositoResumo[]
+    estoqueDetalhado: OlistEstoqueDepositoDetalhado[]
     pedidos: OlistResumoPedidos
     pedidosRecentes: OlistPedidoGerencial[]
     notasEntrada: OlistResumoNotasEntrada
@@ -245,6 +259,23 @@ async function buscarEstoquePorDepositoOlist() {
     return Array.from(mapa.values()).sort((a, b) =>
         a.deposito_nome.localeCompare(b.deposito_nome)
     )
+}
+
+async function buscarEstoqueDetalhadoOlist() {
+    const { data, error } = await supabase
+        .from('olist_estoque_depositos_snapshot')
+        .select(
+            'id_produto_olist, sku, produto_nome, unidade, deposito_nome, saldo_deposito, reservado_deposito, disponivel_deposito, localizacao, sincronizado_em'
+        )
+        .order('sku', { ascending: true, nullsFirst: false })
+        .order('deposito_nome', { ascending: true, nullsFirst: false })
+        .limit(10000)
+
+    if (error) {
+        throw new Error(error.message)
+    }
+
+    return (data ?? []) as OlistEstoqueDepositoDetalhado[]
 }
 
 async function buscarResumoPedidosOlist(): Promise<OlistResumoPedidos> {
@@ -412,6 +443,7 @@ export async function buscarPainelIntegracoesOlist(): Promise<PainelIntegracoesO
         produtos,
         depositos,
         estoquePorDeposito,
+        estoqueDetalhado,
         pedidos,
         pedidosRecentes,
         notasEntrada,
@@ -420,6 +452,7 @@ export async function buscarPainelIntegracoesOlist(): Promise<PainelIntegracoesO
         buscarResumoProdutosOlist(),
         buscarDepositosOlist(),
         buscarEstoquePorDepositoOlist(),
+        buscarEstoqueDetalhadoOlist(),
         buscarResumoPedidosOlist(),
         buscarPedidosRecentesOlist(),
         buscarResumoNotasEntradaOlist(),
@@ -430,6 +463,7 @@ export async function buscarPainelIntegracoesOlist(): Promise<PainelIntegracoesO
         produtos,
         depositos,
         estoquePorDeposito,
+        estoqueDetalhado,
         pedidos,
         pedidosRecentes,
         notasEntrada,

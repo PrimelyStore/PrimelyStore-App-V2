@@ -85,6 +85,54 @@ function obterDataInput(data?: string | null) {
     return dataConvertida.toISOString().slice(0, 10)
 }
 
+
+type StatusEstoqueOlist = 'ok' | 'baixo' | 'zerado' | 'com_reserva'
+
+function obterNumeroSeguro(valor?: number | string | null) {
+    const numero = Number(valor ?? 0)
+
+    if (!Number.isFinite(numero)) {
+        return 0
+    }
+
+    return numero
+}
+
+function obterStatusEstoqueOlist(item: PainelIntegracoesOlist['estoqueDetalhado'][number]) {
+    const disponivel = obterNumeroSeguro(item.disponivel_deposito)
+    const reservado = obterNumeroSeguro(item.reservado_deposito)
+
+    if (disponivel <= 0) {
+        return {
+            valor: 'zerado' as StatusEstoqueOlist,
+            label: 'Zerado',
+            tone: 'danger' as StatusBadgeTone,
+        }
+    }
+
+    if (reservado > 0) {
+        return {
+            valor: 'com_reserva' as StatusEstoqueOlist,
+            label: 'Com reserva',
+            tone: 'warning' as StatusBadgeTone,
+        }
+    }
+
+    if (disponivel <= 5) {
+        return {
+            valor: 'baixo' as StatusEstoqueOlist,
+            label: 'Baixo',
+            tone: 'warning' as StatusBadgeTone,
+        }
+    }
+
+    return {
+        valor: 'ok' as StatusEstoqueOlist,
+        label: 'OK',
+        tone: 'success' as StatusBadgeTone,
+    }
+}
+
 function ordenarTexto(a: string, b: string) {
     return a.localeCompare(b, 'pt-BR')
 }
@@ -134,6 +182,12 @@ export function IntegracoesOlist() {
     >('todos')
     const [filtroDataInicio, setFiltroDataInicio] = useState('')
     const [filtroDataFim, setFiltroDataFim] = useState('')
+
+    const [filtroEstoqueBusca, setFiltroEstoqueBusca] = useState('')
+    const [filtroEstoqueDeposito, setFiltroEstoqueDeposito] = useState('')
+    const [filtroEstoqueStatus, setFiltroEstoqueStatus] = useState<
+        'todos' | StatusEstoqueOlist
+    >('todos')
 
     async function carregarPainel() {
         try {
@@ -221,6 +275,71 @@ export function IntegracoesOlist() {
             )
         ).sort(ordenarTexto)
     }, [painel])
+
+    const opcoesDepositosEstoque = useMemo(() => {
+        if (!painel) {
+            return []
+        }
+
+        return Array.from(
+            new Set(
+                painel.estoqueDetalhado.map(
+                    (item) => item.deposito_nome ?? 'Não informado'
+                )
+            )
+        ).sort(ordenarTexto)
+    }, [painel])
+
+    const estoqueFiltrado = useMemo(() => {
+        if (!painel) {
+            return []
+        }
+
+        const buscaNormalizada = normalizarTexto(filtroEstoqueBusca)
+
+        return painel.estoqueDetalhado.filter((item) => {
+            const deposito = item.deposito_nome ?? 'Não informado'
+            const statusEstoque = obterStatusEstoqueOlist(item)
+
+            if (filtroEstoqueDeposito && deposito !== filtroEstoqueDeposito) {
+                return false
+            }
+
+            if (
+                filtroEstoqueStatus !== 'todos' &&
+                statusEstoque.valor !== filtroEstoqueStatus
+            ) {
+                return false
+            }
+
+            if (buscaNormalizada) {
+                const conteudoBusca = normalizarTexto([
+                    item.sku,
+                    item.produto_nome,
+                    item.unidade,
+                    item.localizacao,
+                    deposito,
+                    statusEstoque.label,
+                ].join(' '))
+
+                if (!conteudoBusca.includes(buscaNormalizada)) {
+                    return false
+                }
+            }
+
+            return true
+        })
+    }, [filtroEstoqueBusca, filtroEstoqueDeposito, filtroEstoqueStatus, painel])
+
+    const existemFiltrosEstoque = Boolean(
+        filtroEstoqueBusca || filtroEstoqueDeposito || filtroEstoqueStatus !== 'todos'
+    )
+
+    function limparFiltrosEstoque() {
+        setFiltroEstoqueBusca('')
+        setFiltroEstoqueDeposito('')
+        setFiltroEstoqueStatus('todos')
+    }
 
     const pedidosFiltrados = useMemo(() => {
         if (!painel) {
@@ -525,6 +644,167 @@ export function IntegracoesOlist() {
                             </div>
                         </AppCard>
                     </section>
+
+
+                    <AppCard>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-100">
+                                    Estoque Olist detalhado por SKU e depósito
+                                </h2>
+
+                                <p className="mt-1 text-sm text-slate-400">
+                                    Consulta somente leitura do snapshot de estoque do Olist. Use esta visão para conferir saldo por produto, depósito e situação operacional.
+                                </p>
+
+                                <p className="mt-2 text-xs text-slate-500">
+                                    Exibindo {formatarNumero(estoqueFiltrado.length)} de {formatarNumero(painel.estoqueDetalhado.length)} registro(s) carregado(s).
+                                </p>
+                            </div>
+
+                            <AppButton
+                                variant="secondary"
+                                onClick={limparFiltrosEstoque}
+                                disabled={!existemFiltrosEstoque}
+                            >
+                                Limpar filtros
+                            </AppButton>
+                        </div>
+
+                        <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                            <div className="grid gap-3 md:grid-cols-3">
+                                <label className="space-y-1 text-xs font-semibold text-slate-400">
+                                    Buscar SKU ou produto
+                                    <input
+                                        type="search"
+                                        value={filtroEstoqueBusca}
+                                        onChange={(event) =>
+                                            setFiltroEstoqueBusca(event.target.value)
+                                        }
+                                        placeholder="Ex.: AUT-LUX, Lava Seco"
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-cyan-500"
+                                    />
+                                </label>
+
+                                <label className="space-y-1 text-xs font-semibold text-slate-400">
+                                    Depósito
+                                    <select
+                                        value={filtroEstoqueDeposito}
+                                        onChange={(event) =>
+                                            setFiltroEstoqueDeposito(event.target.value)
+                                        }
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition focus:border-cyan-500"
+                                    >
+                                        <option value="">Todos os depósitos</option>
+                                        {opcoesDepositosEstoque.map((deposito) => (
+                                            <option key={deposito} value={deposito}>
+                                                {deposito}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label className="space-y-1 text-xs font-semibold text-slate-400">
+                                    Situação do saldo
+                                    <select
+                                        value={filtroEstoqueStatus}
+                                        onChange={(event) =>
+                                            setFiltroEstoqueStatus(
+                                                event.target.value as 'todos' | StatusEstoqueOlist
+                                            )
+                                        }
+                                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm font-normal text-slate-100 outline-none transition focus:border-cyan-500"
+                                    >
+                                        <option value="todos">Todos os status</option>
+                                        <option value="ok">OK</option>
+                                        <option value="baixo">Baixo</option>
+                                        <option value="zerado">Zerado</option>
+                                        <option value="com_reserva">Com reserva</option>
+                                    </select>
+                                </label>
+                            </div>
+
+                            <p className="mt-3 text-xs text-slate-500">
+                                Status calculado na tela: Zerado quando disponível ≤ 0, Com reserva quando há reserva, Baixo quando disponível entre 1 e 5, OK acima disso.
+                            </p>
+                        </div>
+
+                        <DataTableContainer className="mt-5" maxHeightClassName="max-h-[520px]">
+                            <table className="min-w-[1150px] divide-y divide-slate-800 text-left text-sm">
+                                <thead className={stickyTableHeadClassName}>
+                                    <tr>
+                                        <th className="px-4 py-3 font-semibold">SKU</th>
+                                        <th className="px-4 py-3 font-semibold">Produto</th>
+                                        <th className="px-4 py-3 font-semibold">Depósito</th>
+                                        <th className="px-4 py-3 font-semibold">Un.</th>
+                                        <th className="px-4 py-3 font-semibold">Saldo</th>
+                                        <th className="px-4 py-3 font-semibold">Reservado</th>
+                                        <th className="px-4 py-3 font-semibold">Disponível</th>
+                                        <th className="px-4 py-3 font-semibold">Situação</th>
+                                        <th className="px-4 py-3 font-semibold">Localização</th>
+                                        <th className="px-4 py-3 font-semibold">Sincronizado em</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody className="divide-y divide-slate-800">
+                                    {estoqueFiltrado.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan={10}
+                                                className="px-4 py-8 text-center text-sm text-slate-500"
+                                            >
+                                                Nenhum item de estoque encontrado com os filtros aplicados.
+                                            </td>
+                                        </tr>
+                                    ) : null}
+
+                                    {estoqueFiltrado.map((item, index) => {
+                                        const statusItem = obterStatusEstoqueOlist(item)
+
+                                        return (
+                                            <tr
+                                                key={`${item.id_produto_olist}-${item.deposito_nome}-${index}`}
+                                                className="hover:bg-slate-800/40"
+                                            >
+                                                <td className="px-4 py-3 font-mono text-xs text-cyan-300">
+                                                    {item.sku ?? '-'}
+                                                </td>
+                                                <td className="px-4 py-3 text-slate-300">
+                                                    {item.produto_nome ?? '-'}
+                                                </td>
+                                                <td className="px-4 py-3 text-slate-300">
+                                                    {item.deposito_nome ?? '-'}
+                                                </td>
+                                                <td className="px-4 py-3 text-slate-300">
+                                                    {item.unidade ?? '-'}
+                                                </td>
+                                                <td className="px-4 py-3 text-slate-300">
+                                                    {formatarNumero(item.saldo_deposito)}
+                                                </td>
+                                                <td className="px-4 py-3 text-yellow-300">
+                                                    {formatarNumero(item.reservado_deposito)}
+                                                </td>
+                                                <td className="px-4 py-3 font-semibold text-emerald-300">
+                                                    {formatarNumero(item.disponivel_deposito)}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <StatusBadge tone={statusItem.tone}>
+                                                        {statusItem.label}
+                                                    </StatusBadge>
+                                                </td>
+                                                <td className="px-4 py-3 text-slate-300">
+                                                    {item.localizacao ?? '-'}
+                                                </td>
+                                                <td className="px-4 py-3 text-slate-300">
+                                                    {formatarDataHora(item.sincronizado_em)}
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
+                                </tbody>
+                            </table>
+                        </DataTableContainer>
+                    </AppCard>
 
                     <section className="grid gap-4 lg:grid-cols-2">
                         <AppCard>
