@@ -97,6 +97,19 @@ function formatarDataHora(data?: string | null) {
 }
 
 
+function obterDataMaisRecente(datas: Array<string | null | undefined>) {
+    const timestamps = datas
+        .filter((data): data is string => Boolean(data))
+        .map((data) => new Date(data).getTime())
+        .filter((timestamp) => Number.isFinite(timestamp))
+
+    if (timestamps.length === 0) {
+        return null
+    }
+
+    return new Date(Math.max(...timestamps)).toISOString()
+}
+
 function normalizarTexto(valor?: string | number | null) {
     return String(valor ?? '')
         .normalize('NFD')
@@ -311,27 +324,56 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
         carregarPainel()
     }, [])
 
+    const ultimaSincronizacaoPorTipo = useMemo<
+        Partial<Record<OlistTipoSincronizacao, string | null>>
+    >(() => {
+        if (!painel) {
+            return {}
+        }
+
+        const ultimaSincronizacaoPedidosPeloLog = obterDataMaisRecente(
+            painel.logsRecentes
+                .filter((log) => log.origem === 'pedidos')
+                .flatMap((log) => [log.data_fim, log.data_inicio])
+        )
+
+        const ultimaSincronizacaoNotasPeloLog = obterDataMaisRecente(
+            painel.logsRecentes
+                .filter((log) => log.origem === 'notas_entrada')
+                .flatMap((log) => [log.data_fim, log.data_inicio])
+        )
+
+        return {
+            produtos: painel.produtos.ultimaSincronizacao,
+            depositos: obterDataMaisRecente(
+                painel.depositos.map((item) => item.sincronizado_em)
+            ),
+            estoque: obterDataMaisRecente(
+                painel.estoquePorDeposito.map((item) => item.ultima_sincronizacao)
+            ),
+            pedidos: obterDataMaisRecente([
+                painel.pedidos.ultimaSincronizacao,
+                ultimaSincronizacaoPedidosPeloLog,
+            ]),
+            notas_entrada: obterDataMaisRecente([
+                painel.notasEntrada.ultimaSincronizacao,
+                ultimaSincronizacaoNotasPeloLog,
+            ]),
+        }
+    }, [painel])
+
     const ultimaSincronizacaoGeral = useMemo(() => {
         if (!painel) {
             return null
         }
 
-        const datas = [
+        return obterDataMaisRecente([
             painel.produtos.ultimaSincronizacao,
             painel.pedidos.ultimaSincronizacao,
             painel.notasEntrada.ultimaSincronizacao,
             ...painel.estoquePorDeposito.map((item) => item.ultima_sincronizacao),
             ...painel.depositos.map((item) => item.sincronizado_em),
-        ]
-            .filter((data): data is string => Boolean(data))
-            .map((data) => new Date(data).getTime())
-            .filter((timestamp) => Number.isFinite(timestamp))
-
-        if (datas.length === 0) {
-            return null
-        }
-
-        return new Date(Math.max(...datas)).toISOString()
+        ])
     }, [painel])
 
     const opcoesCanaisPedidos = useMemo(() => {
@@ -616,8 +658,8 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
 
                         <div className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-100">
                             <span className="font-semibold">Modo seguro:</span> as
-                            sincronizações são manuais, bloqueiam duplo clique enquanto rodam
-                            e exibem o último resultado nesta sessão.
+                            sincronizações são manuais, bloqueiam duplo clique enquanto rodam,
+                            exibem a última execução da sessão e também a última sincronização real gravada no banco.
                         </div>
                     </div>
 
@@ -644,6 +686,8 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                         const existeSincronizacaoEmAndamento = sincronizandoTipo !== null
                         const ultimoResultadoOpcao =
                             resultadosSincronizacaoPorTipo[opcao.tipo]
+                        const ultimaSincronizacaoBanco =
+                            ultimaSincronizacaoPorTipo[opcao.tipo] ?? null
 
                         return (
                             <div
@@ -667,31 +711,44 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                                         {opcao.descricao}
                                     </p>
 
-                                    <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-[11px] leading-relaxed text-slate-400">
-                                        {ultimoResultadoOpcao ? (
-                                            <>
-                                                <p className="font-semibold text-slate-200">
-                                                    Última execução nesta sessão
-                                                </p>
-                                                <p className="mt-1 text-slate-400">
-                                                    {formatarDataHora(
-                                                        ultimoResultadoOpcao.synchronizedAt
-                                                    )}
-                                                </p>
-                                                <p className="mt-1 line-clamp-2 text-emerald-200/80">
-                                                    {ultimoResultadoOpcao.resumo}
-                                                </p>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <p className="font-semibold text-slate-300">
-                                                    Ainda não executado nesta sessão
-                                                </p>
-                                                <p className="mt-1">
-                                                    Use somente quando precisar atualizar o snapshot.
-                                                </p>
-                                            </>
-                                        )}
+                                    <div className="mt-3 space-y-2 text-[11px] leading-relaxed">
+                                        <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-cyan-100">
+                                            <p className="font-semibold">
+                                                Última sincronização no banco
+                                            </p>
+                                            <p className="mt-1 text-cyan-100/80">
+                                                {ultimaSincronizacaoBanco
+                                                    ? formatarDataHora(ultimaSincronizacaoBanco)
+                                                    : 'Sem registro identificado'}
+                                            </p>
+                                        </div>
+
+                                        <div className="rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-slate-400">
+                                            {ultimoResultadoOpcao ? (
+                                                <>
+                                                    <p className="font-semibold text-slate-200">
+                                                        Última execução nesta sessão
+                                                    </p>
+                                                    <p className="mt-1 text-slate-400">
+                                                        {formatarDataHora(
+                                                            ultimoResultadoOpcao.synchronizedAt
+                                                        )}
+                                                    </p>
+                                                    <p className="mt-1 line-clamp-2 text-emerald-200/80">
+                                                        {ultimoResultadoOpcao.resumo}
+                                                    </p>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <p className="font-semibold text-slate-300">
+                                                        Ainda não executado nesta sessão
+                                                    </p>
+                                                    <p className="mt-1">
+                                                        Use somente quando precisar atualizar o snapshot.
+                                                    </p>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
