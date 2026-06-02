@@ -721,3 +721,73 @@ export async function buscarPainelIntegracoesOlist(): Promise<PainelIntegracoesO
         logsRecentes,
     }
 }
+
+export type OlistSaudeResultado = {
+    ok: boolean
+    message: string | null
+    token_status: {
+        provider: string | null
+        status: string | null
+        token_type: string | null
+        expires_at: string | null
+        refresh_expires_at: string | null
+        expired: boolean
+        refresh_token_present: boolean
+    } | null
+    api: {
+        ok: boolean
+        status: number | null
+        account_preview: {
+            razaoSocial: string | null
+            fantasia: string | null
+            cpfCnpj_masked: string | null
+            email_masked: string | null
+            regimeTributario: number | null
+        } | null
+    } | null
+}
+
+export async function buscarSaudeOlist(): Promise<OlistSaudeResultado> {
+    const { data, error } = await supabase.functions.invoke('olist-health', {
+        method: 'GET',
+    })
+
+    if (error) {
+        throw new Error(error.message)
+    }
+
+    if (!data) {
+        throw new Error('A verificação de saúde do Olist não retornou dados.')
+    }
+
+    // Filtro estrito de segurança: reconstrói o objeto sem NENHUM token (caso viesse por engano)
+    const tokenStatus = data.token_status ? {
+        provider: typeof data.token_status.provider === 'string' ? data.token_status.provider : null,
+        status: typeof data.token_status.status === 'string' ? data.token_status.status : null,
+        token_type: typeof data.token_status.token_type === 'string' ? data.token_status.token_type : null,
+        expires_at: typeof data.token_status.expires_at === 'string' ? data.token_status.expires_at : null,
+        refresh_expires_at: typeof data.token_status.refresh_expires_at === 'string' ? data.token_status.refresh_expires_at : null,
+        expired: Boolean(data.token_status.expired),
+        refresh_token_present: Boolean(data.token_status.refresh_token_present),
+    } : null
+
+    const apiResult = data.api ? {
+        ok: Boolean(data.api.ok),
+        status: typeof data.api.status === 'number' ? data.api.status : null,
+        account_preview: data.api.account_preview ? {
+            razaoSocial: typeof data.api.account_preview.razaoSocial === 'string' ? data.api.account_preview.razaoSocial : null,
+            fantasia: typeof data.api.account_preview.fantasia === 'string' ? data.api.account_preview.fantasia : null,
+            cpfCnpj_masked: typeof data.api.account_preview.cpfCnpj_masked === 'string' ? data.api.account_preview.cpfCnpj_masked : null,
+            email_masked: typeof data.api.account_preview.email_masked === 'string' ? data.api.account_preview.email_masked : null,
+            regimeTributario: typeof data.api.account_preview.regimeTributario === 'number' ? data.api.account_preview.regimeTributario : null,
+        } : null
+    } : null
+
+    return {
+        ok: Boolean(data.ok),
+        message: typeof data.message === 'string' ? data.message : null,
+        token_status: tokenStatus,
+        api: apiResult
+    }
+}
+

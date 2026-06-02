@@ -11,10 +11,19 @@ import {
 import {
     buscarPainelIntegracoesOlist,
     sincronizarSnapshotOlist,
+    buscarSaudeOlist,
     type OlistSincronizacaoManualResultado,
     type OlistTipoSincronizacao,
     type PainelIntegracoesOlist,
+    type OlistSaudeResultado,
 } from '../services/olistIntegracoesService'
+import {
+    buscarSaudeAmazon,
+    sincronizarAmazonFBAEstoqueSnapshot,
+    buscarResumoAmazonFBAEstoqueSnapshot,
+    type AmazonSaudeResultado,
+    type ResumoAmazonFBAEstoqueSnapshot,
+} from '../services/amazonService'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
 
@@ -27,43 +36,51 @@ type StatusBadgeTone =
     | 'purple'
     | 'muted'
 
-type OpcaoSincronizacaoOlist = {
-    tipo: OlistTipoSincronizacao
+type TipoSincronizacaoCompleta = OlistTipoSincronizacao | 'amazon_fba'
+
+type OpcaoSincronizacao = {
+    tipo: TipoSincronizacaoCompleta
     titulo: string
     descricao: string
     aviso: string
 }
 
-const opcoesSincronizacaoOlist: OpcaoSincronizacaoOlist[] = [
+const opcoesSincronizacao: OpcaoSincronizacao[] = [
     {
         tipo: 'produtos',
-        titulo: 'Produtos',
+        titulo: 'Produtos Olist',
         descricao: 'Atualiza o snapshot de produtos ativos do Olist.',
         aviso: 'Sincronizar produtos do Olist? Esta ação apenas atualiza snapshots no Supabase.',
     },
     {
         tipo: 'depositos',
-        titulo: 'Depósitos',
+        titulo: 'Depósitos Olist',
         descricao: 'Atualiza a lista de depósitos cadastrados no Olist.',
         aviso: 'Sincronizar depósitos do Olist? Esta ação apenas atualiza snapshots no Supabase.',
     },
     {
         tipo: 'estoque',
-        titulo: 'Estoque',
+        titulo: 'Estoque Olist',
         descricao: 'Atualiza um lote seguro do estoque por depósito para evitar limite da API.',
         aviso: 'Sincronizar estoque por depósito do Olist? Esta ação lê um lote seguro de produtos e não altera estoque operacional.',
     },
     {
         tipo: 'pedidos',
-        titulo: 'Pedidos',
+        titulo: 'Pedidos Olist',
         descricao: 'Atualiza um lote pequeno de pedidos e itens em snapshots gerenciais.',
         aviso: 'Sincronizar pedidos do Olist? Esta ação usa processar=false e baixar_fifo=false. Não cria vendas oficiais e não baixa estoque.',
     },
     {
         tipo: 'notas_entrada',
-        titulo: 'Notas de entrada',
+        titulo: 'Notas de entrada Olist',
         descricao: 'Atualiza um lote pequeno de notas de entrada para conferência gerencial.',
         aviso: 'Sincronizar notas de entrada do Olist? Esta ação apenas atualiza snapshots e não gera estoque, lote ou recebimento automático.',
+    },
+    {
+        tipo: 'amazon_fba',
+        titulo: 'Estoque FBA Amazon',
+        descricao: 'Atualiza o snapshot de estoque e inventário Amazon FBA diretamente da SP-API.',
+        aviso: 'Sincronizar estoque Amazon FBA? Esta ação apenas atualiza snapshots no Supabase.',
     },
 ]
 
@@ -245,15 +262,21 @@ function obterTomStatus(status?: string | null): StatusBadgeTone {
 export function IntegracoesOlist() {
     const [status, setStatus] = useState<StatusCarregamento>('carregando')
     const [mensagem, setMensagem] = useState(
-        'Carregando painel gerencial do Olist...'
+        'Carregando painel gerencial e saúde das integrações...'
     )
     const [painel, setPainel] = useState<PainelIntegracoesOlist | null>(null)
+    const [saudeOlist, setSaudeOlist] = useState<OlistSaudeResultado | null>(null)
+    const [saudeAmazon, setSaudeAmazon] = useState<AmazonSaudeResultado | null>(null)
+    const [resumoAmazon, setResumoAmazon] = useState<ResumoAmazonFBAEstoqueSnapshot | null>(null)
+    const [carregandoSaude, setCarregandoSaude] = useState(false)
+    const [abaAtiva, setAbaAtiva] = useState<'conexoes' | 'auditoria' | 'logs'>('conexoes')
+
     const [sincronizandoTipo, setSincronizandoTipo] =
-        useState<OlistTipoSincronizacao | null>(null)
+        useState<TipoSincronizacaoCompleta | null>(null)
     const [ultimoResultadoSincronizacao, setUltimoResultadoSincronizacao] =
         useState<OlistSincronizacaoManualResultado | null>(null)
     const [resultadosSincronizacaoPorTipo, setResultadosSincronizacaoPorTipo] =
-        useState<Partial<Record<OlistTipoSincronizacao, OlistSincronizacaoManualResultado>>>(
+        useState<Partial<Record<TipoSincronizacaoCompleta, OlistSincronizacaoManualResultado>>>(
             {}
         )
 
@@ -287,13 +310,23 @@ export function IntegracoesOlist() {
     async function carregarPainel() {
         try {
             setStatus('carregando')
-            setMensagem('Carregando painel gerencial do Olist...')
+            setMensagem('Carregando painel gerencial e saúde das integrações...')
+            setCarregandoSaude(true)
 
-            const dados = await buscarPainelIntegracoesOlist()
+            const [dados, saudeOlistRes, saudeAmazonRes, resumoAmazonRes] = await Promise.all([
+                buscarPainelIntegracoesOlist(),
+                buscarSaudeOlist().catch(() => null),
+                buscarSaudeAmazon().catch(() => null),
+                buscarResumoAmazonFBAEstoqueSnapshot().catch(() => null)
+            ])
 
             setPainel(dados)
+            setSaudeOlist(saudeOlistRes)
+            setSaudeAmazon(saudeAmazonRes)
+            setResumoAmazon(resumoAmazonRes)
+            
             setStatus('sucesso')
-            setMensagem('Dados gerenciais do Olist carregados com sucesso.')
+            setMensagem('Dados gerenciais e saúde das integrações carregados com sucesso.')
         } catch (error) {
             setStatus('erro')
             setPainel(null)
@@ -301,17 +334,19 @@ export function IntegracoesOlist() {
             if (error instanceof Error) {
                 setMensagem(error.message)
             } else {
-                setMensagem('Erro desconhecido ao carregar dados do Olist.')
+                setMensagem('Erro desconhecido ao carregar dados do painel.')
             }
+        } finally {
+            setCarregandoSaude(false)
         }
     }
 
 
-    async function executarSincronizacaoManual(opcao: OpcaoSincronizacaoOlist) {
+    async function executarSincronizacaoManual(opcao: OpcaoSincronizacao) {
         const confirmarSincronizacao = window.confirm(
             `${opcao.aviso}
 
-Regra de segurança: esta ação não processa pedidos como vendas oficiais, não executa baixa FIFO e não altera o estoque operacional do Olist.`
+Regra de segurança: esta ação apenas atualiza snapshots no Supabase. Não cria vendas oficiais, não altera estoque operacional e não realiza operações destrutivas.`
         )
 
         if (!confirmarSincronizacao) {
@@ -322,28 +357,58 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
             setSincronizandoTipo(opcao.tipo)
             setUltimoResultadoSincronizacao(null)
             setStatus('carregando')
-            setMensagem(`Sincronizando ${opcao.titulo.toLowerCase()} do Olist...`)
+            setMensagem(`Sincronizando ${opcao.titulo.toLowerCase()}...`)
 
-            const resultado = await sincronizarSnapshotOlist(opcao.tipo)
-            const dadosAtualizados = await buscarPainelIntegracoesOlist()
+            if (opcao.tipo === 'amazon_fba') {
+                const resultado = await sincronizarAmazonFBAEstoqueSnapshot()
+                const resumoAmazonRes = await buscarResumoAmazonFBAEstoqueSnapshot()
+                setResumoAmazon(resumoAmazonRes)
+                
+                const resultadoManual: OlistSincronizacaoManualResultado = {
+                    tipo: 'estoque', // compatível com os tipos do olist para uso na tela
+                    rotulo: 'Amazon FBA',
+                    ok: resultado.ok,
+                    service: resultado.service,
+                    message: resultado.message,
+                    status: 'sucesso',
+                    synchronizedAt: resultado.result?.synchronized_at ?? new Date().toISOString(),
+                    resumo: `Total recebido: ${resultado.result?.received_count ?? 0} • Salvo: ${resultado.result?.saved_count ?? 0}`,
+                    raw: resultado as unknown as Record<string, unknown>
+                }
+                
+                setUltimoResultadoSincronizacao(resultadoManual)
+                setResultadosSincronizacaoPorTipo((resultadosAtuais) => ({
+                    ...resultadosAtuais,
+                    [opcao.tipo]: resultadoManual,
+                }))
+            } else {
+                const resultado = await sincronizarSnapshotOlist(opcao.tipo)
+                const dadosAtualizados = await buscarPainelIntegracoesOlist()
+                setPainel(dadosAtualizados)
+                setUltimoResultadoSincronizacao(resultado)
+                setResultadosSincronizacaoPorTipo((resultadosAtuais) => ({
+                    ...resultadosAtuais,
+                    [opcao.tipo]: resultado,
+                }))
+            }
 
-            setPainel(dadosAtualizados)
-            setUltimoResultadoSincronizacao(resultado)
-            setResultadosSincronizacaoPorTipo((resultadosAtuais) => ({
-                ...resultadosAtuais,
-                [opcao.tipo]: resultado,
-            }))
+            // Recarregar os status de conexão pós-sync
+            const [saudeOlistRes, saudeAmazonRes] = await Promise.all([
+                buscarSaudeOlist().catch(() => null),
+                buscarSaudeAmazon().catch(() => null)
+            ])
+            setSaudeOlist(saudeOlistRes)
+            setSaudeAmazon(saudeAmazonRes)
+
             setStatus('sucesso')
-            setMensagem(
-                `${resultado.rotulo} sincronizado com sucesso. ${resultado.resumo}`
-            )
+            setMensagem(`${opcao.titulo} sincronizado com sucesso.`)
         } catch (error) {
             setStatus('erro')
 
             if (error instanceof Error) {
                 setMensagem(error.message)
             } else {
-                setMensagem('Erro desconhecido ao sincronizar dados do Olist.')
+                setMensagem('Erro desconhecido ao sincronizar dados.')
             }
         } finally {
             setSincronizandoTipo(null)
@@ -355,7 +420,7 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
     }, [])
 
     const ultimaSincronizacaoPorTipo = useMemo<
-        Partial<Record<OlistTipoSincronizacao, string | null>>
+        Partial<Record<TipoSincronizacaoCompleta, string | null>>
     >(() => {
         if (!painel) {
             return {}
@@ -389,8 +454,9 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                 painel.notasEntrada.ultimaSincronizacao,
                 ultimaSincronizacaoNotasPeloLog,
             ]),
+            amazon_fba: resumoAmazon?.ultima_sincronizacao ?? null,
         }
-    }, [painel])
+    }, [painel, resumoAmazon])
 
     const ultimaSincronizacaoGeral = useMemo(() => {
         if (!painel) {
@@ -773,27 +839,61 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
         <div className="space-y-6">
             <PageHeader
                 tag="INTEGRAÇÕES"
-                title="Integrações Olist"
-                description="Painel somente leitura para acompanhar snapshots vindos do Olist/Tiny. Esta tela é gerencial: não processa pedidos, não cria vendas oficiais e não executa baixa FIFO."
+                title="Saúde dos Dados e Integrações"
+                description="Painel gerencial somente leitura para acompanhar a saúde e sincronizar os snapshots de dados da Olist/Tiny e Amazon FBA."
             />
 
-            <AppCard className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            {/* Abas de Navegação */}
+            <div className="flex border-b border-slate-800 gap-6">
+                <button
+                    onClick={() => setAbaAtiva('conexoes')}
+                    className={`pb-3 text-sm font-semibold transition border-b-2 px-1 ${
+                        abaAtiva === 'conexoes'
+                            ? 'border-cyan-500 text-cyan-400'
+                            : 'border-transparent text-slate-400 hover:text-slate-200'
+                    }`}
+                >
+                    Painel de Conexões
+                </button>
+                <button
+                    onClick={() => setAbaAtiva('auditoria')}
+                    className={`pb-3 text-sm font-semibold transition border-b-2 px-1 ${
+                        abaAtiva === 'auditoria'
+                            ? 'border-cyan-500 text-cyan-400'
+                            : 'border-transparent text-slate-400 hover:text-slate-200'
+                    }`}
+                >
+                    Auditoria de Dados
+                </button>
+                <button
+                    onClick={() => setAbaAtiva('logs')}
+                    className={`pb-3 text-sm font-semibold transition border-b-2 px-1 ${
+                        abaAtiva === 'logs'
+                            ? 'border-cyan-500 text-cyan-400'
+                            : 'border-transparent text-slate-400 hover:text-slate-200'
+                    }`}
+                >
+                    Logs de Sincronização
+                </button>
+            </div>
+
+            {/* Status do Carregamento Geral */}
+            <AppCard className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between py-4">
                 <div>
-                    <p className="text-sm font-semibold text-slate-200">
-                        Status do carregamento
+                    <p className="text-sm font-semibold text-slate-200 flex items-center gap-2">
+                        Status do Painel
+                        {carregandoSaude && <span className="text-xs text-slate-500 font-normal animate-pulse">(verificando conexões...)</span>}
                     </p>
-
-                    <p className="mt-2 text-sm text-slate-400">{mensagem}</p>
-
-                    <p className="mt-2 text-xs text-slate-500">
-                        Última sincronização geral identificada:{' '}
-                        <span className="text-slate-300">
-                            {formatarDataHora(ultimaSincronizacaoGeral)}
-                        </span>
-                    </p>
+                    <div className="mt-1 flex flex-col gap-1">
+                        <p className="text-xs text-slate-400">{mensagem}</p>
+                        {ultimaSincronizacaoGeral && (
+                            <p className="text-[11px] text-slate-500">
+                                Última sincronização de dados detectada: <span className="font-semibold text-cyan-400">{formatarDataHora(ultimaSincronizacaoGeral)}</span>
+                            </p>
+                        )}
+                    </div>
                 </div>
-
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-3">
                     <StatusBadge
                         tone={
                             status === 'sucesso'
@@ -804,151 +904,230 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                         }
                     >
                         {status === 'sucesso'
-                            ? 'Carregado'
+                            ? 'Atualizado'
                             : status === 'erro'
                                 ? 'Erro'
                                 : 'Carregando'}
                     </StatusBadge>
-
                     <AppButton
                         variant="secondary"
                         onClick={carregarPainel}
                         disabled={status === 'carregando' || sincronizandoTipo !== null}
                     >
-                        Recarregar dados
+                        Atualizar Status
                     </AppButton>
                 </div>
             </AppCard>
 
-            <AppCard>
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
-                        <h2 className="text-lg font-bold text-slate-100">
-                            Sincronizações manuais controladas
-                        </h2>
-                        <p className="mt-1 text-sm text-slate-400">
-                            Estes botões chamam somente Edge Functions de snapshot. Eles não
-                            criam vendas oficiais, não processam pedidos e não executam baixa FIFO.
-                        </p>
+            {abaAtiva === 'conexoes' && (
+                <>
+                    {/* Saúde das Conexões (Cards Premium) */}
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        {/* Card Olist */}
+                        <AppCard className="flex flex-col justify-between min-h-36">
+                            <div>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Conexão Olist/Tiny</p>
+                                    <StatusBadge tone={saudeOlist?.ok ? 'success' : 'danger'}>
+                                        {saudeOlist?.ok ? 'Conectado' : 'Desconectado'}
+                                    </StatusBadge>
+                                </div>
+                                <p className="mt-3 text-sm font-semibold text-slate-200">
+                                    {saudeOlist?.api?.account_preview?.fantasia ?? saudeOlist?.api?.account_preview?.razaoSocial ?? 'Conta Olist/Tiny'}
+                                </p>
+                                {saudeOlist?.api?.account_preview?.cpfCnpj_masked && (
+                                    <p className="mt-1 text-xs text-slate-400 font-mono">
+                                        CNPJ: {saudeOlist.api.account_preview.cpfCnpj_masked}
+                                    </p>
+                                )}
+                            </div>
+                            <div className="mt-4 pt-2 border-t border-slate-800/60 text-[11px] text-slate-500">
+                                {saudeOlist?.token_status?.expires_at ? (
+                                    <span>Token expira: {formatarDataHora(saudeOlist.token_status.expires_at)}</span>
+                                ) : (
+                                    <span>Sem info de expiração</span>
+                                )}
+                            </div>
+                        </AppCard>
 
-                        <div className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-100">
-                            <span className="font-semibold">Modo seguro:</span> as
-                            sincronizações são manuais, bloqueiam duplo clique enquanto rodam,
-                            exibem a última execução da sessão e também a última sincronização real gravada no banco.
-                        </div>
+                        {/* Card Amazon */}
+                        <AppCard className="flex flex-col justify-between min-h-36">
+                            <div>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Conexão Amazon SP-API</p>
+                                    <StatusBadge tone={saudeAmazon?.ok ? 'success' : 'danger'}>
+                                        {saudeAmazon?.ok ? 'Conectado' : 'Indisponível'}
+                                    </StatusBadge>
+                                </div>
+                                <p className="mt-3 text-sm font-semibold text-slate-200">
+                                    Amazon Brasil (BR)
+                                </p>
+                                <p className="mt-1 text-xs text-slate-400">
+                                    Token LWA: <span className="font-semibold text-emerald-400">{saudeAmazon?.lwa_token_ok ? 'Operacional' : 'Erro'}</span>
+                                </p>
+                            </div>
+                            <div className="mt-4 pt-2 border-t border-slate-800/60 text-[11px] text-slate-500">
+                                <span>Segredos ativos: {saudeAmazon?.configured_secrets_count ?? 0}/{saudeAmazon?.total_expected_secrets ?? 9}</span>
+                            </div>
+                        </AppCard>
+
+                        {/* Card Keepa */}
+                        <AppCard className="flex flex-col justify-between opacity-60 min-h-36">
+                            <div>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Keepa API</p>
+                                    <StatusBadge tone="muted">Futuro</StatusBadge>
+                                </div>
+                                <p className="mt-3 text-sm font-semibold text-slate-300">
+                                    Mineração de Produtos
+                                </p>
+                                <p className="mt-1 text-xs text-slate-400">
+                                    Integração pendente de ativação
+                                </p>
+                            </div>
+                            <div className="mt-4 pt-2 border-t border-slate-800/60 text-[11px] text-slate-500">
+                                <span>Aguardando etapa do Roadmap</span>
+                            </div>
+                        </AppCard>
+
+                        {/* Card Mercado Livre */}
+                        <AppCard className="flex flex-col justify-between opacity-60 min-h-36">
+                            <div>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Mercado Livre API</p>
+                                    <StatusBadge tone="muted">Futuro</StatusBadge>
+                                </div>
+                                <p className="mt-3 text-sm font-semibold text-slate-300">
+                                    Saldos Full / Flex
+                                </p>
+                                <p className="mt-1 text-xs text-slate-400">
+                                    Integração em planejamento
+                                </p>
+                            </div>
+                            <div className="mt-4 pt-2 border-t border-slate-800/60 text-[11px] text-slate-500">
+                                <span>Aguardando etapa do Roadmap</span>
+                            </div>
+                        </AppCard>
                     </div>
 
-                    {ultimoResultadoSincronizacao ? (
-                        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-200 lg:max-w-md">
-                            <p className="font-semibold text-emerald-100">
-                                Última sincronização: {ultimoResultadoSincronizacao.rotulo}
-                            </p>
-                            <p className="mt-1 text-emerald-200/80">
-                                {ultimoResultadoSincronizacao.resumo}
-                            </p>
-                            <p className="mt-1 text-emerald-200/60">
-                                {formatarDataHora(
-                                    ultimoResultadoSincronizacao.synchronizedAt
-                                )}
-                            </p>
-                        </div>
-                    ) : null}
-                </div>
-
-                <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                    {opcoesSincronizacaoOlist.map((opcao) => {
-                        const estaSincronizando = sincronizandoTipo === opcao.tipo
-                        const existeSincronizacaoEmAndamento = sincronizandoTipo !== null
-                        const ultimoResultadoOpcao =
-                            resultadosSincronizacaoPorTipo[opcao.tipo]
-                        const ultimaSincronizacaoBanco =
-                            ultimaSincronizacaoPorTipo[opcao.tipo] ?? null
-
-                        return (
-                            <div
-                                key={opcao.tipo}
-                                className="flex min-h-48 flex-col justify-between rounded-2xl border border-slate-800 bg-slate-950 p-4"
-                            >
-                                <div>
-                                    <div className="flex items-start justify-between gap-3">
-                                        <p className="text-sm font-bold text-slate-100">
-                                            {opcao.titulo}
-                                        </p>
-
-                                        <StatusBadge
-                                            tone={estaSincronizando ? 'warning' : 'info'}
-                                        >
-                                            {estaSincronizando ? 'Em execução' : 'Snapshot'}
-                                        </StatusBadge>
-                                    </div>
-
-                                    <p className="mt-2 text-xs leading-relaxed text-slate-400">
-                                        {opcao.descricao}
-                                    </p>
-
-                                    <div className="mt-3 space-y-2 text-[11px] leading-relaxed">
-                                        <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-cyan-100">
-                                            <p className="font-semibold">
-                                                Última sincronização no banco
-                                            </p>
-                                            <p className="mt-1 text-cyan-100/80">
-                                                {ultimaSincronizacaoBanco
-                                                    ? formatarDataHora(ultimaSincronizacaoBanco)
-                                                    : 'Sem registro identificado'}
-                                            </p>
-                                        </div>
-
-                                        <div className="rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-slate-400">
-                                            {ultimoResultadoOpcao ? (
-                                                <>
-                                                    <p className="font-semibold text-slate-200">
-                                                        Última execução nesta sessão
-                                                    </p>
-                                                    <p className="mt-1 text-slate-400">
-                                                        {formatarDataHora(
-                                                            ultimoResultadoOpcao.synchronizedAt
-                                                        )}
-                                                    </p>
-                                                    <p className="mt-1 line-clamp-2 text-emerald-200/80">
-                                                        {ultimoResultadoOpcao.resumo}
-                                                    </p>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <p className="font-semibold text-slate-300">
-                                                        Ainda não executado nesta sessão
-                                                    </p>
-                                                    <p className="mt-1">
-                                                        Use somente quando precisar atualizar o snapshot.
-                                                    </p>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <AppButton
-                                    className="mt-4 w-full"
-                                    size="sm"
-                                    variant={estaSincronizando ? 'success' : 'secondary'}
-                                    disabled={existeSincronizacaoEmAndamento}
-                                    onClick={() => executarSincronizacaoManual(opcao)}
-                                >
-                                    {estaSincronizando
-                                        ? 'Sincronizando...'
-                                        : existeSincronizacaoEmAndamento
-                                            ? 'Aguarde finalizar'
-                                            : 'Sincronizar'}
-                                </AppButton>
+                    {/* Sincronizações Manuais */}
+                    <AppCard>
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-100">
+                                    Sincronizações manuais controladas
+                                </h2>
+                                <p className="mt-1 text-sm text-slate-400">
+                                    Estes botões chamam somente Edge Functions de snapshot. Eles não criam vendas oficiais e não alteram o estoque operacional.
+                                </p>
                             </div>
-                        )
-                    })}
-                </div>
-            </AppCard>
 
-            {painel ? (
+                            {ultimoResultadoSincronizacao ? (
+                                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-200 lg:max-w-md">
+                                    <p className="font-semibold text-emerald-100">
+                                        Última sincronização: {ultimoResultadoSincronizacao.rotulo}
+                                    </p>
+                                    <p className="mt-1 text-emerald-200/80">
+                                        {ultimoResultadoSincronizacao.resumo}
+                                    </p>
+                                    <p className="mt-1 text-emerald-200/60">
+                                        {formatarDataHora(
+                                            ultimoResultadoSincronizacao.synchronizedAt
+                                        )}
+                                    </p>
+                                </div>
+                            ) : null}
+                        </div>
+
+                        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                            {opcoesSincronizacao.map((opcao) => {
+                                const estaSincronizando = sincronizandoTipo === opcao.tipo
+                                const existeSincronizacaoEmAndamento = sincronizandoTipo !== null
+                                const ultimoResultadoOpcao =
+                                    resultadosSincronizacaoPorTipo[opcao.tipo]
+                                const ultimaSincronizacaoBanco =
+                                    ultimaSincronizacaoPorTipo[opcao.tipo] ?? null
+
+                                return (
+                                    <div
+                                        key={opcao.tipo}
+                                        className="flex min-h-52 flex-col justify-between rounded-2xl border border-slate-800 bg-slate-950 p-4"
+                                    >
+                                        <div>
+                                            <div className="flex items-start justify-between gap-3">
+                                                <p className="text-sm font-bold text-slate-100 leading-tight">
+                                                    {opcao.titulo}
+                                                </p>
+
+                                                <StatusBadge
+                                                    tone={estaSincronizando ? 'warning' : 'info'}
+                                                >
+                                                    {estaSincronizando ? 'Rodando' : 'Snapshot'}
+                                                </StatusBadge>
+                                            </div>
+
+                                            <p className="mt-2 text-[11px] leading-relaxed text-slate-400 min-h-12">
+                                                {opcao.descricao}
+                                            </p>
+
+                                            <div className="mt-3 space-y-2 text-[10px] leading-relaxed">
+                                                <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1.5 text-cyan-100">
+                                                    <p className="font-semibold text-slate-300">Última no banco</p>
+                                                    <p className="mt-0.5 text-cyan-100/85 font-mono">
+                                                        {ultimaSincronizacaoBanco
+                                                            ? formatarDataHora(ultimaSincronizacaoBanco)
+                                                            : 'Não encontrada'}
+                                                    </p>
+                                                </div>
+
+                                                <div className="rounded-lg border border-slate-800 bg-slate-900/70 px-2.5 py-1.5 text-slate-450">
+                                                    {ultimoResultadoOpcao ? (
+                                                        <>
+                                                            <p className="font-semibold text-slate-200">Nesta sessão</p>
+                                                            <p className="mt-0.5 font-mono">
+                                                                {formatarDataHora(
+                                                                    ultimoResultadoOpcao.synchronizedAt
+                                                                )}
+                                                            </p>
+                                                            <p className="mt-0.5 line-clamp-2 text-emerald-250/80">
+                                                                {ultimoResultadoOpcao.resumo}
+                                                            </p>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <p className="font-semibold text-slate-350">Nesta sessão</p>
+                                                            <p className="mt-0.5">Sem execução</p>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <AppButton
+                                            className="mt-4 w-full"
+                                            size="sm"
+                                            variant={estaSincronizando ? 'success' : 'secondary'}
+                                            disabled={existeSincronizacaoEmAndamento}
+                                            onClick={() => executarSincronizacaoManual(opcao)}
+                                        >
+                                            {estaSincronizando
+                                                ? 'Sync...'
+                                                : existeSincronizacaoEmAndamento
+                                                    ? 'Aguarde'
+                                                    : 'Sincronizar'}
+                                        </AppButton>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </AppCard>
+                </>
+            )}
+
+            {abaAtiva === 'auditoria' && painel && (
                 <>
                     <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+
                         <StatCard
                             label="Produtos Olist"
                             value={formatarNumero(painel.produtos.total)}
@@ -1841,71 +2020,75 @@ Regra de segurança: esta ação não processa pedidos como vendas oficiais, nã
                             </table>
                         </DataTableContainer>
                     </AppCard>
-
-                    <AppCard>
-                        <h2 className="text-lg font-bold text-slate-100">
-                            Últimos logs de sincronização
-                        </h2>
-
-                        <DataTableContainer className="mt-5" maxHeightClassName="max-h-[360px]">
-                            <table className="min-w-[760px] divide-y divide-slate-800 text-left text-xs">
-                                <thead className={stickyTableHeadClassName}>
-                                    <tr>
-                                        <th className="px-3 py-2.5 font-semibold">Origem</th>
-                                        <th className="px-3 py-2.5 font-semibold">Status</th>
-                                        <th className="px-3 py-2.5 font-semibold">Início</th>
-                                        <th className="px-3 py-2.5 font-semibold">Fim</th>
-                                        <th className="px-3 py-2.5 font-semibold">Lidos</th>
-                                        <th className="px-3 py-2.5 font-semibold">Inseridos</th>
-                                        <th className="px-3 py-2.5 font-semibold">Atualizados</th>
-                                        <th className="px-3 py-2.5 font-semibold">Erros</th>
-                                        <th className="px-3 py-2.5 font-semibold">Mensagem</th>
-                                    </tr>
-                                </thead>
-
-                                <tbody className="divide-y divide-slate-800">
-                                    {painel.logsRecentes.map((log, index) => (
-                                        <tr
-                                            key={`${log.origem}-${log.data_inicio}-${index}`}
-                                            className="hover:bg-slate-800/40"
-                                        >
-                                            <td className="px-3 py-2.5 text-slate-300">
-                                                {formatarOrigemLog(log.origem)}
-                                            </td>
-                                            <td className="px-3 py-2.5">
-                                                <StatusBadge tone={obterTomStatus(log.status)}>
-                                                    {log.status ?? '-'}
-                                                </StatusBadge>
-                                            </td>
-                                            <td className="px-3 py-2.5 text-slate-300">
-                                                {formatarDataHora(log.data_inicio)}
-                                            </td>
-                                            <td className="px-3 py-2.5 text-slate-300">
-                                                {formatarDataHora(log.data_fim)}
-                                            </td>
-                                            <td className="px-3 py-2.5 text-slate-300">
-                                                {formatarNumero(log.lidos)}
-                                            </td>
-                                            <td className="px-3 py-2.5 text-slate-300">
-                                                {formatarNumero(log.inseridos)}
-                                            </td>
-                                            <td className="px-3 py-2.5 text-slate-300">
-                                                {formatarNumero(log.atualizados)}
-                                            </td>
-                                            <td className="px-3 py-2.5 text-slate-300">
-                                                {formatarNumero(log.erros)}
-                                            </td>
-                                            <td className="px-3 py-2.5 text-slate-400">
-                                                {log.mensagem ?? '-'}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </DataTableContainer>
-                    </AppCard>
                 </>
-            ) : status === 'carregando' ? (
+            )}
+
+            {abaAtiva === 'logs' && painel && (
+                <AppCard>
+                    <h2 className="text-lg font-bold text-slate-100">
+                        Últimos logs de sincronização
+                    </h2>
+
+                    <DataTableContainer className="mt-5" maxHeightClassName="max-h-[360px]">
+                        <table className="min-w-[760px] divide-y divide-slate-800 text-left text-xs">
+                            <thead className={stickyTableHeadClassName}>
+                                <tr>
+                                    <th className="px-3 py-2.5 font-semibold">Origem</th>
+                                    <th className="px-3 py-2.5 font-semibold">Status</th>
+                                    <th className="px-3 py-2.5 font-semibold">Início</th>
+                                    <th className="px-3 py-2.5 font-semibold">Fim</th>
+                                    <th className="px-3 py-2.5 font-semibold">Lidos</th>
+                                    <th className="px-3 py-2.5 font-semibold">Inseridos</th>
+                                    <th className="px-3 py-2.5 font-semibold">Atualizados</th>
+                                    <th className="px-3 py-2.5 font-semibold">Erros</th>
+                                    <th className="px-3 py-2.5 font-semibold">Mensagem</th>
+                                </tr>
+                            </thead>
+
+                            <tbody className="divide-y divide-slate-800">
+                                {painel.logsRecentes.map((log, index) => (
+                                    <tr
+                                        key={`${log.origem}-${log.data_inicio}-${index}`}
+                                        className="hover:bg-slate-800/40"
+                                    >
+                                        <td className="px-3 py-2.5 text-slate-300">
+                                            {formatarOrigemLog(log.origem)}
+                                        </td>
+                                        <td className="px-3 py-2.5">
+                                            <StatusBadge tone={obterTomStatus(log.status)}>
+                                                {log.status ?? '-'}
+                                            </StatusBadge>
+                                        </td>
+                                        <td className="px-3 py-2.5 text-slate-300">
+                                            {formatarDataHora(log.data_inicio)}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-slate-300">
+                                            {formatarDataHora(log.data_fim)}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-slate-300">
+                                            {formatarNumero(log.lidos)}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-slate-300">
+                                            {formatarNumero(log.inseridos)}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-slate-300">
+                                            {formatarNumero(log.atualizados)}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-slate-300">
+                                            {formatarNumero(log.erros)}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-slate-400">
+                                            {log.mensagem ?? '-'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </DataTableContainer>
+                </AppCard>
+            )}
+
+            {!painel && status === 'carregando' ? (
                 <AppCard>
                     <p className="text-sm text-slate-400">
                         Carregando dados do Olist...

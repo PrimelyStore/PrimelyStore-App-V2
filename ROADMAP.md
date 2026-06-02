@@ -40,18 +40,18 @@ Critério de conclusão:
 
 ## Módulo 2 — Saúde das Integrações
 
-Status: [ ] Pendente  
+Status: [x] Concluído  
 Prioridade: Alta  
 Objetivo: mostrar se os dados do sistema estão confiáveis.
 
 Etapas:
 
-- [ ] 2.1 Mapear Edge Functions existentes
-- [ ] 2.2 Mapear logs de sincronização
-- [ ] 2.3 Criar tela de status das integrações
-- [ ] 2.4 Mostrar última sincronização
-- [ ] 2.5 Mostrar erros recentes
-- [ ] 2.6 Mostrar contagem de produtos/estoque/pedidos/notas
+- [x] 2.1 Mapear Edge Functions existentes
+- [x] 2.2 Mapear logs de sincronização
+- [x] 2.3 Criar tela de status das integrações
+- [x] 2.4 Mostrar última sincronização
+- [x] 2.5 Mostrar erros recentes
+- [x] 2.6 Mostrar contagem de produtos/estoque/pedidos/notas
 
 ---
 
