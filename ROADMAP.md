@@ -57,18 +57,19 @@ Etapas:
 
 ## Módulo 3 — Dashboard Gerencial
 
-Status: [ ] Pendente  
-Prioridade: Alta  
-Objetivo: criar visão executiva baseada em snapshots e views.
+Status: [x] Concluído  
+Prioridade: Alta
+Objetivo: criar visão executiva baseada em snapshots, views e dados consolidados.
 
 Etapas:
 
-- [ ] 3.1 Auditar fontes reais de dados
-- [ ] 3.2 Definir cards principais
-- [ ] 3.3 Definir filtros
-- [ ] 3.4 Criar/ajustar services
-- [ ] 3.5 Criar layout responsivo
-- [ ] 3.6 Validar dados
+- [x] 3.1 Auditar fontes reais de dados;
+- [x] 3.2 Definir cards principais;
+- [x] 3.3 Definir filtros;
+- [x] 3.4 Criar/ajustar services;
+- [x] 3.5 Criar layout responsivo;
+- [x] 3.6 Criar gráficos principais;
+- [x] 3.7 Validar números com consultas diretas.
 
 ---
 
