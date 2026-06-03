@@ -485,3 +485,63 @@ export function calcularSimulacaoMargemV5(
         roi_percentual: Number(roiPercentual.toFixed(2))
     }
 }
+
+export type SalvarProdutoPrecificacaoV5Input = {
+    id_precificacao?: string | null
+    produto_id: string
+    canal_venda_id: string
+    preco_venda: number
+    custo_produto: number
+    custo_prep_center: number
+    custo_embalagem: number
+    custo_frete_inbound: number
+    taxa_marketplace: number
+    taxa_logistica: number
+    taxa_ads_estimada: number
+    imposto_estimado: number
+    outros_custos: number
+    margem_desejada_percentual?: number | null
+    roi_desejado_percentual?: number | null
+    observacoes?: string | null
+    status?: string
+}
+
+/**
+ * Salva ou atualiza a precificação gerencial de um produto para um canal específico no Supabase.
+ */
+export async function salvarProdutoPrecificacaoV5(
+    item: SalvarProdutoPrecificacaoV5Input
+): Promise<any> {
+    const payload: any = {
+        produto_id: item.produto_id,
+        canal_venda_id: item.canal_venda_id,
+        preco_venda: item.preco_venda ?? 0,
+        custo_produto: item.custo_produto ?? 0,
+        custo_prep_center: item.custo_prep_center ?? 0,
+        custo_embalagem: item.custo_embalagem ?? 0,
+        custo_frete_inbound: item.custo_frete_inbound ?? 0,
+        taxa_marketplace: item.taxa_marketplace ?? 0,
+        taxa_logistica: item.taxa_logistica ?? 0,
+        taxa_ads_estimada: item.taxa_ads_estimada ?? 0,
+        imposto_estimado: item.imposto_estimado ?? 0,
+        outros_custos: item.outros_custos ?? 0,
+        margem_desejada_percentual: item.margem_desejada_percentual ?? null,
+        roi_desejado_percentual: item.roi_desejado_percentual ?? null,
+        observacoes: item.observacoes ?? null,
+        status: item.status ?? 'ativo'
+    }
+
+    if (item.id_precificacao) {
+        payload.id = item.id_precificacao
+    }
+
+    const { data, error } = await supabase
+        .from('produtos_precificacao')
+        .upsert(payload, { onConflict: 'produto_id,canal_venda_id' })
+
+    if (error) {
+        throw new Error(error.message)
+    }
+
+    return data
+}
