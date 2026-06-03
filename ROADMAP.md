@@ -75,18 +75,15 @@ Etapas:
 
 ## Módulo 4 — Estoque Consolidado
 
-Status: [ ] Pendente  
+Status: [~] Em progresso  
 Prioridade: Alta  
-Objetivo: consolidar estoque por origem sem substituir o Olist.
+Objetivo: consolidar estoque por SKU de forma analítica e gerencial.
 
 Etapas:
 
-- [ ] 4.1 Olist Depósito Geral / Prep Center
-- [ ] 4.2 Olist FBA
-- [ ] 4.3 Amazon FBA
-- [ ] 4.4 Mercado Livre Full, quando disponível
-- [ ] 4.5 Divergências
-- [ ] 4.6 Alertas
+- [x] 4.1 Preparação segura do `estoqueService.ts` com tipos e consolidação reativa V4
+- [x] 4.2 Reestruturação da tela `Estoque.tsx` (3 abas, KPIs, divergências e alertas gerenciais)
+- [ ] 4.3 Mercado Livre Full, quando as integrações e snapshots estiverem disponíveis
 
 ---
 
