@@ -26,6 +26,7 @@ import { Lotes } from './pages/Lotes'
 import { Movimentacoes } from './pages/Movimentacoes'
 import { Produtos } from './pages/Produtos'
 import { Vendas } from './pages/Vendas'
+import { CustosMargem } from './pages/CustosMargem'
 
 function RotaProtegida() {
   const { autenticado, carregando } = useAuth()
@@ -86,6 +87,7 @@ function AppRoutes() {
             element={<ConciliacaoAmazonOlistPrimelyFba />}
           />
           <Route path="/curva-abc" element={<CurvaABC />} />
+          <Route path="/custos-margem" element={<CustosMargem />} />
           <Route path="/lotes" element={<Lotes />} />
           <Route path="/movimentacoes" element={<Movimentacoes />} />
           <Route path="/alertas" element={<Alertas />} />

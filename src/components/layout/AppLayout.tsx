@@ -14,6 +14,7 @@ const menuSections: MenuSection[] = [
             { label: 'Estoque Consolidado', shortLabel: 'ES', path: '/estoque' },
             { label: 'Vendas Analíticas', shortLabel: 'VD', path: '/vendas' },
             { label: 'Curva ABC', shortLabel: 'ABC', path: '/curva-abc' },
+            { label: 'Custos & Margens', shortLabel: 'CM', path: '/custos-margem' },
         ],
     },
     {

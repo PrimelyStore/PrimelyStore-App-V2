@@ -89,18 +89,17 @@ Etapas:
 
 ## Módulo 5 — Custos e Margem Estimada
 
-Status: [ ] Pendente  
+Status: [~] Em progresso  
 Prioridade: Alta  
-Objetivo: criar base confiável para lucro, margem, ROI e Curva ABC.
+Objetivo: gerenciar e simular custos e comissões por canal, estimando lucro e margem gerencial.
 
 Etapas:
 
-- [ ] 5.1 Mapear custos existentes
-- [ ] 5.2 Definir custos por produto/canal/logística
-- [ ] 5.3 Definir impostos
-- [ ] 5.4 Definir taxas marketplace
-- [ ] 5.5 Definir custos Prep Center
-- [ ] 5.6 Criar views/RPCs de margem
+- [x] 5.1 Preparação segura do `precificacaoService.ts` em modo leitura e simulação
+- [x] 5.2 Desenvolvimento da página `CustosMargem.tsx` (3 abas, simulador e parâmetros de custos)
+- [x] 5.3A Registro de rota oficial e inclusão do link "Custos & Margens" no menu lateral
+- [ ] 5.3B Implementação do formulário modal de edição de custos e salvamento seguro via RLS no Supabase
+- [ ] 5.4 Criar views analíticas de lucro e margem de vendas integrada no banco de dados
 
 ---
 
