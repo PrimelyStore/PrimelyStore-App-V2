@@ -99,7 +99,10 @@ Etapas:
 - [x] 5.2 Desenvolvimento da página `CustosMargem.tsx` (3 abas, simulador e parâmetros de custos)
 - [x] 5.3A Registro de rota oficial e inclusão do link "Custos & Margens" no menu lateral
 - [x] 5.3B-2 Auditoria e replanejamento de Custos por Canal
-- [ ] 5.3C Migration de Schema & Novas Tabelas de Tarifas
+- [x] 5.3C-1 Migration de Schema 1 (Matrizes e Cubagem)
+- [x] 5.3C-2 Planejamento da Carga Inicial de Dados/Seed
+- [ ] 5.3C-3 Criação da Migration de Seed SQL
+- [ ] 5.3C-4 Migration de Schema 2 (Precificação e Cotações)
 - [ ] 5.3D Edge Functions de Tarifas
 - [ ] 5.3E Visualização e Gravação de Custos por Canal com Overrides
 - [ ] 5.4 Criar views analíticas de lucro e margem de vendas integrada no banco de dados

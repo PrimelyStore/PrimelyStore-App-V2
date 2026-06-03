@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS public.tarifas_comissoes_marketplaces (
     limiar_preco_taxa_fixa numeric NOT null DEFAULT 0 CHECK (limiar_preco_taxa_fixa >= 0),
     status text NOT null DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo')),
     created_at timestamptz NOT null DEFAULT now(),
-    updated_at timestamptz NOT null DEFAULT now()
+    updated_at timestamptz NOT null DEFAULT now(),
+    CONSTRAINT unique_comissoes_canal_categoria UNIQUE (canal_venda_id, categoria_nome)
 );
 
 -- Índices úteis
@@ -62,14 +63,15 @@ CREATE TABLE IF NOT EXISTS public.tarifas_logistica_mercado_livre (
     peso_min_g numeric NOT null DEFAULT 0 CHECK (peso_min_g >= 0),
     peso_max_g numeric NOT null CHECK (peso_max_g >= 0),
     preco_min numeric NOT null DEFAULT 0 CHECK (preco_min >= 0),
-    preco_max numeric CHECK (preco_max >= 0),
+    preco_max numeric NOT null DEFAULT 999999999 CHECK (preco_max >= 0),
     reputacao text NOT null DEFAULT 'nao_informado',
     custo_frete_gratis numeric NOT null DEFAULT 0 CHECK (custo_frete_gratis >= 0),
     desconto_frete_percentual numeric NOT null DEFAULT 0 CHECK (desconto_frete_percentual >= 0),
     custo_envio_pago numeric NOT null DEFAULT 0 CHECK (custo_envio_pago >= 0),
     status text NOT null DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo')),
     created_at timestamptz NOT null DEFAULT now(),
-    updated_at timestamptz NOT null DEFAULT now()
+    updated_at timestamptz NOT null DEFAULT now(),
+    CONSTRAINT unique_logistica_ml UNIQUE (modalidade, peso_min_g, peso_max_g, preco_min, preco_max, reputacao)
 );
 
 -- Índices úteis
@@ -109,15 +111,16 @@ CREATE TRIGGER trigger_ml_logistica_updated_at
 CREATE TABLE IF NOT EXISTS public.tarifas_logistica_amazon (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     modalidade text NOT null,
-    tamanho_categoria text,
+    tamanho_categoria text NOT null DEFAULT 'nao_informado',
     peso_min_g numeric NOT null DEFAULT 0 CHECK (peso_min_g >= 0),
     peso_max_g numeric NOT null CHECK (peso_max_g >= 0),
     preco_min numeric NOT null DEFAULT 0 CHECK (preco_min >= 0),
-    preco_max numeric CHECK (preco_max >= 0),
+    preco_max numeric NOT null DEFAULT 999999999 CHECK (preco_max >= 0),
     custo_frete numeric NOT null DEFAULT 0 CHECK (custo_frete >= 0),
     status text NOT null DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo')),
     created_at timestamptz NOT null DEFAULT now(),
-    updated_at timestamptz NOT null DEFAULT now()
+    updated_at timestamptz NOT null DEFAULT now(),
+    CONSTRAINT unique_logistica_amazon UNIQUE (modalidade, tamanho_categoria, peso_min_g, peso_max_g, preco_min, preco_max)
 );
 
 -- Índices úteis
