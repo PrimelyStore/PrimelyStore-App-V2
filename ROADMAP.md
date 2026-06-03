@@ -98,7 +98,10 @@ Etapas:
 - [x] 5.1 Preparação segura do `precificacaoService.ts` em modo leitura e simulação
 - [x] 5.2 Desenvolvimento da página `CustosMargem.tsx` (3 abas, simulador e parâmetros de custos)
 - [x] 5.3A Registro de rota oficial e inclusão do link "Custos & Margens" no menu lateral
-- [ ] 5.3B Implementação do formulário modal de edição de custos e salvamento seguro via RLS no Supabase
+- [x] 5.3B-2 Auditoria e replanejamento de Custos por Canal
+- [ ] 5.3C Migration de Schema & Novas Tabelas de Tarifas
+- [ ] 5.3D Edge Functions de Tarifas
+- [ ] 5.3E Visualização e Gravação de Custos por Canal com Overrides
 - [ ] 5.4 Criar views analíticas de lucro e margem de vendas integrada no banco de dados
 
 ---

@@ -40,8 +40,8 @@ export function CustosMargem() {
     const [status, setStatus] = useState<StatusCarregamento>('carregando')
     const [mensagem, setMensagem] = useState('Carregando dados de custos e precificação...')
     
-    // Abas: 'custos' | 'simulador' | 'parametros'
-    const [abaAtiva, setAbaAtiva] = useState<'custos' | 'simulador' | 'parametros'>('custos')
+    // Abas: 'custos' | 'simulador' | 'canais' | 'parametros'
+    const [abaAtiva, setAbaAtiva] = useState<'custos' | 'simulador' | 'canais' | 'parametros'>('custos')
     
     // Estados do Banco (Somente Leitura)
     const [produtosPrecificados, setProdutosPrecificados] = useState<ProdutoPrecificacaoV5Item[]>([])
@@ -273,6 +273,16 @@ export function CustosMargem() {
                     Simulador de Precificação
                 </button>
                 <button
+                    onClick={() => setAbaAtiva('canais')}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
+                        abaAtiva === 'canais'
+                            ? 'border-indigo-500 text-indigo-400 font-semibold'
+                            : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                    }`}
+                >
+                    Custos por Canal
+                </button>
+                <button
                     onClick={() => setAbaAtiva('parametros')}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
                         abaAtiva === 'parametros'
@@ -280,7 +290,7 @@ export function CustosMargem() {
                             : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
                     }`}
                 >
-                    Regras e Parâmetros
+                    Regras Gerais
                 </button>
             </div>
 
@@ -632,6 +642,158 @@ export function CustosMargem() {
                 </div>
             )}
 
+            {abaAtiva === 'canais' && (
+                <div className="space-y-6">
+                    {/* Alerta de Governança Gerencial */}
+                    <div className="rounded-xl border border-blue-900/40 bg-blue-950/20 p-4 text-xs sm:text-sm text-blue-300">
+                        <h4 className="font-semibold flex items-center gap-2 mb-1 text-blue-200">
+                            <span>ℹ️</span> Área de Referência e Estrutura Gerencial de Custos
+                        </h4>
+                        <p className="leading-relaxed text-slate-300">
+                            Esta área reúne os parâmetros e estimativas de tarifas e comissões por canal de venda. Em fases futuras, as tarifas de comissão e logística da <strong>Amazon</strong> e do <strong>Mercado Livre</strong> serão calculadas automaticamente via APIs oficiais (Amazon SP-API Product Fees e API Mercado Livre Fees).
+                        </p>
+                        <p className="mt-2 leading-relaxed text-yellow-400 font-medium">
+                            ⚠️ Nesta fase (Fase 5.3B-2), nenhuma gravação está ativada e os valores aqui contidos são puramente referenciais e demonstrativos.
+                        </p>
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-2">
+                        {/* CARD Prep Center */}
+                        <AppCard>
+                            <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-2">
+                                <h3 className="text-base font-semibold text-indigo-400">Logística & Prep Center</h3>
+                                <StatusBadge tone="success">Referência Ativa</StatusBadge>
+                            </div>
+                            <div className="space-y-4 text-xs sm:text-sm">
+                                <div className="space-y-2">
+                                    <div className="flex justify-between border-b border-slate-800/40 py-1.5">
+                                        <span className="text-slate-400">Modalidade FBA (Amazon)</span>
+                                        <span className="text-slate-200 font-semibold font-mono">R$ 2,00 / unidade</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-800/40 py-1.5">
+                                        <span className="text-slate-400">Modalidade DBA / FBM / Kits</span>
+                                        <span className="text-slate-200 font-semibold font-mono">R$ 3,00 / unidade</span>
+                                    </div>
+                                </div>
+                                <div className="bg-slate-950/40 border border-slate-800/50 p-3 rounded-lg text-xs space-y-2">
+                                    <div>
+                                        <strong className="text-slate-400">Origem:</strong>{' '}
+                                        <span className="text-slate-300">Configuração interna da conta Primely Store</span>
+                                    </div>
+                                    <div>
+                                        <strong className="text-slate-400">Observação:</strong>{' '}
+                                        <span className="text-slate-400 italic">Valores sugeridos com base nos custos operacionais informados pelo gestor, sujeitos a alteração futura nas tabelas locais.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </AppCard>
+
+                        {/* CARD Amazon */}
+                        <AppCard>
+                            <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-2">
+                                <h3 className="text-base font-semibold text-indigo-400">Amazon SP-API</h3>
+                                <StatusBadge tone="warning">Integração Futura</StatusBadge>
+                            </div>
+                            <div className="space-y-4 text-xs sm:text-sm">
+                                <div className="space-y-2">
+                                    <div className="flex justify-between border-b border-slate-800/40 py-1">
+                                        <span className="text-slate-400">Comissão por Categoria</span>
+                                        <span className="text-slate-300 italic">Dinâmica (8% a 15%)</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-800/40 py-1">
+                                        <span className="text-slate-400">Logística FBA</span>
+                                        <span className="text-slate-300 italic">Por Peso / Faixa de Peso</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-800/40 py-1">
+                                        <span className="text-slate-400">Tarifa de Coleta</span>
+                                        <span className="text-slate-300 italic">Aplicável por envio</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-800/40 py-1">
+                                        <span className="text-slate-400">Taxa de Parcelamento Sem Juros</span>
+                                        <span className="text-slate-300 font-semibold font-mono">1,50%</span>
+                                    </div>
+                                </div>
+                                <div className="bg-slate-950/40 border border-slate-800/50 p-3 rounded-lg text-xs space-y-2">
+                                    <div>
+                                        <strong className="text-slate-400">Origem Futura Preferencial:</strong>{' '}
+                                        <span className="text-indigo-300 font-medium">Amazon SP-API Product Fees API</span>
+                                    </div>
+                                    <div>
+                                        <strong className="text-slate-400">Origem Atual:</strong>{' '}
+                                        <span className="text-slate-400">Estimativas manuais planas por SKU/canal na precificação gerencial</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </AppCard>
+
+                        {/* CARD Mercado Livre */}
+                        <AppCard>
+                            <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-2">
+                                <h3 className="text-base font-semibold text-indigo-400">Mercado Livre</h3>
+                                <StatusBadge tone="warning">Integração Futura</StatusBadge>
+                            </div>
+                            <div className="space-y-4 text-xs sm:text-sm">
+                                <div className="space-y-2">
+                                    <div className="flex justify-between border-b border-slate-800/40 py-1">
+                                        <span className="text-slate-400">Logística Full ML</span>
+                                        <span className="text-slate-300 italic">Varia por peso, cubagem e reputação</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-800/40 py-1">
+                                        <span className="text-slate-400">Logística Flex / Envio Rápido</span>
+                                        <span className="text-slate-300 italic">Taxa de entrega local</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-800/40 py-1">
+                                        <span className="text-slate-400">Faixa de Frete Grátis</span>
+                                        <span className="text-slate-300 italic">Obrigatório a partir de R$ 79,00</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-800/40 py-1">
+                                        <span className="text-slate-400">Comissão (Clássico / Premium)</span>
+                                        <span className="text-slate-300 italic">10% a 16.5% + Taxa fixa R$ 5,50</span>
+                                    </div>
+                                </div>
+                                <div className="bg-slate-950/40 border border-slate-800/50 p-3 rounded-lg text-xs space-y-2">
+                                    <div>
+                                        <strong className="text-slate-400">Origem Futura Preferencial:</strong>{' '}
+                                        <span className="text-indigo-300 font-medium">API Mercado Livre fees/listing prices</span>
+                                    </div>
+                                    <div>
+                                        <strong className="text-slate-400">Origem Atual:</strong>{' '}
+                                        <span className="text-slate-400">Estimativas manuais planas por SKU/canal na precificação gerencial</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </AppCard>
+
+                        {/* CARD Outros Canais */}
+                        <AppCard>
+                            <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-2">
+                                <h3 className="text-base font-semibold text-indigo-400">Outros Canais & Manual</h3>
+                                <StatusBadge tone="muted">Parametrização Futura</StatusBadge>
+                            </div>
+                            <div className="space-y-4 text-xs sm:text-sm">
+                                <div className="space-y-2">
+                                    <div className="flex justify-between border-b border-slate-800/40 py-1">
+                                        <span className="text-slate-400">Shopee</span>
+                                        <span className="text-slate-400 italic">Comissão fixa 18%</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-800/40 py-1">
+                                        <span className="text-slate-400">Venda Manual / Canal Físico</span>
+                                        <span className="text-slate-400 italic">Sem comissões de terceiros</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-800/40 py-1">
+                                        <span className="text-slate-400">Novos Marketplaces</span>
+                                        <span className="text-slate-400 italic">Mapeamento dinâmico futuro</span>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-500 italic mt-2 leading-relaxed">
+                                    O Primely Store prevê flexibilidade para expansão de novos marketplaces sob a mesma base analítica de conciliação de custos fiscais e operacionais.
+                                </p>
+                            </div>
+                        </AppCard>
+                    </div>
+                </div>
+            )}
+
             {abaAtiva === 'parametros' && (
                 <div className="grid gap-6 md:grid-cols-2">
                     {/* Regras Operacionais */}
@@ -742,11 +904,11 @@ export function CustosMargem() {
                     <div>
                         <h4 className="font-semibold text-slate-300">Nota de Governança & Metodologia Gerencial</h4>
                         <p className="mt-1 leading-relaxed">
-                            Esta tela atua estritamente como um <strong>painel de visualização e simulação gerencial de custos e markup (somente consulta)</strong>. 
+                            Esta tela atua estritamente como um <strong>painel de visualização e simulação gerencial de custos e comissões por canal (somente consulta)</strong>. 
                             Os cálculos de margem líquida e lucro estimados servem para fins estratégicos e apoios de compra e venda. Eles não substituem a apuração fiscal oficial, notas fiscais registradas na contabilidade ou relatórios contábeis oficiais do ERP (Olist/Tiny).
                         </p>
                         <p className="mt-1 leading-relaxed font-semibold text-yellow-400">
-                            Nesta fase (Fase 5.2), nenhuma modificação física ou gravação no banco de dados de precificação está habilitada.
+                            Nesta fase (Fase 5.3B-2 - Replanejamento), nenhuma modificação física ou gravação no banco de dados de precificação está habilitada.
                         </p>
                     </div>
                 </div>
