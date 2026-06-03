@@ -141,3 +141,41 @@ docs/_arquivo_historico/
 ```
 
 Não usar esses documentos como fonte ativa principal.
+
+---
+
+## 9. Fase 5.3C-7 - Custos por canal e historico de migrations
+
+Em 2026-06-03, foi registrada a conclusao da aplicacao das migrations de custos por canal:
+
+- `20260603000100_custos_por_canal_matrizes_cubagem.sql`
+- `20260603000200_seed_minimo_comissoes_marketplaces.sql`
+- `20260603000300_precificacao_e_cotacoes.sql`
+
+Validacoes confirmadas apos a aplicacao:
+
+- tabelas novas existem no remoto;
+- colunas novas em `produtos_precificacao` existem;
+- seed minimo de comissoes foi inserido;
+- historico remoto de migrations foi normalizado;
+- duplicidade local `20260516` foi resolvida por baseline consolidado.
+
+A normalizacao local de `20260516` consolidou os arquivos duplicados em:
+
+```txt
+supabase/migrations/20260516_etapa133_baseline_fifo_e_pedidos_olist.sql
+```
+
+Os arquivos originais foram preservados como baseline/documentacao em:
+
+```txt
+docs/baseline/migrations_duplicadas_20260516/
+```
+
+Decisao preservada:
+
+```txt
+As estruturas de custos por canal servem para analise, simulacao, auditoria e tomada de decisao. Elas nao transformam o Primely Store em ERP operacional.
+```
+
+Nesta fase de documentacao nao foi executado SQL, nao houve alteracao de banco, nao houve alteracao de Edge Functions e nao houve mudanca de regra de negocio.

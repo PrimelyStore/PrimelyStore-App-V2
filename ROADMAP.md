@@ -206,3 +206,36 @@ Etapas:
 - [ ] 11.2 Marcar telas como legado quando necessário
 - [ ] 11.3 Ocultar rotas que confundem o usuário
 - [ ] 11.4 Remover apenas com confirmação
+
+---
+
+## Registro 2026-06-03 - Fase 5.3C-7
+
+Status: [x] Concluido
+
+Objetivo: registrar a conclusao da aplicacao das migrations de custos por canal e a normalizacao local do historico de migrations.
+
+Migrations aplicadas com sucesso:
+
+- `20260603000100_custos_por_canal_matrizes_cubagem.sql`
+- `20260603000200_seed_minimo_comissoes_marketplaces.sql`
+- `20260603000300_precificacao_e_cotacoes.sql`
+
+Validacoes confirmadas:
+
+- tabelas novas existem no remoto;
+- colunas novas em `produtos_precificacao` existem;
+- seed minimo de comissoes foi inserido;
+- historico remoto de migrations foi normalizado;
+- duplicidade local `20260516` foi resolvida por baseline consolidado.
+
+Arquivos de baseline local:
+
+- `supabase/migrations/20260516_etapa133_baseline_fifo_e_pedidos_olist.sql`
+- `docs/baseline/migrations_duplicadas_20260516/README.md`
+
+Governanca:
+
+- a etapa mantem o Primely Store como painel gerencial inteligente;
+- as estruturas novas apoiam analise, simulacao e gestao de custos por canal;
+- nao houve alteracao de frontend, Edge Functions ou regras de negocio nesta fase de documentacao.
