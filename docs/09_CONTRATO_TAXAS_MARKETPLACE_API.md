@@ -331,3 +331,71 @@ Escopo recomendado da 5.4B:
 - identificar se sera necessaria nova migration futura;
 - nao executar SQL remoto;
 - nao implementar Edge Functions ainda.
+
+---
+
+## 9. Resultado da auditoria local 5.4B
+
+Esta auditoria foi feita somente sobre arquivos locais do repositorio: migrations, services, types implicitos nos services e pagina `CustosMargem.tsx`.
+
+Nao foi executado SQL, nao houve acesso ao banco remoto, nao foram criadas migrations, nao foram implementadas Edge Functions e nao houve leitura de `.env.local`.
+
+### 9.1. Campos ja cobertos
+
+| Campo/estrutura | Status | Observacao |
+|---|---|---|
+| `produtos.sku` | Coberto | Usado como chave gerencial principal de produto. |
+| `produtos.asin` | Coberto | Existe no cadastro interno de produtos. |
+| `canais_venda.modalidade_logistica` | Coberto | Ja aparece nos services de canais/vendas/precificacao. |
+| `canais_venda.codigo_externo` | Coberto | Pode apoiar identificacao do canal externo. |
+| `canais_venda.marketplace_id` | Coberto | Ja usado nos services, util para Amazon. |
+| `configuracoes_operacao.moeda_padrao` | Coberto | Ja existe como configuracao operacional. |
+| `marketplace_fee_quotes` | Coberto | Tabela de historico/log de cotacoes de taxas. |
+| `produtos_precificacao` com origem/cache/`fee_quote_id` | Coberto | Possui origem de taxa, caches calculados, `data_ultima_consulta_api` e `fee_quote_id`. |
+| `produtos_dimensoes_gerenciais` | Coberto | Guarda peso e dimensoes para cotacoes logisticas. |
+| Amazon snapshot | Coberto | Snapshot Amazon FBA ja usa `marketplace_id`, `seller_sku`, `asin` e `fn_sku`. |
+
+### 9.2. Campos parcialmente cobertos
+
+| Campo | Status | Risco |
+|---|---|---|
+| `seller_sku` | Parcial | Existe em snapshot Amazon, mas nao em mapeamento formal produto-canal para fees. |
+| `asin` | Parcial | Existe em produtos/snapshots, mas nao por produto-canal-marketplace. |
+| `marketplace_id` Amazon | Parcial | Existe em canais/snapshot, mas precisa regra clara de escolha por canal. |
+| moeda padrao | Parcial | Existe como configuracao geral, mas nao por canal. |
+| origem da taxa | Parcial | Existe no schema, mas ainda nao esta integrada no service/tela de precificacao. |
+| `fee_quote_id` | Parcial | Existe no schema, mas ainda nao esta consumido no frontend/service. |
+
+### 9.3. Campos ausentes
+
+| Campo ausente | Motivo |
+|---|---|
+| `item_id` Mercado Livre | Necessario para cotacao por anuncio existente. |
+| `category_id` Mercado Livre | Necessario para `listing_prices`/comissao. |
+| `listing_type_id` | Diferencia Classico e Premium. |
+| `logistic_type` | Diferencia Full, Flex e outras modalidades. |
+| `shipping_mode` | Necessario para cotacao logistica. |
+| `free_shipping` | Afeta custo logistico no Mercado Livre. |
+| `manual_override` explicito | Necessario para proteger excecoes do gestor contra sobrescrita automatica. |
+| validade/cache da cotacao API | Necessario para definir objetivamente `api_recente`. |
+| tabela clara de mapeamento produto-canal-marketplace | Necessaria para automatizar consulta segura por canal/produto. |
+
+### 9.4. Riscos identificados
+
+- Amazon e viavel apenas em piloto unitario/controlado, recebendo todos os campos no request.
+- Mercado Livre tem risco alto sem campos logisticos, anuncio e categoria.
+- Existe risco de sobrescrever override manual se a regra nao for modelada antes.
+- `api_recente` ainda nao possui prazo objetivo de validade/cache.
+- Sem tabela de mapeamento produto-canal-marketplace, automacao em lote pode consultar SKU/canal errado.
+
+### 9.5. Recomendacao
+
+- Planejar a primeira Edge Function Amazon em modo unitario, recebendo todos os campos no request.
+- Antes de automacao completa e antes de Mercado Livre, planejar uma migration/tabela de mapeamento produto-canal-marketplace.
+- Nao implementar Edge Functions antes de resolver override, cache e mapeamento.
+
+### 9.6. Proxima etapa recomendada
+
+```txt
+5.4C - Planejamento da tabela/migration de mapeamento produto-canal-marketplace, ainda sem aplicar nada.
+```

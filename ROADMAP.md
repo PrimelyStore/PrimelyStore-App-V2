@@ -265,3 +265,27 @@ Escopo documentado:
 Proxima etapa recomendada:
 
 - 5.4B - Auditoria local do schema atual para verificar campos faltantes.
+
+---
+
+## Registro 2026-06-05 - Fase 5.4B
+
+Status: [x] Auditoria local documentada
+
+Objetivo: registrar a auditoria local do schema atual para a futura integracao de taxas por API.
+
+Resultado:
+
+- campos cobertos: `produtos.sku`, `produtos.asin`, `canais_venda.modalidade_logistica`, `canais_venda.codigo_externo`, `canais_venda.marketplace_id`, `configuracoes_operacao.moeda_padrao`, `marketplace_fee_quotes`, `produtos_precificacao`, `produtos_dimensoes_gerenciais` e snapshot Amazon com `marketplace_id`, `seller_sku`, `asin`, `fn_sku`;
+- campos parcialmente cobertos: `seller_sku`, `asin`, `marketplace_id` Amazon, moeda padrao, origem da taxa e `fee_quote_id`;
+- campos ausentes: `item_id` Mercado Livre, `category_id`, `listing_type_id`, `logistic_type`, `shipping_mode`, `free_shipping`, `manual_override`, validade/cache da cotacao API e tabela clara de mapeamento produto-canal-marketplace.
+
+Recomendacao:
+
+- Amazon pode seguir para planejamento de piloto unitario/controlado;
+- Mercado Livre e automacao completa devem aguardar planejamento de mapeamento produto-canal-marketplace;
+- nao implementar Edge Functions antes de resolver override, cache e mapeamento.
+
+Proxima etapa recomendada:
+
+- 5.4C - Planejamento da tabela/migration de mapeamento produto-canal-marketplace, ainda sem aplicar nada.

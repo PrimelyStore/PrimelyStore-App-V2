@@ -213,3 +213,68 @@ Proxima etapa recomendada:
 ```txt
 5.4B - Auditoria local do schema atual para verificar campos faltantes.
 ```
+
+---
+
+## 11. Fase 5.4B - Auditoria local do schema de taxas por API
+
+Em 2026-06-05, foi documentada a auditoria local do schema atual para a futura integracao de taxas por API.
+
+Documento atualizado:
+
+```txt
+docs/09_CONTRATO_TAXAS_MARKETPLACE_API.md
+```
+
+Campos ja cobertos:
+
+- `produtos.sku`;
+- `produtos.asin`;
+- `canais_venda.modalidade_logistica`;
+- `canais_venda.codigo_externo`;
+- `canais_venda.marketplace_id`;
+- `configuracoes_operacao.moeda_padrao`;
+- `marketplace_fee_quotes`;
+- `produtos_precificacao` com origem/cache/`fee_quote_id`;
+- `produtos_dimensoes_gerenciais`;
+- snapshot Amazon com `marketplace_id`, `seller_sku`, `asin` e `fn_sku`.
+
+Campos parcialmente cobertos:
+
+- `seller_sku`;
+- `asin`;
+- `marketplace_id` Amazon;
+- moeda padrao;
+- origem da taxa;
+- `fee_quote_id`.
+
+Campos ausentes:
+
+- `item_id` Mercado Livre;
+- `category_id` Mercado Livre;
+- `listing_type_id`;
+- `logistic_type`;
+- `shipping_mode`;
+- `free_shipping`;
+- `manual_override` explicito;
+- validade/cache da cotacao API;
+- tabela clara de mapeamento produto-canal-marketplace.
+
+Riscos preservados:
+
+- Amazon e viavel apenas em piloto unitario/controlado;
+- Mercado Livre tem risco alto sem campos logisticos e dados de anuncio/categoria;
+- existe risco de sobrescrever override manual;
+- `api_recente` ainda nao tem prazo objetivo.
+
+Recomendacao:
+
+```txt
+Planejar a primeira Edge Function Amazon em modo unitario, recebendo todos os campos no request. Antes de automacao completa e Mercado Livre, planejar uma tabela/migration de mapeamento produto-canal-marketplace. Nao implementar Edge Functions antes de resolver override, cache e mapeamento.
+```
+
+Proxima etapa recomendada:
+
+```txt
+5.4C - Planejamento da tabela/migration de mapeamento produto-canal-marketplace, ainda sem aplicar nada.
+```
