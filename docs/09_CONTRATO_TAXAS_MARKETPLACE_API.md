@@ -399,3 +399,173 @@ Nao foi executado SQL, nao houve acesso ao banco remoto, nao foram criadas migra
 ```txt
 5.4C - Planejamento da tabela/migration de mapeamento produto-canal-marketplace, ainda sem aplicar nada.
 ```
+
+---
+
+## 10. Planejamento 5.4C - Mapeamento produto-canal-marketplace
+
+### 10.1. Nome recomendado
+
+```txt
+produto_canal_marketplace_mapeamento
+```
+
+Classificacao: mapeamento/configuracao gerencial.
+
+### 10.2. Objetivo da tabela
+
+A futura tabela deve mapear o produto interno do Primely com o canal de venda e o contexto real de cotacao do marketplace.
+
+Ela deve guardar:
+
+- produto interno Primely;
+- canal de venda;
+- marketplace;
+- SKU/anuncio;
+- modalidade logistica;
+- contexto de cotacao;
+- override manual;
+- validade/cache da API.
+
+Esta tabela nao representa operacao oficial de marketplace e nao substitui Olist/Tiny. Ela serve para analise, cotacao de taxas, auditoria e simulacao gerencial.
+
+### 10.3. Schema planejado
+
+| Campo | Tipo planejado | Observacao |
+|---|---|---|
+| `id` | uuid | Chave primaria. |
+| `produto_id` | uuid | FK para `public.produtos(id)`. |
+| `canal_venda_id` | uuid | FK para `public.canais_venda(id)`. |
+| `marketplace` | text | `amazon`, `mercado_livre`, `shopee`, `venda_manual`. |
+| `seller_sku` | text | SKU vendedor, especialmente Amazon. |
+| `asin` | text | Identificador Amazon, quando aplicavel. |
+| `marketplace_id` | text | Marketplace/site externo, especialmente Amazon. |
+| `item_id` | text | ID do anuncio Mercado Livre. |
+| `category_id` | text | Categoria Mercado Livre. |
+| `listing_type_id` | text | Classico/Premium ou equivalente. |
+| `logistic_type` | text | Full/Flex/FBA/FBM/outros contextos logisticos. |
+| `shipping_mode` | text | Modo de envio. |
+| `free_shipping` | boolean | Indica se a cotacao considera frete gratis. |
+| `is_amazon_fulfilled` | boolean | Diferencia FBA de FBM/DBA na Amazon. |
+| `moeda` | text | Moeda da cotacao, default planejado `BRL`. |
+| `manual_override` | boolean | Bloqueia sobrescrita automatica por API quando ativo. |
+| `validade_cache_horas` | integer | Define objetivamente a validade de `api_recente`. |
+| `status` | text | `ativo` ou `inativo`. |
+| `observacoes` | text | Observacoes gerenciais. |
+| `atualizado_por` | uuid | Usuario responsavel pela ultima alteracao. |
+| `created_at` | timestamptz | Criacao do registro. |
+| `updated_at` | timestamptz | Ultima atualizacao. |
+
+### 10.4. Regras por marketplace
+
+Amazon:
+
+- `seller_sku`;
+- `asin`;
+- `marketplace_id`;
+- `is_amazon_fulfilled`;
+- `moeda`;
+- `validade_cache_horas`;
+- `manual_override`.
+
+Mercado Livre:
+
+- `item_id`;
+- `category_id`;
+- `listing_type_id`;
+- `logistic_type`;
+- `shipping_mode`;
+- `free_shipping`;
+- `moeda`;
+- `validade_cache_horas`;
+- `manual_override`.
+
+### 10.5. Constraints planejadas
+
+- `marketplace` com check em `amazon`, `mercado_livre`, `shopee`, `venda_manual`;
+- `status` com check em `ativo`, `inativo`;
+- `validade_cache_horas > 0`;
+- `moeda` com 3 caracteres;
+- FKs para `produtos` e `canais_venda`;
+- considerar indice unico por expressao para evitar duplicidade do mesmo contexto.
+
+Contexto de unicidade sugerido:
+
+```txt
+produto_id
+canal_venda_id
+marketplace
+coalesce(seller_sku, '')
+coalesce(item_id, '')
+coalesce(listing_type_id, '')
+coalesce(logistic_type, '')
+```
+
+### 10.6. Indices planejados
+
+- por `produto_id`;
+- por `canal_venda_id`;
+- por `marketplace`;
+- por `status`;
+- por `seller_sku`;
+- por `asin`;
+- por `item_id`;
+- composto por `produto_id`, `canal_venda_id`, `status`;
+- unico por expressao para evitar duplicidade do mesmo contexto.
+
+### 10.7. RLS planejada
+
+- `SELECT` para usuarios `authenticated`;
+- `INSERT` e `UPDATE` para usuario financeiro, usando funcao de permissao financeira ja existente;
+- `DELETE` somente admin;
+- preferir exclusao logica por `status = 'inativo'`.
+
+Regra de seguranca: esta tabela nao deve armazenar tokens, refresh tokens, client secrets, `service_role`, connection strings ou qualquer segredo. Identificadores comerciais como SKU, ASIN e item_id podem ser armazenados; credenciais nao.
+
+### 10.8. Relacao com futuras Edge Functions
+
+`amazon-fees-quote`:
+
+- recebe `mapeamento_id` ou `produto_id` + `canal_venda_id`;
+- busca mapeamento ativo;
+- usa `seller_sku`, `asin`, `marketplace_id`, `is_amazon_fulfilled`, `moeda` e `validade_cache_horas`;
+- grava historico em `marketplace_fee_quotes`;
+- atualiza `produtos_precificacao` somente se `manual_override = false`.
+
+`mercadolivre-fees-quote`:
+
+- recebe `mapeamento_id` ou `produto_id` + `canal_venda_id`;
+- busca mapeamento ativo;
+- usa `item_id`, `category_id`, `listing_type_id`, `logistic_type`, `shipping_mode`, `free_shipping`, `moeda` e `validade_cache_horas`;
+- grava historico em `marketplace_fee_quotes`;
+- atualiza `produtos_precificacao` somente se `manual_override = false`.
+
+Relacoes:
+
+- `produto_canal_marketplace_mapeamento` define o contexto da cotacao;
+- `marketplace_fee_quotes` guarda o historico de cotacoes;
+- `produtos_precificacao` guarda o cache atual usado por telas e simulacoes.
+
+### 10.9. Regras de negocio
+
+- um produto pode ter varios canais;
+- um produto pode ter varios anuncios;
+- Amazon FBA e FBM/DBA podem ter mapeamentos separados;
+- Mercado Livre Full/Flex/Classico/Premium podem ter mapeamentos separados;
+- `manual_override` bloqueia sobrescrita automatica por API;
+- `validade_cache_horas` define objetivamente `api_recente`.
+
+### 10.10. Duvidas pendentes
+
+- Permitir multiplos mapeamentos ativos para o mesmo produto/canal?
+- Validade padrao do cache deve ser 24h ou 72h?
+- `manual_override` bloqueia somente atualizacao em `produtos_precificacao` ou tambem bloqueia consulta API?
+- Adicionar `mapeamento_id` em `marketplace_fee_quotes` para rastreabilidade?
+- Moeda vem do canal/configuracao ou fica gravada no mapeamento?
+
+### 10.11. Recomendacao
+
+- Antes de implementar Edge Functions, criar uma migration futura para esta tabela.
+- Considerar adicionar `mapeamento_id` em `marketplace_fee_quotes` para rastreabilidade completa.
+- Nao implementar integracao automatica de Mercado Livre sem essa tabela.
+- A primeira integracao Amazon pode ser planejada em modo unitario, mas a automacao completa deve depender do mapeamento.

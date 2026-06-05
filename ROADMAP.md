@@ -289,3 +289,30 @@ Recomendacao:
 Proxima etapa recomendada:
 
 - 5.4C - Planejamento da tabela/migration de mapeamento produto-canal-marketplace, ainda sem aplicar nada.
+
+---
+
+## Registro 2026-06-05 - Fase 5.4C
+
+Status: [x] Planejamento documentado
+
+Objetivo: documentar a futura tabela de mapeamento produto-canal-marketplace para suportar cotacoes de taxas por API.
+
+Nome recomendado:
+
+- `produto_canal_marketplace_mapeamento`
+
+Conteudo planejado:
+
+- mapeamento entre produto interno, canal de venda, marketplace, SKU/anuncio e contexto logistico;
+- campos Amazon: `seller_sku`, `asin`, `marketplace_id`, `is_amazon_fulfilled`;
+- campos Mercado Livre: `item_id`, `category_id`, `listing_type_id`, `logistic_type`, `shipping_mode`, `free_shipping`;
+- `manual_override` para bloquear sobrescrita automatica por API;
+- `validade_cache_horas` para definir objetivamente `api_recente`;
+- RLS com leitura authenticated, escrita financeira e delete admin.
+
+Recomendacao:
+
+- criar migration futura antes de Edge Functions automaticas;
+- considerar `mapeamento_id` em `marketplace_fee_quotes`;
+- nao implementar integracao automatica de Mercado Livre sem essa tabela.

@@ -278,3 +278,68 @@ Proxima etapa recomendada:
 ```txt
 5.4C - Planejamento da tabela/migration de mapeamento produto-canal-marketplace, ainda sem aplicar nada.
 ```
+
+---
+
+## 12. Fase 5.4C - Planejamento do mapeamento produto-canal-marketplace
+
+Em 2026-06-05, foi documentado o planejamento da futura tabela:
+
+```txt
+produto_canal_marketplace_mapeamento
+```
+
+Objetivo:
+
+- mapear produto interno Primely;
+- mapear canal de venda;
+- mapear marketplace;
+- guardar SKU/anuncio;
+- guardar modalidade logistica e contexto de cotacao;
+- controlar `manual_override`;
+- definir validade/cache da API.
+
+Campos principais planejados:
+
+- `produto_id`;
+- `canal_venda_id`;
+- `marketplace`;
+- `seller_sku`;
+- `asin`;
+- `marketplace_id`;
+- `item_id`;
+- `category_id`;
+- `listing_type_id`;
+- `logistic_type`;
+- `shipping_mode`;
+- `free_shipping`;
+- `is_amazon_fulfilled`;
+- `moeda`;
+- `manual_override`;
+- `validade_cache_horas`;
+- `status`;
+- `observacoes`;
+- `atualizado_por`;
+- `created_at`;
+- `updated_at`.
+
+Decisao preservada:
+
+```txt
+Antes de automatizar consultas de taxas por API, o Primely precisa saber qual produto/canal/anuncio/modalidade logistica sera usado em cada cotacao. Essa tabela e mapeamento gerencial, nao operacao oficial de marketplace.
+```
+
+Regras planejadas:
+
+- um produto pode ter varios canais;
+- um produto pode ter varios anuncios;
+- Amazon FBA e FBM/DBA podem ter mapeamentos separados;
+- Mercado Livre Full/Flex/Classico/Premium podem ter mapeamentos separados;
+- `manual_override` bloqueia sobrescrita automatica por API;
+- `validade_cache_horas` define objetivamente `api_recente`.
+
+Recomendacao:
+
+```txt
+Criar migration futura para essa tabela antes de Edge Functions automaticas, considerar `mapeamento_id` em `marketplace_fee_quotes` e nao implementar integracao automatica de Mercado Livre sem esse mapeamento.
+```
