@@ -16,6 +16,12 @@ import {
     type ParamentrosSimulacaoV5
 } from '../services/precificacaoService'
 import {
+    listarMapeamentosMarketplace,
+    type MarketplaceMapeamento,
+    type MarketplaceMapeamentoStatus,
+    type MarketplaceMapeamentoTipo
+} from '../services/produtoCanalMarketplaceService'
+import {
     AppCard,
     DataTableContainer,
     PageHeader,
@@ -24,12 +30,21 @@ import {
 } from '../components/ui'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
+type AbaCustosMargem = 'custos' | 'simulador' | 'canais' | 'mapeamento' | 'parametros'
 
 function formatarMoeda(valor?: number | string | null) {
     return new Intl.NumberFormat('pt-BR', {
         style: 'currency',
         currency: 'BRL'
     }).format(Number(valor ?? 0))
+}
+
+function formatarDataHora(valor?: string | null) {
+    if (!valor) return '-'
+    return new Intl.DateTimeFormat('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+    }).format(new Date(valor))
 }
 
 function formatarPercentual(valor?: number | string | null) {
@@ -40,8 +55,7 @@ export function CustosMargem() {
     const [status, setStatus] = useState<StatusCarregamento>('carregando')
     const [mensagem, setMensagem] = useState('Carregando dados de custos e precificação...')
     
-    // Abas: 'custos' | 'simulador' | 'canais' | 'parametros'
-    const [abaAtiva, setAbaAtiva] = useState<'custos' | 'simulador' | 'canais' | 'parametros'>('custos')
+    const [abaAtiva, setAbaAtiva] = useState<AbaCustosMargem>('custos')
     
     // Estados do Banco (Somente Leitura)
     const [produtosPrecificados, setProdutosPrecificados] = useState<ProdutoPrecificacaoV5Item[]>([])
@@ -50,10 +64,16 @@ export function CustosMargem() {
     const [canais, setCanais] = useState<CanalVendaV5[]>([])
     const [regrasFiscais, setRegrasFiscais] = useState<RegraFiscalCompraV5[]>([])
     const [sugestoesCusto, setSugestoesCusto] = useState<Map<string, SugestaoCustoMedioV5>>(new Map())
+    const [mapeamentos, setMapeamentos] = useState<MarketplaceMapeamento[]>([])
+    const [statusMapeamentos, setStatusMapeamentos] = useState<StatusCarregamento>('carregando')
+    const [mensagemMapeamentos, setMensagemMapeamentos] = useState('Carregando mapeamentos marketplace...')
 
     // Filtros
     const [busca, setBusca] = useState('')
     const [canalFiltro, setCanalFiltro] = useState<string>('todos')
+    const [buscaMapeamento, setBuscaMapeamento] = useState('')
+    const [marketplaceFiltro, setMarketplaceFiltro] = useState<MarketplaceMapeamentoTipo | 'todos'>('todos')
+    const [statusMapeamentoFiltro, setStatusMapeamentoFiltro] = useState<MarketplaceMapeamentoStatus | 'todos'>('ativo')
 
     // Aviso temporário de Edição
     const [showEditNotice, setShowEditNotice] = useState(false)
@@ -122,9 +142,40 @@ export function CustosMargem() {
         }
     }
 
+    async function carregarMapeamentos() {
+        try {
+            setStatusMapeamentos('carregando')
+            setMensagemMapeamentos('Carregando mapeamentos marketplace...')
+
+            const dados = await listarMapeamentosMarketplace({
+                marketplace: marketplaceFiltro === 'todos' ? undefined : marketplaceFiltro,
+                status: statusMapeamentoFiltro,
+                busca: buscaMapeamento
+            })
+
+            setMapeamentos(dados)
+            setStatusMapeamentos('sucesso')
+            setMensagemMapeamentos('Mapeamentos carregados com sucesso.')
+        } catch (error) {
+            setStatusMapeamentos('erro')
+            setMapeamentos([])
+            if (error instanceof Error) {
+                setMensagemMapeamentos(`Erro ao carregar mapeamentos. Verifique permissoes/RLS: ${error.message}`)
+            } else {
+                setMensagemMapeamentos('Erro desconhecido ao carregar mapeamentos marketplace.')
+            }
+        }
+    }
+
     useEffect(() => {
         carregarDados()
     }, [])
+
+    useEffect(() => {
+        if (abaAtiva === 'mapeamento') {
+            carregarMapeamentos()
+        }
+    }, [abaAtiva, marketplaceFiltro, statusMapeamentoFiltro])
 
     // Filtragem reativa na Aba 1
     const produtosFiltrados = useMemo(() => {
@@ -147,6 +198,24 @@ export function CustosMargem() {
 
         return lista
     }, [produtosPrecificados, canalFiltro, busca])
+
+    const produtosPorId = useMemo(() => {
+        const mapa = new Map<string, ProdutoPrecificacaoV5Item>()
+        for (const produto of produtosPrecificados) {
+            if (produto.produto_id && !mapa.has(produto.produto_id)) {
+                mapa.set(produto.produto_id, produto)
+            }
+        }
+        return mapa
+    }, [produtosPrecificados])
+
+    const canaisPorId = useMemo(() => {
+        const mapa = new Map<string, CanalVendaV5>()
+        for (const canal of canais) {
+            mapa.set(canal.id, canal)
+        }
+        return mapa
+    }, [canais])
 
     // Cálculo reativo do simulador em memória
     const simulacaoResultado = useMemo(() => {
@@ -281,6 +350,16 @@ export function CustosMargem() {
                     }`}
                 >
                     Custos por Canal
+                </button>
+                <button
+                    onClick={() => setAbaAtiva('mapeamento')}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
+                        abaAtiva === 'mapeamento'
+                            ? 'border-indigo-500 text-indigo-400 font-semibold'
+                            : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                    }`}
+                >
+                    Mapeamento Marketplace
                 </button>
                 <button
                     onClick={() => setAbaAtiva('parametros')}
@@ -791,6 +870,188 @@ export function CustosMargem() {
                             </div>
                         </AppCard>
                     </div>
+                </div>
+            )}
+
+            {abaAtiva === 'mapeamento' && (
+                <div className="space-y-4">
+                    <div className="rounded-xl border border-blue-900/40 bg-blue-950/20 p-4 text-xs sm:text-sm text-blue-300">
+                        <h4 className="font-semibold mb-1 text-blue-200">Mapeamento gerencial para cotações futuras</h4>
+                        <p className="leading-relaxed">
+                            Esta aba lista os vínculos entre produto, canal, marketplace e contexto logístico que serão usados futuramente para consultar taxas por API. Nesta fase, não há criação, edição, inativação, consulta de API ou atualização de precificação.
+                        </p>
+                    </div>
+
+                    <AppCard>
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                            <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                    Marketplace
+                                    <select
+                                        value={marketplaceFiltro}
+                                        onChange={(event) => setMarketplaceFiltro(event.target.value as MarketplaceMapeamentoTipo | 'todos')}
+                                        className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                    >
+                                        <option value="todos">Todos</option>
+                                        <option value="amazon">Amazon</option>
+                                        <option value="mercado_livre">Mercado Livre</option>
+                                        <option value="shopee">Shopee</option>
+                                        <option value="venda_manual">Venda Manual</option>
+                                    </select>
+                                </label>
+
+                                <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                    Status
+                                    <select
+                                        value={statusMapeamentoFiltro}
+                                        onChange={(event) => setStatusMapeamentoFiltro(event.target.value as MarketplaceMapeamentoStatus | 'todos')}
+                                        className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                    >
+                                        <option value="ativo">Ativos</option>
+                                        <option value="inativo">Inativos</option>
+                                        <option value="todos">Todos</option>
+                                    </select>
+                                </label>
+
+                                <label className="flex flex-col gap-1.5 text-xs text-slate-400 sm:col-span-2">
+                                    Busca
+                                    <input
+                                        type="text"
+                                        value={buscaMapeamento}
+                                        onChange={(event) => setBuscaMapeamento(event.target.value)}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter') carregarMapeamentos()
+                                        }}
+                                        placeholder="Buscar por seller_sku, ASIN, item_id ou observações"
+                                        className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                                    />
+                                </label>
+                            </div>
+
+                            <div className="flex flex-col gap-2 sm:flex-row lg:shrink-0">
+                                <button
+                                    onClick={carregarMapeamentos}
+                                    className="rounded-lg border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:border-indigo-500 hover:text-white"
+                                >
+                                    Buscar
+                                </button>
+                                <button
+                                    disabled
+                                    title="Criação de mapeamentos será habilitada em fase futura."
+                                    className="rounded-lg border border-slate-800 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-500 opacity-70"
+                                >
+                                    Novo mapeamento
+                                </button>
+                            </div>
+                        </div>
+                    </AppCard>
+
+                    {statusMapeamentos === 'carregando' && (
+                        <AppCard>
+                            <div className="flex flex-col items-center justify-center py-10 text-center">
+                                <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent"></div>
+                                <p className="mt-4 text-sm font-medium text-slate-300">{mensagemMapeamentos}</p>
+                            </div>
+                        </AppCard>
+                    )}
+
+                    {statusMapeamentos === 'erro' && (
+                        <AppCard>
+                            <div className="rounded-lg border border-red-900/40 bg-red-950/20 p-4 text-sm text-red-200">
+                                <p className="font-semibold">Erro ao carregar mapeamentos</p>
+                                <p className="mt-2 text-xs leading-relaxed text-red-100/80">{mensagemMapeamentos}</p>
+                            </div>
+                        </AppCard>
+                    )}
+
+                    {statusMapeamentos === 'sucesso' && (
+                        <AppCard>
+                            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <h3 className="text-base font-semibold text-indigo-400">Mapeamentos cadastrados</h3>
+                                    <p className="mt-1 text-xs text-slate-500">Fonte: tabela produto_canal_marketplace_mapeamento.</p>
+                                </div>
+                                <span className="w-fit rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
+                                    {mapeamentos.length} registro(s)
+                                </span>
+                            </div>
+
+                            {mapeamentos.length === 0 ? (
+                                <div className="rounded-lg border border-slate-800 bg-slate-950 p-8 text-center text-sm text-slate-400">
+                                    Nenhum mapeamento encontrado para os filtros selecionados.
+                                </div>
+                            ) : (
+                                <DataTableContainer>
+                                    <table className="w-full min-w-[1500px] border-collapse text-left text-xs sm:text-sm">
+                                        <thead className={`${stickyTableHeadClassName} text-slate-400`}>
+                                            <tr>
+                                                <th className="px-3 py-3 font-medium sm:px-4">Produto</th>
+                                                <th className="px-3 py-3 font-medium sm:px-4">Canal</th>
+                                                <th className="px-3 py-3 font-medium sm:px-4">Marketplace</th>
+                                                <th className="px-3 py-3 font-medium sm:px-4">Seller SKU</th>
+                                                <th className="px-3 py-3 font-medium sm:px-4">ASIN</th>
+                                                <th className="px-3 py-3 font-medium sm:px-4">Item ID</th>
+                                                <th className="px-3 py-3 font-medium sm:px-4">Listing</th>
+                                                <th className="px-3 py-3 font-medium sm:px-4">Logística</th>
+                                                <th className="px-3 py-3 font-medium sm:px-4 text-center">Override</th>
+                                                <th className="px-3 py-3 font-medium sm:px-4 text-right">Cache</th>
+                                                <th className="px-3 py-3 font-medium sm:px-4 text-center">Status</th>
+                                                <th className="px-3 py-3 font-medium sm:px-4">Atualizado em</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-800 bg-slate-900">
+                                            {mapeamentos.map((item) => {
+                                                const produto = produtosPorId.get(item.produto_id)
+                                                const canal = canaisPorId.get(item.canal_venda_id)
+                                                const produtoLabel = produto
+                                                    ? `${produto.sku} - ${produto.produto_nome}`
+                                                    : item.produto_id
+                                                const canalLabel = canal
+                                                    ? `${canal.nome} (${canal.tipo})`
+                                                    : item.canal_venda_id
+
+                                                return (
+                                                    <tr key={item.id} className="hover:bg-slate-800/60">
+                                                        <td className="px-3 py-3 sm:px-4">
+                                                            <span className="line-clamp-2 text-slate-100">{produtoLabel}</span>
+                                                        </td>
+                                                        <td className="px-3 py-3 sm:px-4 text-slate-300">{canalLabel}</td>
+                                                        <td className="px-3 py-3 sm:px-4 font-mono text-slate-200">{item.marketplace}</td>
+                                                        <td className="px-3 py-3 sm:px-4 font-mono text-slate-300">{item.seller_sku ?? '-'}</td>
+                                                        <td className="px-3 py-3 sm:px-4 font-mono text-slate-300">{item.asin ?? '-'}</td>
+                                                        <td className="px-3 py-3 sm:px-4 font-mono text-slate-300">{item.item_id ?? '-'}</td>
+                                                        <td className="px-3 py-3 sm:px-4 font-mono text-slate-300">{item.listing_type_id ?? '-'}</td>
+                                                        <td className="px-3 py-3 sm:px-4 text-slate-300">
+                                                            <div className="flex flex-col gap-0.5">
+                                                                <span>{item.logistic_type ?? '-'}</span>
+                                                                <span className="text-[11px] text-slate-500">{item.shipping_mode ?? '-'}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-3 py-3 sm:px-4 text-center">
+                                                            <StatusBadge tone={item.manual_override ? 'warning' : 'muted'}>
+                                                                {item.manual_override ? 'Manual' : 'Não'}
+                                                            </StatusBadge>
+                                                        </td>
+                                                        <td className="px-3 py-3 sm:px-4 text-right font-mono text-slate-300">
+                                                            {item.validade_cache_horas}h
+                                                        </td>
+                                                        <td className="px-3 py-3 sm:px-4 text-center">
+                                                            <StatusBadge tone={item.status === 'ativo' ? 'success' : 'muted'}>
+                                                                {item.status}
+                                                            </StatusBadge>
+                                                        </td>
+                                                        <td className="px-3 py-3 sm:px-4 text-slate-400">
+                                                            {formatarDataHora(item.updated_at)}
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </DataTableContainer>
+                            )}
+                        </AppCard>
+                    )}
                 </div>
             )}
 
