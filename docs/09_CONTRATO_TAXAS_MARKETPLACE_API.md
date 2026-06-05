@@ -664,3 +664,39 @@ Regras:
 ```txt
 5.4E - Planejamento tecnico da migration produto_canal_marketplace_mapeamento, ainda sem aplicar nada.
 ```
+
+---
+
+## 12. Pos-aplicacao 5.4E-2
+
+### 12.1. Migration aplicada
+
+```txt
+20260605000100_produto_canal_marketplace_mapeamento.sql
+```
+
+### 12.2. Objetos confirmados
+
+- tabela `produto_canal_marketplace_mapeamento` existe;
+- colunas da tabela existem;
+- `marketplace_fee_quotes` recebeu `mapeamento_id`;
+- `marketplace_fee_quotes` recebeu `aplicado_em_precificacao`;
+- indices foram criados;
+- policies RLS foram criadas.
+
+### 12.3. Observacao de aplicacao
+
+Os notices de `DROP TRIGGER IF EXISTS` foram esperados e nao representam erro. Eles ocorrem porque a migration remove preventivamente triggers homonimos antes de cria-los.
+
+### 12.4. Status apos aplicacao
+
+O schema esta preparado para futuras Edge Functions de cotacao de taxas por API, com rastreabilidade entre mapeamento, cotacao e cache de precificacao.
+
+Ainda nao implementar Edge Functions nesta etapa.
+
+### 12.5. Proximas etapas recomendadas
+
+Opcoes:
+
+- `5.4F - Planejamento do service/frontend de leitura do mapeamento`;
+- `5.5A - Planejamento da primeira Edge Function Amazon em modo unitario`.

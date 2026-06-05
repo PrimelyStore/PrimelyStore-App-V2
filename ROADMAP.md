@@ -340,3 +340,36 @@ Decisoes:
 Proxima etapa recomendada:
 
 - 5.4E - Planejamento tecnico da migration `produto_canal_marketplace_mapeamento`, ainda sem aplicar nada.
+
+---
+
+## Registro 2026-06-05 - Fase 5.4E-2
+
+Status: [x] Migration aplicada e documentada
+
+Migration aplicada:
+
+- `20260605000100_produto_canal_marketplace_mapeamento.sql`
+
+Objetos confirmados:
+
+- tabela `produto_canal_marketplace_mapeamento` existe;
+- colunas da tabela existem;
+- `marketplace_fee_quotes` recebeu `mapeamento_id`;
+- `marketplace_fee_quotes` recebeu `aplicado_em_precificacao`;
+- indices criados;
+- policies RLS criadas.
+
+Observacao:
+
+- notices de `DROP TRIGGER IF EXISTS` foram esperados e nao representam erro.
+
+Status:
+
+- schema preparado para futuras Edge Functions;
+- Edge Functions ainda nao devem ser implementadas nesta etapa.
+
+Proximas etapas recomendadas:
+
+- 5.4F - Planejamento do service/frontend de leitura do mapeamento; ou
+- 5.5A - Planejamento da primeira Edge Function Amazon em modo unitario.
