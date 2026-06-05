@@ -316,3 +316,27 @@ Recomendacao:
 - criar migration futura antes de Edge Functions automaticas;
 - considerar `mapeamento_id` em `marketplace_fee_quotes`;
 - nao implementar integracao automatica de Mercado Livre sem essa tabela.
+
+---
+
+## Registro 2026-06-05 - Fase 5.4D
+
+Status: [x] Decisoes finais documentadas
+
+Objetivo: fechar decisoes de negocio e arquitetura antes da futura migration de mapeamento produto-canal-marketplace.
+
+Decisoes:
+
+- permitir multiplos mapeamentos ativos para o mesmo produto/canal, diferenciados por contexto;
+- Amazon diferencia por `seller_sku`, `marketplace_id` e `is_amazon_fulfilled`;
+- Mercado Livre diferencia por `item_id`, `listing_type_id`, `logistic_type`, `shipping_mode` e `free_shipping`;
+- `validade_cache_horas` padrao = `24`;
+- `manual_override` bloqueia atualizacao automatica em `produtos_precificacao`, mas permite consulta API manual;
+- cotacoes consultadas devem ser gravadas em `marketplace_fee_quotes`;
+- futura migration deve adicionar `mapeamento_id` nullable e `aplicado_em_precificacao` boolean em `marketplace_fee_quotes`;
+- `moeda` fica gravada no mapeamento, herdando `configuracoes_operacao.moeda_padrao` com fallback `BRL`;
+- exclusao normal via `status = 'inativo'`; delete fisico somente admin.
+
+Proxima etapa recomendada:
+
+- 5.4E - Planejamento tecnico da migration `produto_canal_marketplace_mapeamento`, ainda sem aplicar nada.

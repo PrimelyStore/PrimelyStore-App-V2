@@ -343,3 +343,40 @@ Recomendacao:
 ```txt
 Criar migration futura para essa tabela antes de Edge Functions automaticas, considerar `mapeamento_id` em `marketplace_fee_quotes` e nao implementar integracao automatica de Mercado Livre sem esse mapeamento.
 ```
+
+---
+
+## 13. Fase 5.4D - Decisoes finais antes da migration de mapeamento
+
+Em 2026-06-05, foram documentadas as decisoes finais antes da futura migration de mapeamento produto-canal-marketplace.
+
+Decisoes preservadas:
+
+- permitir multiplos mapeamentos ativos para o mesmo produto/canal, diferenciados por contexto;
+- Amazon diferencia por `seller_sku`, `marketplace_id` e `is_amazon_fulfilled`;
+- Mercado Livre diferencia por `item_id`, `listing_type_id`, `logistic_type`, `shipping_mode` e `free_shipping`;
+- `validade_cache_horas` padrao = `24`;
+- `api_recente` deve respeitar essa validade;
+- cache vencido permite nova consulta API;
+- `manual_override` bloqueia somente atualizacao automatica em `produtos_precificacao`;
+- consulta API manual continua permitida mesmo com `manual_override`;
+- cotacao deve ser gravada em `marketplace_fee_quotes`;
+- `produtos_precificacao` nao deve ser atualizado automaticamente quando `manual_override = true`;
+- futura migration deve adicionar `mapeamento_id` nullable em `marketplace_fee_quotes`;
+- futura migration deve adicionar `aplicado_em_precificacao` boolean em `marketplace_fee_quotes`;
+- `moeda` fica gravada no mapeamento, herdando `configuracoes_operacao.moeda_padrao` com fallback `BRL`;
+- exclusao normal via `status = 'inativo'`; delete fisico somente admin.
+
+Riscos registrados:
+
+- indice unico mal desenhado pode bloquear anuncios legitimos;
+- indice frouxo pode permitir duplicidade;
+- `manual_override` precisa ser respeitado nas futuras Edge Functions;
+- `mapeamento_id` nullable precisa ser tratado nos relatorios;
+- cache de 24h exige controle de rate limit.
+
+Proxima etapa recomendada:
+
+```txt
+5.4E - Planejamento tecnico da migration produto_canal_marketplace_mapeamento, ainda sem aplicar nada.
+```

@@ -569,3 +569,98 @@ Relacoes:
 - Considerar adicionar `mapeamento_id` em `marketplace_fee_quotes` para rastreabilidade completa.
 - Nao implementar integracao automatica de Mercado Livre sem essa tabela.
 - A primeira integracao Amazon pode ser planejada em modo unitario, mas a automacao completa deve depender do mapeamento.
+
+---
+
+## 11. Decisoes finais 5.4D antes da migration de mapeamento
+
+### 11.1. Multiplos mapeamentos ativos
+
+Decisao: permitir multiplos mapeamentos ativos para o mesmo produto/canal, desde que o contexto seja diferente.
+
+Justificativa: um mesmo produto pode ter varios anuncios, modalidades logisticas e estrategias por marketplace. A unicidade nao deve ser apenas por `produto_id` e `canal_venda_id`.
+
+Contextos de diferenciacao:
+
+Amazon:
+
+- `seller_sku`;
+- `marketplace_id`;
+- `is_amazon_fulfilled`.
+
+Mercado Livre:
+
+- `item_id`;
+- `listing_type_id`;
+- `logistic_type`;
+- `shipping_mode`;
+- `free_shipping`.
+
+### 11.2. Cache
+
+Decisao: `validade_cache_horas` padrao = `24`.
+
+Regras:
+
+- `api_recente` deve respeitar `validade_cache_horas`;
+- cache valido evita nova chamada automatica de API;
+- cache vencido permite nova consulta API;
+- consulta manual pode futuramente forcar nova cotacao, respeitando rate limit.
+
+### 11.3. Manual override
+
+Decisao: `manual_override` bloqueia somente atualizacao automatica em `produtos_precificacao`; consulta API manual continua permitida.
+
+Regras:
+
+- a cotacao API deve ser gravada em `marketplace_fee_quotes`;
+- `produtos_precificacao` nao deve ser atualizado automaticamente quando `manual_override = true`;
+- a cotacao pode ser usada para comparacao/auditoria sem substituir a decisao manual do gestor.
+
+### 11.4. Alteracoes futuras em `marketplace_fee_quotes`
+
+Decisao: adicionar, em migration futura, os campos:
+
+- `mapeamento_id` nullable;
+- `aplicado_em_precificacao` boolean.
+
+Motivo:
+
+- `mapeamento_id` preserva rastreabilidade do contexto usado na cotacao;
+- `aplicado_em_precificacao` indica se a cotacao foi realmente aplicada em `produtos_precificacao`;
+- `mapeamento_id` deve ser nullable para preservar cotacoes antigas, manuais ou sem mapeamento.
+
+### 11.5. Moeda
+
+Decisao: `moeda` deve ficar gravada no mapeamento.
+
+Regra de criacao:
+
+- herdar `configuracoes_operacao.moeda_padrao`;
+- fallback seguro: `BRL`.
+
+Motivo: a moeda faz parte do contexto de cotacao e evita ambiguidade futura em canais internacionais.
+
+### 11.6. Exclusao
+
+Decisao: usar `status = 'inativo'` como exclusao logica.
+
+Regras:
+
+- delete fisico somente admin;
+- preservar historico de cotacoes;
+- evitar perda de rastreabilidade entre mapeamento, `marketplace_fee_quotes` e `produtos_precificacao`.
+
+### 11.7. Riscos
+
+- indice unico mal desenhado pode bloquear anuncios legitimos;
+- indice frouxo pode permitir duplicidade confusa;
+- `manual_override` precisa ser respeitado nas futuras Edge Functions;
+- `mapeamento_id` nullable precisa ser tratado em relatorios;
+- cache de 24h exige controle de rate limit.
+
+### 11.8. Proxima etapa recomendada
+
+```txt
+5.4E - Planejamento tecnico da migration produto_canal_marketplace_mapeamento, ainda sem aplicar nada.
+```
