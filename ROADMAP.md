@@ -239,3 +239,29 @@ Governanca:
 - a etapa mantem o Primely Store como painel gerencial inteligente;
 - as estruturas novas apoiam analise, simulacao e gestao de custos por canal;
 - nao houve alteracao de frontend, Edge Functions ou regras de negocio nesta fase de documentacao.
+
+---
+
+## Registro 2026-06-05 - Fase 5.4A
+
+Status: [x] Planejamento documentado
+
+Objetivo: documentar o contrato tecnico das futuras Edge Functions de consulta de taxas por API, sem implementar codigo e sem alterar banco.
+
+Documento criado:
+
+- `docs/09_CONTRATO_TAXAS_MARKETPLACE_API.md`
+
+Escopo documentado:
+
+- futura Edge Function `amazon-fees-quote`;
+- futura Edge Function `mercadolivre-fees-quote`;
+- mapeamento para `marketplace_fee_quotes`;
+- mapeamento para `produtos_precificacao`;
+- precedencia de fallbacks `manual_override > api_recente > matriz_local > seed_minimo > alerta_sem_taxa`;
+- regras de seguranca e sanitizacao de `payload_bruto`;
+- campos possivelmente faltantes no schema atual.
+
+Proxima etapa recomendada:
+
+- 5.4B - Auditoria local do schema atual para verificar campos faltantes.

@@ -179,3 +179,37 @@ As estruturas de custos por canal servem para analise, simulacao, auditoria e to
 ```
 
 Nesta fase de documentacao nao foi executado SQL, nao houve alteracao de banco, nao houve alteracao de Edge Functions e nao houve mudanca de regra de negocio.
+
+---
+
+## 10. Fase 5.4A - Contrato de taxas por API
+
+Em 2026-06-05, foi documentado o contrato tecnico para futuras integracoes de taxas por API.
+
+Documento criado:
+
+```txt
+docs/09_CONTRATO_TAXAS_MARKETPLACE_API.md
+```
+
+Escopo registrado:
+
+- contrato planejado da futura Edge Function `amazon-fees-quote`;
+- contrato planejado da futura Edge Function `mercadolivre-fees-quote`;
+- mapeamento para `marketplace_fee_quotes`;
+- mapeamento para `produtos_precificacao`;
+- precedencia de fallbacks `manual_override > api_recente > matriz_local > seed_minimo > alerta_sem_taxa`;
+- regras de seguranca para tokens, secrets e `payload_bruto`;
+- campos possivelmente faltantes antes da implementacao.
+
+Decisao preservada:
+
+```txt
+APIs de marketplace devem ser chamadas somente por Edge Functions, n8n ou backend confiavel. O frontend nunca deve receber tokens, refresh tokens, client_secret, service_role ou connection strings.
+```
+
+Proxima etapa recomendada:
+
+```txt
+5.4B - Auditoria local do schema atual para verificar campos faltantes.
+```
