@@ -926,3 +926,132 @@ Modo inicial:
 ```txt
 5.5B - Planejamento dos secrets e variaveis da Edge Function Amazon, ainda sem implementar codigo.
 ```
+
+---
+
+## 15. Planejamento 5.5B - Secrets e variaveis da Edge Function Amazon
+
+### 15.1. Regra principal
+
+Esta secao documenta somente nomes e finalidade das variaveis planejadas para a futura Edge Function `amazon-fees-quote`.
+
+Nao registrar valores reais em documentacao, codigo, banco, logs, chat, `.env.local` lido por agente ou `payload_bruto`.
+
+### 15.2. Secrets Amazon SP-API planejados
+
+| Variavel | Onde deve ficar | Funcao |
+|---|---|---|
+| `AMAZON_LWA_CLIENT_ID` | Supabase Edge Function Secrets | Identificador do app LWA. |
+| `AMAZON_LWA_CLIENT_SECRET` | Supabase Edge Function Secrets | Segredo LWA usado para autenticacao. |
+| `AMAZON_LWA_REFRESH_TOKEN` | Supabase Edge Function Secrets | Refresh token usado para obter access token temporario. |
+| `AMAZON_AWS_ACCESS_KEY_ID` | Supabase Edge Function Secrets | Identificador AWS para assinatura da requisicao, se aplicavel. |
+| `AMAZON_AWS_SECRET_ACCESS_KEY` | Supabase Edge Function Secrets | Segredo AWS para assinatura da requisicao. |
+| `AMAZON_AWS_ROLE_ARN` | Supabase Edge Function Secrets | Role ARN quando houver uso de role/STS. |
+| `AMAZON_AWS_REGION` | Supabase Edge Function Secrets | Regiao usada na assinatura. |
+| `AMAZON_SPAPI_ENDPOINT` | Supabase Edge Function Secrets | Endpoint regional da SP-API, sem credenciais na URL. |
+| `AMAZON_DEFAULT_MARKETPLACE_ID` | Supabase Edge Function Secrets | Marketplace fallback, se aprovado; preferir sempre o `marketplace_id` do mapeamento. |
+
+### 15.3. Onde os secrets devem ficar
+
+- Supabase Edge Function Secrets;
+- nunca no frontend;
+- nunca em `.env.local` lido pelo agente;
+- nunca no banco;
+- nunca em `payload_bruto`;
+- nunca em resposta ao frontend;
+- nunca em logs.
+
+### 15.4. Secrets Supabase
+
+| Variavel | Uso planejado | Regra |
+|---|---|---|
+| `SUPABASE_URL` | URL do projeto Supabase usada pela Edge Function. | Pode existir no runtime da Edge Function. |
+| `SUPABASE_ANON_KEY` | Uso com JWT/RLS quando fizer sentido. | Menor privilegio quando viavel. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Uso backend restrito, se necessario para gravar quote ou atualizar cache. | Somente dentro da Edge Function; nunca no frontend. |
+
+Se `SUPABASE_SERVICE_ROLE_KEY` for usado, a Edge Function deve validar autenticacao e autorizacao antes de qualquer escrita.
+
+### 15.5. Variaveis publicas x privadas
+
+Pode ficar no frontend:
+
+- `VITE_SUPABASE_URL`;
+- `VITE_SUPABASE_ANON_KEY`;
+- IDs e campos nao sensiveis necessarios para UI, como `mapeamento_id`.
+
+Deve ficar somente em Edge Function Secrets:
+
+- todos os secrets Amazon SP-API;
+- `SUPABASE_SERVICE_ROLE_KEY`, se usado;
+- tokens internos;
+- qualquer credencial AWS, LWA ou backend.
+
+Nunca salvar em banco:
+
+- access token;
+- refresh token;
+- client secret;
+- AWS secret;
+- Authorization header;
+- service role;
+- connection string;
+- headers com credenciais;
+- payload bruto com segredo.
+
+### 15.6. Seguranca obrigatoria
+
+- nunca logar secrets;
+- nunca retornar tokens ao frontend;
+- nunca salvar Authorization header;
+- sanitizar `payload_bruto`;
+- separar erro tecnico interno de erro exibido ao usuario;
+- nao misturar credenciais dev/prod;
+- documentar somente nomes de variaveis, nunca valores.
+
+### 15.7. Ambientes
+
+Dev:
+
+- usar credenciais de desenvolvimento/sandbox quando disponiveis;
+- manter projeto e secrets claramente separados;
+- usar mapeamentos de teste;
+- permitir logs mais detalhados, ainda sem segredos.
+
+Producao:
+
+- usar secrets reais apenas no projeto de producao;
+- logs minimos e sanitizados;
+- acesso restrito ao painel de secrets;
+- rotacao de credenciais documentada fora do repositorio.
+
+Como evitar mistura:
+
+- confirmar projeto Supabase antes de configurar secrets;
+- manter nomes iguais e valores diferentes por ambiente;
+- nunca copiar valores reais para docs ou chat;
+- revisar ambiente antes de deploy.
+
+### 15.8. Riscos
+
+- vazamento de refresh token ou client secret compromete a integracao Amazon;
+- uso indevido de service role pode burlar RLS;
+- mistura dev/prod pode gerar cotacoes reais no ambiente errado;
+- payload bruto com dados sensiveis pode vazar credenciais;
+- fallback global de `marketplace_id` pode mascarar mapeamento incompleto.
+
+### 15.9. Checklist antes da implementacao
+
+- confirmar projeto Supabase correto;
+- confirmar ambiente;
+- definir autenticacao da Edge Function;
+- decidir uso de service role;
+- confirmar nomes finais dos secrets;
+- definir sanitizador;
+- definir politica de logs;
+- validar um `mapeamento_id` Amazon de teste.
+
+### 15.10. Proxima etapa recomendada
+
+```txt
+5.5C - Planejamento da autenticacao/autorizacao da Edge Function amazon-fees-quote.
+```

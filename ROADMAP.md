@@ -107,7 +107,8 @@ Etapas:
 - [ ] 5.3E Visualização e Gravação de Custos por Canal com Overrides
 - [x] 5.4F Tela de Mapeamento Marketplace em Custos & Margens
 - [x] 5.5A Planejamento da primeira Edge Function Amazon Product Fees em modo unitario/controlado
-- [ ] 5.5B Planejamento dos secrets e variaveis da Edge Function Amazon
+- [x] 5.5B Planejamento dos secrets e variaveis da Edge Function Amazon
+- [ ] 5.5C Planejamento da autenticacao/autorizacao da Edge Function `amazon-fees-quote`
 
 ---
 
@@ -488,3 +489,70 @@ Seguranca:
 Proxima etapa recomendada:
 
 - 5.5B - Planejamento dos secrets e variaveis da Edge Function Amazon, ainda sem implementar codigo.
+
+---
+
+## Registro 2026-06-05 - Fase 5.5B
+
+Status: [x] Planejamento documentado
+
+Objetivo: documentar os secrets e variaveis planejados para a futura Edge Function `amazon-fees-quote`, sem configurar valores reais e sem implementar codigo.
+
+Secrets Amazon SP-API planejados:
+
+- `AMAZON_LWA_CLIENT_ID`;
+- `AMAZON_LWA_CLIENT_SECRET`;
+- `AMAZON_LWA_REFRESH_TOKEN`;
+- `AMAZON_AWS_ACCESS_KEY_ID`;
+- `AMAZON_AWS_SECRET_ACCESS_KEY`;
+- `AMAZON_AWS_ROLE_ARN`;
+- `AMAZON_AWS_REGION`;
+- `AMAZON_SPAPI_ENDPOINT`;
+- `AMAZON_DEFAULT_MARKETPLACE_ID`.
+
+Onde devem ficar:
+
+- Supabase Edge Function Secrets;
+- nunca no frontend;
+- nunca em `.env.local` lido pelo agente;
+- nunca no banco;
+- nunca em `payload_bruto`.
+
+Secrets Supabase planejados:
+
+- `SUPABASE_URL`;
+- `SUPABASE_ANON_KEY`;
+- `SUPABASE_SERVICE_ROLE_KEY` somente dentro da Edge Function, se necessario;
+- `service_role` nunca no frontend.
+
+Seguranca obrigatoria:
+
+- nunca logar secrets;
+- nunca retornar tokens ao frontend;
+- nunca salvar Authorization header;
+- sanitizar `payload_bruto`;
+- separar erro tecnico interno de erro exibido ao usuario;
+- nao misturar credenciais dev/prod.
+
+Riscos registrados:
+
+- vazamento de refresh token ou client secret;
+- uso indevido de service role;
+- mistura dev/prod;
+- payload bruto com dados sensiveis;
+- fallback global de marketplace_id mascarar mapeamento incompleto.
+
+Checklist antes da implementacao:
+
+- confirmar projeto Supabase correto;
+- confirmar ambiente;
+- definir autenticacao da Edge Function;
+- decidir uso de service role;
+- confirmar nomes finais dos secrets;
+- definir sanitizador;
+- definir politica de logs;
+- validar um `mapeamento_id` Amazon de teste.
+
+Proxima etapa recomendada:
+
+- 5.5C - Planejamento da autenticacao/autorizacao da Edge Function `amazon-fees-quote`.

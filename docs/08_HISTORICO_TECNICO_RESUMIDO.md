@@ -547,3 +547,91 @@ Proxima etapa recomendada:
 ```txt
 5.5B - Planejamento dos secrets e variaveis da Edge Function Amazon, ainda sem implementar codigo.
 ```
+
+---
+
+## 17. Fase 5.5B - Planejamento dos secrets da Edge Function Amazon
+
+Em 2026-06-05, foi documentado o planejamento dos secrets e variaveis da futura Edge Function:
+
+```txt
+amazon-fees-quote
+```
+
+Regra principal:
+
+```txt
+Documentar apenas nomes de variaveis. Nunca registrar valores reais de secrets em arquivos, chat, logs, banco ou payload bruto.
+```
+
+Secrets Amazon SP-API planejados:
+
+- `AMAZON_LWA_CLIENT_ID`;
+- `AMAZON_LWA_CLIENT_SECRET`;
+- `AMAZON_LWA_REFRESH_TOKEN`;
+- `AMAZON_AWS_ACCESS_KEY_ID`;
+- `AMAZON_AWS_SECRET_ACCESS_KEY`;
+- `AMAZON_AWS_ROLE_ARN`;
+- `AMAZON_AWS_REGION`;
+- `AMAZON_SPAPI_ENDPOINT`;
+- `AMAZON_DEFAULT_MARKETPLACE_ID`.
+
+Local correto:
+
+- Supabase Edge Function Secrets;
+- nunca no frontend;
+- nunca no banco;
+- nunca em `payload_bruto`;
+- nunca em `.env.local` lido pelo agente.
+
+Secrets Supabase planejados:
+
+- `SUPABASE_URL`;
+- `SUPABASE_ANON_KEY`;
+- `SUPABASE_SERVICE_ROLE_KEY` somente dentro da Edge Function, se necessario.
+
+Decisao preservada:
+
+```txt
+service_role nunca deve ser usado no frontend. Se for usado, deve ficar restrito ao runtime da Edge Function e com validacao/autorizacao antes de qualquer escrita.
+```
+
+Variaveis publicas x privadas:
+
+- frontend pode usar apenas variaveis publicas como `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`;
+- secrets Amazon e service role ficam somente em Edge Function Secrets;
+- tokens, refresh tokens, client secrets, AWS keys, Authorization headers e connection strings nunca devem ser salvos em banco.
+
+Seguranca obrigatoria:
+
+- nunca logar secrets;
+- nunca retornar tokens ao frontend;
+- nunca salvar Authorization header;
+- sanitizar `payload_bruto`;
+- separar erro tecnico interno de erro exibido ao usuario;
+- nao misturar credenciais dev/prod.
+
+Riscos:
+
+- vazamento de refresh token ou client secret;
+- uso indevido de service role;
+- mistura de credenciais dev/prod;
+- payload bruto com dados sensiveis;
+- fallback global de `marketplace_id` mascarar mapeamento incompleto.
+
+Checklist antes da implementacao:
+
+- confirmar projeto Supabase correto;
+- confirmar ambiente;
+- definir autenticacao da Edge Function;
+- decidir uso de service role;
+- confirmar nomes finais dos secrets;
+- definir sanitizador;
+- definir politica de logs;
+- validar um `mapeamento_id` Amazon de teste.
+
+Proxima etapa recomendada:
+
+```txt
+5.5C - Planejamento da autenticacao/autorizacao da Edge Function amazon-fees-quote.
+```
