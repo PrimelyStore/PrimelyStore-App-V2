@@ -467,3 +467,83 @@ Proxima etapa recomendada:
 ```txt
 5.5A - Planejamento da primeira Edge Function Amazon Product Fees em modo unitario/controlado.
 ```
+
+---
+
+## 16. Fase 5.5A - Planejamento da Edge Function Amazon Product Fees
+
+Em 2026-06-05, foi documentado o planejamento tecnico da futura Edge Function:
+
+```txt
+amazon-fees-quote
+```
+
+Objetivo:
+
+- consultar Amazon SP-API Product Fees em modo unitario/controlado;
+- usar um `mapeamento_id` ja cadastrado em `produto_canal_marketplace_mapeamento`;
+- respeitar cache por `mapeamento_id + preco_consultado`;
+- gravar historico em `marketplace_fee_quotes`;
+- atualizar `produtos_precificacao` somente quando permitido.
+
+Request planejado:
+
+- `mapeamento_id`;
+- `preco_consultado`;
+- `atualizar_precificacao` boolean opcional, default `false`;
+- `force_refresh` boolean opcional, default `false`.
+
+Response planejado:
+
+- `success`;
+- `fee_quote_id`;
+- `mapeamento_id`;
+- `origem`;
+- `marketplace`;
+- `taxa_marketplace_calculada`;
+- `taxa_logistica_calculada`;
+- `custo_total_calculado`;
+- `aplicado_em_precificacao`;
+- `status`;
+- `erro` sanitizado.
+
+Fluxo preservado:
+
+- validar metodo, autenticacao e payload;
+- buscar mapeamento ativo;
+- exigir `marketplace = amazon`;
+- validar `seller_sku`, `marketplace_id`, `is_amazon_fulfilled` e `preco_consultado > 0`;
+- consultar cache por `mapeamento_id + preco_consultado`;
+- retornar `api_recente` quando cache estiver valido e `force_refresh = false`;
+- chamar Amazon Product Fees somente quando necessario;
+- sanitizar payload;
+- gravar `marketplace_fee_quotes`;
+- atualizar `produtos_precificacao` somente se `manual_override = false` e `atualizar_precificacao = true`;
+- marcar `aplicado_em_precificacao`.
+
+Manual override:
+
+```txt
+manual_override nao bloqueia consulta API manual, mas impede atualizacao automatica de produtos_precificacao.
+```
+
+Seguranca:
+
+- secrets somente em Supabase Edge Function Secrets;
+- frontend nunca recebe token Amazon;
+- `payload_bruto` deve ser sanitizado;
+- nunca salvar Authorization, access token, refresh token, client secret, AWS keys, LWA secret, service role ou connection string.
+
+Limitacoes intencionais:
+
+- nao criar botao `Consultar taxa`;
+- nao implementar Edge Function ainda;
+- nao chamar Amazon;
+- nao alterar `produtos_precificacao` automaticamente;
+- sem lote, sem fila e sem retry agressivo.
+
+Proxima etapa recomendada:
+
+```txt
+5.5B - Planejamento dos secrets e variaveis da Edge Function Amazon, ainda sem implementar codigo.
+```

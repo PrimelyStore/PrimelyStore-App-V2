@@ -778,3 +778,151 @@ Essa tela prepara a base operacional da futura consulta de taxas por API, mas ai
 ```txt
 5.5A - Planejamento da primeira Edge Function Amazon Product Fees em modo unitario/controlado.
 ```
+
+---
+
+## 14. Planejamento 5.5A - Edge Function Amazon Product Fees
+
+### 14.1. Nome da futura Edge Function
+
+```txt
+amazon-fees-quote
+```
+
+Objetivo: realizar uma consulta unitaria/controlada da Amazon SP-API Product Fees a partir de um mapeamento gerencial ja cadastrado.
+
+Esta etapa documenta apenas o contrato tecnico. Nao implementa Edge Function, nao chama Amazon, nao altera banco, nao cria migration e nao altera frontend.
+
+### 14.2. Request esperado
+
+| Campo | Tipo | Obrigatorio | Default | Observacao |
+|---|---|---|---|---|
+| `mapeamento_id` | uuid | Sim | - | ID em `produto_canal_marketplace_mapeamento`. |
+| `preco_consultado` | number | Sim | - | Preco usado para cotar as taxas. Deve ser maior que zero. |
+| `atualizar_precificacao` | boolean | Nao | `false` | Se `true`, permite atualizar `produtos_precificacao`, desde que `manual_override = false`. |
+| `force_refresh` | boolean | Nao | `false` | Se `true`, ignora cache recente e força nova consulta API. |
+
+### 14.3. Response esperado
+
+| Campo | Tipo | Observacao |
+|---|---|---|
+| `success` | boolean | Resultado geral da operacao. |
+| `fee_quote_id` | uuid/null | ID em `marketplace_fee_quotes`, quando houver cotacao gravada ou cache reutilizado. |
+| `mapeamento_id` | uuid | Mapeamento usado na consulta. |
+| `origem` | text | `api`, `api_recente`, `erro` ou outro valor controlado. |
+| `marketplace` | text | Valor esperado: `amazon`. |
+| `taxa_marketplace_calculada` | number/null | Taxa/referral fee estimada. |
+| `taxa_logistica_calculada` | number/null | Taxa FBA/logistica quando retornada e confiavel. |
+| `custo_total_calculado` | number/null | Soma das taxas calculadas. |
+| `aplicado_em_precificacao` | boolean | Indica se a cotacao foi aplicada em `produtos_precificacao`. |
+| `status` | text | `sucesso`, `cache`, `erro`, `bloqueado_manual_override` ou equivalente controlado. |
+| `erro` | text/null | Mensagem sanitizada, sem segredo. |
+
+### 14.4. Fluxo planejado
+
+1. Validar metodo HTTP.
+2. Validar autenticacao/autorizacao da chamada.
+3. Validar payload.
+4. Buscar mapeamento ativo em `produto_canal_marketplace_mapeamento`.
+5. Exigir `marketplace = amazon`.
+6. Validar `seller_sku`.
+7. Validar `marketplace_id`.
+8. Validar `is_amazon_fulfilled` como boolean nao nulo.
+9. Validar `preco_consultado > 0`.
+10. Consultar cache recente em `marketplace_fee_quotes` por `mapeamento_id + preco_consultado`.
+11. Respeitar `validade_cache_horas`.
+12. Se cache valido e `force_refresh = false`, retornar `origem = api_recente`.
+13. Se cache vencido ou `force_refresh = true`, chamar Amazon Product Fees.
+14. Sanitizar payload de resposta antes de gravar.
+15. Gravar registro em `marketplace_fee_quotes`.
+16. Atualizar `produtos_precificacao` somente se `manual_override = false` e `atualizar_precificacao = true`.
+17. Marcar `aplicado_em_precificacao` como `true` ou `false`.
+18. Retornar response padronizado.
+
+### 14.5. Regras de cache
+
+- cache por `mapeamento_id + preco_consultado`;
+- respeitar `validade_cache_horas` do mapeamento;
+- `force_refresh = true` ignora cache;
+- no piloto, nao reutilizar cache de outro preco;
+- cache valido deve retornar `origem = api_recente`;
+- cache vencido exige nova consulta API ou erro controlado.
+
+### 14.6. Manual override
+
+Regra:
+
+```txt
+manual_override nao bloqueia consulta API manual, mas bloqueia atualizacao automatica em produtos_precificacao.
+```
+
+Comportamento planejado:
+
+- gravar quote normalmente em `marketplace_fee_quotes`;
+- nao atualizar `produtos_precificacao`;
+- marcar `aplicado_em_precificacao = false`;
+- response deve deixar claro que nao aplicou por `manual_override`.
+
+### 14.7. Seguranca e secrets
+
+Secrets devem ficar somente em:
+
+```txt
+Supabase Edge Function Secrets
+```
+
+O frontend nunca deve receber token Amazon, refresh token, client secret, AWS key, LWA secret, service role ou connection string.
+
+`payload_bruto` deve ser sanitizado antes de gravar. Nunca salvar:
+
+- Authorization;
+- access token;
+- refresh token;
+- client secret;
+- AWS keys;
+- LWA secret;
+- service role;
+- connection string;
+- headers com credenciais;
+- qualquer URL contendo credenciais.
+
+### 14.8. Erros controlados
+
+| Situacao | Tratamento planejado |
+|---|---|
+| Mapeamento inexistente | Retornar erro sanitizado. |
+| Mapeamento inativo | Retornar erro de configuracao inativa. |
+| Marketplace diferente de `amazon` | Retornar erro de marketplace invalido. |
+| `seller_sku` ausente | Retornar erro de mapeamento incompleto. |
+| `marketplace_id` ausente | Retornar erro de mapeamento incompleto. |
+| `is_amazon_fulfilled` nulo | Retornar erro de mapeamento incompleto. |
+| Token invalido | Retornar erro sanitizado sem expor segredo. |
+| Rate limit 429 | Retornar erro controlado no piloto. |
+| Erro Amazon | Registrar erro sanitizado e retornar resposta padronizada. |
+| `manual_override` ativo | Gravar quote, nao aplicar precificacao e retornar status controlado. |
+
+### 14.9. Rate limit e retry
+
+Modo inicial:
+
+- somente consulta unitaria;
+- sem lote;
+- sem fila;
+- sem retry agressivo;
+- 429 retorna erro controlado no piloto;
+- backoff simples pode ser planejado em etapa futura.
+
+### 14.10. Limitacoes intencionais
+
+- ainda nao criar botao `Consultar taxa`;
+- ainda nao implementar Edge Function;
+- ainda nao chamar Amazon;
+- ainda nao alterar `produtos_precificacao` automaticamente;
+- ainda nao implementar processamento em lote;
+- ainda nao implementar fila ou retentativa avancada.
+
+### 14.11. Proxima etapa recomendada
+
+```txt
+5.5B - Planejamento dos secrets e variaveis da Edge Function Amazon, ainda sem implementar codigo.
+```

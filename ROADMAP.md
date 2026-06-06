@@ -106,7 +106,8 @@ Etapas:
 - [ ] 5.3D Edge Functions de Tarifas
 - [ ] 5.3E Visualização e Gravação de Custos por Canal com Overrides
 - [x] 5.4F Tela de Mapeamento Marketplace em Custos & Margens
-- [ ] 5.5A Planejamento da primeira Edge Function Amazon Product Fees em modo unitario/controlado
+- [x] 5.5A Planejamento da primeira Edge Function Amazon Product Fees em modo unitario/controlado
+- [ ] 5.5B Planejamento dos secrets e variaveis da Edge Function Amazon
 
 ---
 
@@ -421,3 +422,69 @@ Governanca:
 Proxima etapa recomendada:
 
 - 5.5A - Planejamento da primeira Edge Function Amazon Product Fees em modo unitario/controlado.
+
+---
+
+## Registro 2026-06-05 - Fase 5.5A
+
+Status: [x] Planejamento documentado
+
+Objetivo: documentar a futura Edge Function `amazon-fees-quote` em modo unitario/controlado, sem implementar codigo, sem chamar Amazon e sem alterar banco.
+
+Nome da futura Edge Function:
+
+- `amazon-fees-quote`
+
+Request esperado:
+
+- `mapeamento_id`;
+- `preco_consultado`;
+- `atualizar_precificacao` boolean opcional, default `false`;
+- `force_refresh` boolean opcional, default `false`.
+
+Response esperado:
+
+- `success`;
+- `fee_quote_id`;
+- `mapeamento_id`;
+- `origem`;
+- `marketplace`;
+- `taxa_marketplace_calculada`;
+- `taxa_logistica_calculada`;
+- `custo_total_calculado`;
+- `aplicado_em_precificacao`;
+- `status`;
+- `erro` sanitizado.
+
+Fluxo planejado:
+
+- validar metodo, autenticacao e payload;
+- buscar mapeamento ativo em `produto_canal_marketplace_mapeamento`;
+- exigir `marketplace = amazon`;
+- validar `seller_sku`, `marketplace_id`, `is_amazon_fulfilled` e `preco_consultado > 0`;
+- consultar cache por `mapeamento_id + preco_consultado` respeitando `validade_cache_horas`;
+- retornar `api_recente` se cache valido e `force_refresh = false`;
+- chamar Amazon Product Fees somente se cache vencido ou `force_refresh = true`;
+- sanitizar payload antes de gravar;
+- gravar `marketplace_fee_quotes`;
+- atualizar `produtos_precificacao` somente se `manual_override = false` e `atualizar_precificacao = true`;
+- marcar `aplicado_em_precificacao` como `true` ou `false`.
+
+Limitacoes intencionais:
+
+- ainda nao criar botao `Consultar taxa`;
+- ainda nao implementar Edge Function;
+- ainda nao chamar Amazon;
+- ainda nao alterar `produtos_precificacao` automaticamente;
+- sem lote, sem fila e sem retry agressivo no piloto.
+
+Seguranca:
+
+- secrets somente em Supabase Edge Function Secrets;
+- frontend nunca recebe token Amazon;
+- `payload_bruto` deve ser sanitizado;
+- nunca salvar Authorization, access token, refresh token, client secret, AWS keys, LWA secret, service role ou connection string.
+
+Proxima etapa recomendada:
+
+- 5.5B - Planejamento dos secrets e variaveis da Edge Function Amazon, ainda sem implementar codigo.
