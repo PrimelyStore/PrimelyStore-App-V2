@@ -635,3 +635,118 @@ Proxima etapa recomendada:
 ```txt
 5.5C - Planejamento da autenticacao/autorizacao da Edge Function amazon-fees-quote.
 ```
+
+---
+
+## 18. Fase 5.5C - Autenticacao e autorizacao da Edge Function Amazon
+
+Em 2026-06-05, foi documentado o planejamento de autenticacao/autorizacao da futura Edge Function:
+
+```txt
+amazon-fees-quote
+```
+
+Modelo de autenticacao:
+
+- exigir JWT de usuario autenticado;
+- validar `Authorization: Bearer`;
+- rejeitar chamadas anonimas;
+- nao usar token fixo no frontend.
+
+Modelo de autorizacao:
+
+- consultar taxa exige acesso financeiro;
+- aplicar em `produtos_precificacao` exige escrita financeira/admin;
+- admin pode executar consulta e aplicacao;
+- consultar taxa e aplicar taxa sao permissoes separadas.
+
+Uso de service role:
+
+- somente dentro da Edge Function;
+- somente apos validar JWT e autorizacao;
+- nunca no frontend;
+- nunca em logs;
+- nunca em `payload_bruto`;
+- nunca em resposta ao usuario.
+
+Permissoes por acao:
+
+- `atualizar_precificacao = false`: acesso financeiro;
+- `atualizar_precificacao = true`: escrita financeira/admin;
+- `manual_override = true`: grava quote, mas nao aplica em `produtos_precificacao`;
+- usuario sem permissao: rejeitar antes de consultar Amazon;
+- usuario anonimo: rejeitar antes de qualquer operacao.
+
+Fluxo seguro:
+
+- receber request;
+- validar metodo HTTP;
+- validar `Authorization: Bearer`;
+- obter usuario autenticado;
+- validar permissao financeira;
+- validar permissao de escrita se `atualizar_precificacao = true`;
+- carregar mapeamento;
+- validar status ativo;
+- validar `marketplace = amazon`;
+- validar campos Amazon;
+- consultar cache;
+- chamar Amazon somente se necessario;
+- gravar `marketplace_fee_quotes`;
+- atualizar `produtos_precificacao` somente se autorizado e `manual_override = false`;
+- retornar resposta sanitizada.
+
+Erros controlados:
+
+- sem token;
+- token invalido/expirado;
+- usuario sem permissao financeira;
+- tentativa de aplicar sem escrita financeira;
+- RLS/permissao negada;
+- `manual_override` ativo;
+- mapeamento invalido.
+
+Logs permitidos:
+
+- `request_id`;
+- `user_id`;
+- `mapeamento_id`;
+- `marketplace`;
+- `status`;
+- `fee_quote_id`;
+- `aplicado_em_precificacao`.
+
+Logs proibidos:
+
+- JWT;
+- Authorization header;
+- access token;
+- refresh token;
+- client secret;
+- AWS keys;
+- service role;
+- payload bruto nao sanitizado.
+
+Riscos:
+
+- usar service role cedo demais;
+- consulta anonima consumir rate limit;
+- aplicar precificacao com permissao fraca;
+- logs vazarem tokens;
+- confundir consulta com aplicacao e quebrar `manual_override`.
+
+Checklist antes da implementacao:
+
+- confirmar funcoes de autorizacao no remoto;
+- confirmar semantica de `usuario_pode_acessar_financeiro`;
+- confirmar semantica de `usuario_pode_escrever_financeiro`;
+- definir anon client para validar usuario e service client para escrita;
+- definir codigos HTTP;
+- definir formato de erro sanitizado;
+- definir politica de logs;
+- definir comportamento definitivo de `manual_override`.
+
+Proxima etapa recomendada:
+
+```txt
+5.5D - Planejamento tecnico da implementacao da Edge Function amazon-fees-quote, ainda sem codigo.
+```

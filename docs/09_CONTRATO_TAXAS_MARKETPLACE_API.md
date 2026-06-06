@@ -1055,3 +1055,142 @@ Como evitar mistura:
 ```txt
 5.5C - Planejamento da autenticacao/autorizacao da Edge Function amazon-fees-quote.
 ```
+
+---
+
+## 16. Planejamento 5.5C - Autenticacao e autorizacao da `amazon-fees-quote`
+
+### 16.1. Modelo de autenticacao
+
+A futura Edge Function `amazon-fees-quote` deve exigir usuario autenticado.
+
+Regras:
+
+- exigir JWT de usuario autenticado;
+- validar `Authorization: Bearer`;
+- rejeitar chamadas anonimas;
+- nao usar token fixo no frontend;
+- nao aceitar secrets internos como substituto da sessao do usuario em chamadas vindas da tela.
+
+### 16.2. Modelo de autorizacao
+
+Permissoes planejadas:
+
+| Acao | Permissao planejada |
+|---|---|
+| Consultar taxa | Acesso financeiro. |
+| Gravar `marketplace_fee_quotes` | Acesso financeiro, apos validacao da chamada. |
+| Aplicar em `produtos_precificacao` | Escrita financeira/admin. |
+| Administracao futura | Admin. |
+
+Funcoes existentes a confirmar antes da implementacao:
+
+- `public.usuario_pode_acessar_financeiro()`;
+- `public.usuario_pode_escrever_financeiro()`;
+- `public.usuario_e_admin()`.
+
+Consultar taxa e aplicar taxa devem ser acoes separadas.
+
+### 16.3. Uso de service role
+
+`SUPABASE_SERVICE_ROLE_KEY`, se necessario, deve ser usado somente dentro da Edge Function.
+
+Regras:
+
+- validar JWT antes;
+- validar autorizacao antes;
+- usar service role apenas depois da autorizacao explicita;
+- nunca usar service role no frontend;
+- nunca logar service role;
+- nunca gravar service role em `payload_bruto`;
+- nunca retornar service role ao usuario.
+
+Risco central: service role ignora RLS. Por isso, a Edge Function deve ser a barreira de autorizacao explicita.
+
+### 16.4. Permissoes por acao
+
+| Cenario | Regra |
+|---|---|
+| `atualizar_precificacao = false` | Exige acesso financeiro. |
+| `atualizar_precificacao = true` | Exige escrita financeira/admin. |
+| `manual_override = true` | Grava quote, mas nao aplica em `produtos_precificacao`. |
+| Usuario sem permissao | Rejeitar antes de consultar Amazon. |
+| Usuario anonimo | Rejeitar antes de qualquer operacao. |
+
+### 16.5. Fluxo seguro planejado
+
+1. Receber request.
+2. Validar metodo HTTP.
+3. Validar `Authorization: Bearer`.
+4. Obter usuario autenticado.
+5. Validar permissao financeira.
+6. Validar permissao de escrita se `atualizar_precificacao = true`.
+7. Carregar mapeamento.
+8. Validar `status = ativo`.
+9. Validar `marketplace = amazon`.
+10. Validar campos Amazon.
+11. Consultar cache.
+12. Chamar Amazon somente se necessario.
+13. Gravar `marketplace_fee_quotes`.
+14. Atualizar `produtos_precificacao` somente se autorizado e `manual_override = false`.
+15. Retornar resposta sanitizada.
+
+### 16.6. Erros controlados
+
+| Erro | Tratamento planejado |
+|---|---|
+| Sem token | Resposta `401` sanitizada. |
+| Token invalido/expirado | Resposta `401` sanitizada. |
+| Usuario sem permissao financeira | Resposta `403` sanitizada. |
+| Tentativa de aplicar sem escrita financeira | Resposta `403` sanitizada. |
+| RLS/permissao negada | Erro controlado, sem detalhes sensiveis. |
+| `manual_override` ativo | Gravar quote, retornar `aplicado_em_precificacao = false`. |
+| Mapeamento invalido | Erro de configuracao, sem chamar Amazon. |
+
+### 16.7. Logs
+
+Campos permitidos em logs:
+
+- `request_id`;
+- `user_id`;
+- `mapeamento_id`;
+- `marketplace`;
+- `status`;
+- `fee_quote_id`;
+- `aplicado_em_precificacao`.
+
+Campos proibidos em logs:
+
+- JWT;
+- Authorization header;
+- access token;
+- refresh token;
+- client secret;
+- AWS keys;
+- service role;
+- payload bruto nao sanitizado.
+
+### 16.8. Riscos
+
+- usar service role cedo demais;
+- consulta anonima consumir rate limit;
+- aplicar precificacao com permissao fraca;
+- logs vazarem tokens;
+- confundir consulta com aplicacao e quebrar `manual_override`.
+
+### 16.9. Checklist antes da implementacao
+
+- confirmar funcoes de autorizacao no remoto;
+- confirmar semantica de `usuario_pode_acessar_financeiro`;
+- confirmar semantica de `usuario_pode_escrever_financeiro`;
+- definir anon client para validar usuario e service client para escrita;
+- definir codigos HTTP;
+- definir formato de erro sanitizado;
+- definir politica de logs;
+- definir comportamento definitivo de `manual_override`.
+
+### 16.10. Proxima etapa recomendada
+
+```txt
+5.5D - Planejamento tecnico da implementacao da Edge Function amazon-fees-quote, ainda sem codigo.
+```

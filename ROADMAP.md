@@ -108,7 +108,8 @@ Etapas:
 - [x] 5.4F Tela de Mapeamento Marketplace em Custos & Margens
 - [x] 5.5A Planejamento da primeira Edge Function Amazon Product Fees em modo unitario/controlado
 - [x] 5.5B Planejamento dos secrets e variaveis da Edge Function Amazon
-- [ ] 5.5C Planejamento da autenticacao/autorizacao da Edge Function `amazon-fees-quote`
+- [x] 5.5C Planejamento da autenticacao/autorizacao da Edge Function `amazon-fees-quote`
+- [ ] 5.5D Planejamento tecnico da implementacao da Edge Function `amazon-fees-quote`
 
 ---
 
@@ -556,3 +557,69 @@ Checklist antes da implementacao:
 Proxima etapa recomendada:
 
 - 5.5C - Planejamento da autenticacao/autorizacao da Edge Function `amazon-fees-quote`.
+
+---
+
+## Registro 2026-06-05 - Fase 5.5C
+
+Status: [x] Planejamento documentado
+
+Objetivo: documentar o modelo de autenticacao e autorizacao da futura Edge Function `amazon-fees-quote`, sem implementar codigo e sem configurar secrets.
+
+Modelo de autenticacao:
+
+- exigir JWT de usuario autenticado;
+- validar `Authorization: Bearer`;
+- rejeitar chamadas anonimas;
+- nao usar token fixo no frontend.
+
+Modelo de autorizacao:
+
+- consultar taxa exige acesso financeiro;
+- aplicar em `produtos_precificacao` exige escrita financeira/admin;
+- admin pode executar ambas as acoes;
+- separar explicitamente consultar taxa de aplicar taxa.
+
+Uso de service role:
+
+- somente dentro da Edge Function;
+- somente apos validar JWT e autorizacao;
+- nunca no frontend;
+- nunca em logs;
+- nunca em `payload_bruto`;
+- nunca em resposta ao usuario.
+
+Permissoes por acao:
+
+- `atualizar_precificacao = false`: acesso financeiro;
+- `atualizar_precificacao = true`: escrita financeira/admin;
+- `manual_override = true`: grava quote, mas nao aplica em `produtos_precificacao`;
+- usuario sem permissao: rejeitar antes de consultar Amazon;
+- usuario anonimo: rejeitar antes de qualquer operacao.
+
+Fluxo seguro:
+
+- receber request;
+- validar metodo HTTP;
+- validar `Authorization: Bearer`;
+- obter usuario autenticado;
+- validar permissao financeira;
+- validar permissao de escrita se `atualizar_precificacao = true`;
+- carregar mapeamento;
+- validar status ativo;
+- validar `marketplace = amazon`;
+- validar campos Amazon;
+- consultar cache;
+- chamar Amazon somente se necessario;
+- gravar `marketplace_fee_quotes`;
+- atualizar `produtos_precificacao` somente se autorizado e `manual_override = false`;
+- retornar resposta sanitizada.
+
+Logs:
+
+- registrar `request_id`, `user_id`, `mapeamento_id`, `marketplace`, `status`, `fee_quote_id` e `aplicado_em_precificacao`;
+- nunca registrar JWT, Authorization header, access token, refresh token, client secret, AWS keys, service role ou payload bruto nao sanitizado.
+
+Proxima etapa recomendada:
+
+- 5.5D - Planejamento tecnico da implementacao da Edge Function `amazon-fees-quote`, ainda sem codigo.
