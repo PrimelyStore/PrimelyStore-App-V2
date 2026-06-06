@@ -1194,3 +1194,135 @@ Campos proibidos em logs:
 ```txt
 5.5D - Planejamento tecnico da implementacao da Edge Function amazon-fees-quote, ainda sem codigo.
 ```
+
+---
+
+## 17. Planejamento 5.5D - Implementacao tecnica da `amazon-fees-quote`
+
+### 17.1. Estrutura futura
+
+```txt
+supabase/functions/amazon-fees-quote/index.ts
+supabase/functions/amazon-fees-quote/README.md
+supabase/functions/amazon-fees-quote/_helpers.ts
+```
+
+`_helpers.ts` e opcional e deve ser criado apenas se a funcao crescer o suficiente para justificar separacao.
+
+### 17.2. Blocos internos
+
+| Bloco | Responsabilidade |
+|---|---|
+| Handler HTTP | Validar metodo, receber body e padronizar response. |
+| Auth | Validar `Authorization: Bearer`, JWT e usuario autenticado. |
+| Authorization | Validar acesso financeiro e escrita financeira/admin quando necessario. |
+| Supabase clients | Usar client de auth/leitura e service client somente apos autorizacao. |
+| Mapeamento | Carregar e validar `produto_canal_marketplace_mapeamento`. |
+| Cache | Buscar quote recente por `mapeamento_id + preco_consultado`. |
+| Amazon Auth | Obter Amazon access token via LWA. |
+| Amazon Request | Assinar request SP-API. |
+| Parser | Interpretar resposta Product Fees e calcular taxas. |
+| Sanitizacao | Remover campos sensiveis antes de gravar/retornar. |
+| Persistencia | Gravar `marketplace_fee_quotes` e, se permitido, atualizar `produtos_precificacao`. |
+| Logs | Registrar eventos minimos e sanitizados. |
+
+### 17.3. Fluxo tecnico detalhado
+
+1. Validar metodo `POST`.
+2. Validar `Authorization: Bearer`.
+3. Validar JWT.
+4. Obter `user_id`.
+5. Validar acesso financeiro.
+6. Validar body.
+7. Validar escrita financeira/admin se `atualizar_precificacao = true`.
+8. Criar service client somente apos auth/autorizacao.
+9. Carregar mapeamento.
+10. Validar `status = ativo`.
+11. Validar `marketplace = amazon`.
+12. Validar `seller_sku`, `marketplace_id` e `is_amazon_fulfilled`.
+13. Checar cache por `mapeamento_id + preco_consultado`.
+14. Retornar `api_recente` se cache valido e `force_refresh = false`.
+15. Obter Amazon access token via LWA.
+16. Assinar request SP-API.
+17. Chamar Product Fees.
+18. Interpretar resposta.
+19. Calcular `taxa_marketplace_calculada`, `taxa_logistica_calculada` e `custo_total_calculado`.
+20. Sanitizar payload.
+21. Gravar `marketplace_fee_quotes`.
+22. Atualizar `produtos_precificacao` somente se permitido.
+23. Retornar resposta sanitizada.
+
+### 17.4. Helpers planejados
+
+| Helper | Funcao |
+|---|---|
+| `jsonResponse` | Padronizar resposta JSON. |
+| `errorResponse` | Padronizar erro sanitizado. |
+| `validarUuid` | Validar `mapeamento_id`. |
+| `parseBooleanDefault` | Normalizar booleanos opcionais. |
+| `sanitizarPayloadAmazon` | Remover tokens, headers e campos sensiveis. |
+| `sanitizarErro` | Separar erro tecnico interno de erro exibido ao usuario. |
+| `calcularCacheValido` | Validar janela de `validade_cache_horas`. |
+| `buscarQuoteRecente` | Buscar cache por mapeamento/preco. |
+| `extrairTaxasAmazon` | Interpretar Product Fees e calcular taxas. |
+| `validarPermissaoFinanceira` | Confirmar acesso financeiro. |
+| `validarPermissaoEscrita` | Confirmar escrita financeira/admin. |
+| `obterAmazonAccessToken` | Obter token temporario via LWA. |
+| `assinarRequestSpApi` | Assinar requisicao SP-API. |
+
+### 17.5. Dados lidos
+
+- `produto_canal_marketplace_mapeamento`;
+- `marketplace_fee_quotes`;
+- `produtos_precificacao`;
+- `produtos`;
+- `canais_venda`.
+
+### 17.6. Dados escritos
+
+- `marketplace_fee_quotes`;
+- `produtos_precificacao` somente quando `manual_override = false`, `atualizar_precificacao = true` e usuario autorizado.
+
+### 17.7. Regras especiais
+
+- cache por `mapeamento_id + preco_consultado`;
+- `force_refresh` ignora cache;
+- `manual_override` nao bloqueia consulta, mas bloqueia aplicacao automatica;
+- service role apenas apos JWT e autorizacao;
+- `payload_bruto` sempre sanitizado;
+- resposta ao frontend sempre sanitizada.
+
+### 17.8. Riscos
+
+- assinatura Amazon SP-API/SigV4;
+- rate limit 429;
+- parsing incorreto das taxas;
+- uso antecipado de service role;
+- payload bruto sensivel;
+- `manual_override` mal aplicado;
+- cache sem preco.
+
+### 17.9. Checklist antes de implementar
+
+- secrets definidos no projeto correto;
+- mapeamento Amazon de teste cadastrado;
+- usuario com acesso financeiro validado;
+- usuario com escrita financeira/admin validado;
+- produto e preco de teste definidos;
+- cache confirmado;
+- `manual_override` confirmado;
+- decisao sobre gravacao de erros;
+- formato final de resposta aprovado;
+- estrategia de assinatura SP-API confirmada.
+
+### 17.10. Recomendacao final
+
+Implementar primeiro o esqueleto seguro da funcao, contendo validacao de metodo, JWT, autorizacao, body, leitura do mapeamento e resposta sanitizada.
+
+Somente depois acoplar LWA, assinatura SigV4 e chamada Product Fees.
+
+### 17.11. Proxima etapa recomendada
+
+```txt
+5.5E - Planejamento do esqueleto seguro da Edge Function, ainda sem chamar Amazon.
+```

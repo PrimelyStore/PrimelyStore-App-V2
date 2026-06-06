@@ -109,7 +109,8 @@ Etapas:
 - [x] 5.5A Planejamento da primeira Edge Function Amazon Product Fees em modo unitario/controlado
 - [x] 5.5B Planejamento dos secrets e variaveis da Edge Function Amazon
 - [x] 5.5C Planejamento da autenticacao/autorizacao da Edge Function `amazon-fees-quote`
-- [ ] 5.5D Planejamento tecnico da implementacao da Edge Function `amazon-fees-quote`
+- [x] 5.5D Planejamento tecnico da implementacao da Edge Function `amazon-fees-quote`
+- [ ] 5.5E Planejamento do esqueleto seguro da Edge Function, ainda sem chamar Amazon
 
 ---
 
@@ -623,3 +624,110 @@ Logs:
 Proxima etapa recomendada:
 
 - 5.5D - Planejamento tecnico da implementacao da Edge Function `amazon-fees-quote`, ainda sem codigo.
+
+---
+
+## Registro 2026-06-05 - Fase 5.5D
+
+Status: [x] Planejamento documentado
+
+Objetivo: documentar o blueprint tecnico da futura Edge Function `amazon-fees-quote`, sem criar arquivos, sem implementar codigo e sem chamar Amazon.
+
+Estrutura futura:
+
+- `supabase/functions/amazon-fees-quote/index.ts`;
+- `supabase/functions/amazon-fees-quote/README.md`;
+- `supabase/functions/amazon-fees-quote/_helpers.ts`, opcional se a funcao crescer.
+
+Blocos internos planejados:
+
+- Handler HTTP;
+- Auth;
+- Authorization;
+- Supabase clients;
+- Mapeamento;
+- Cache;
+- Amazon Auth;
+- Amazon Request;
+- Parser;
+- Sanitizacao;
+- Persistencia;
+- Logs.
+
+Fluxo tecnico:
+
+- validar metodo `POST`;
+- validar `Authorization: Bearer`;
+- validar JWT e obter `user_id`;
+- validar acesso financeiro;
+- validar body;
+- validar escrita financeira/admin se `atualizar_precificacao = true`;
+- criar service client somente apos auth/autorizacao;
+- carregar mapeamento;
+- validar status ativo, `marketplace = amazon`, `seller_sku`, `marketplace_id` e `is_amazon_fulfilled`;
+- checar cache por `mapeamento_id + preco_consultado`;
+- retornar `api_recente` se cache valido e `force_refresh = false`;
+- obter Amazon access token via LWA;
+- assinar request SP-API;
+- chamar Product Fees;
+- interpretar resposta e calcular taxas;
+- sanitizar payload;
+- gravar `marketplace_fee_quotes`;
+- atualizar `produtos_precificacao` somente se permitido;
+- retornar resposta sanitizada.
+
+Helpers planejados:
+
+- `jsonResponse`;
+- `errorResponse`;
+- `validarUuid`;
+- `parseBooleanDefault`;
+- `sanitizarPayloadAmazon`;
+- `sanitizarErro`;
+- `calcularCacheValido`;
+- `buscarQuoteRecente`;
+- `extrairTaxasAmazon`;
+- `validarPermissaoFinanceira`;
+- `validarPermissaoEscrita`;
+- `obterAmazonAccessToken`;
+- `assinarRequestSpApi`.
+
+Dados lidos:
+
+- `produto_canal_marketplace_mapeamento`;
+- `marketplace_fee_quotes`;
+- `produtos_precificacao`;
+- `produtos`;
+- `canais_venda`.
+
+Dados escritos:
+
+- `marketplace_fee_quotes`;
+- `produtos_precificacao` somente quando `manual_override = false`, `atualizar_precificacao = true` e usuario autorizado.
+
+Regras especiais:
+
+- cache por `mapeamento_id + preco_consultado`;
+- `force_refresh` ignora cache;
+- `manual_override` nao bloqueia consulta, mas bloqueia aplicacao automatica;
+- service role apenas apos JWT e autorizacao;
+- `payload_bruto` sempre sanitizado.
+
+Riscos:
+
+- assinatura Amazon SP-API/SigV4;
+- rate limit 429;
+- parsing incorreto das taxas;
+- uso antecipado de service role;
+- payload bruto sensivel;
+- `manual_override` mal aplicado;
+- cache sem preco.
+
+Recomendacao final:
+
+- implementar primeiro o esqueleto seguro da funcao;
+- somente depois acoplar LWA/SigV4/Product Fees.
+
+Proxima etapa recomendada:
+
+- 5.5E - Planejamento do esqueleto seguro da Edge Function, ainda sem chamar Amazon.
