@@ -700,3 +700,81 @@ Opcoes:
 
 - `5.4F - Planejamento do service/frontend de leitura do mapeamento`;
 - `5.5A - Planejamento da primeira Edge Function Amazon em modo unitario`.
+
+---
+
+## 13. Conclusao 5.4F-6 - Tela de Mapeamento Marketplace
+
+### 13.1. Objetivo concluido
+
+A tela de Mapeamento Marketplace foi criada e validada dentro de `Custos & Margens` para manter o contexto gerencial de produto, canal, marketplace e anuncio/modalidade logistica.
+
+Essa tela prepara a base operacional da futura consulta de taxas por API, mas ainda nao executa nenhuma integracao externa.
+
+### 13.2. Arquivos envolvidos
+
+| Arquivo | Papel |
+|---|---|
+| `src/services/produtoCanalMarketplaceService.ts` | Service local para CRUD gerencial via Supabase client normal e RLS. |
+| `src/pages/CustosMargem.tsx` | Pagina alterada para incluir a aba `Mapeamento Marketplace`. |
+
+### 13.3. Funcionalidades concluidas
+
+- aba `Mapeamento Marketplace`;
+- listagem com filtros por marketplace, status e busca textual;
+- criacao de mapeamento;
+- edicao de mapeamento;
+- inativacao logica, sem delete fisico pelo frontend;
+- campos condicionais Amazon;
+- campos condicionais Mercado Livre;
+- validacoes basicas de produto, canal, marketplace, moeda e validade de cache;
+- tratamento de loading, estado vazio e erro/RLS.
+
+### 13.4. Campos Amazon na tela
+
+- `seller_sku`;
+- `asin`;
+- `marketplace_id`;
+- `is_amazon_fulfilled`;
+- `moeda`;
+- `manual_override`;
+- `validade_cache_horas`;
+- `status`;
+- `observacoes`.
+
+### 13.5. Campos Mercado Livre na tela
+
+- `seller_sku`;
+- `item_id`;
+- `category_id`;
+- `listing_type_id`;
+- `logistic_type`;
+- `shipping_mode`;
+- `free_shipping`;
+- `moeda`;
+- `manual_override`;
+- `validade_cache_horas`;
+- `status`;
+- `observacoes`.
+
+### 13.6. Limitacoes intencionais
+
+- ainda nao consulta Amazon SP-API;
+- ainda nao consulta Mercado Livre;
+- ainda nao chama Edge Function;
+- ainda nao atualiza `produtos_precificacao`;
+- ainda nao existe botao/acao de consultar taxa;
+- `marketplace_fee_quotes` sera usado somente quando as futuras Edge Functions forem implementadas.
+
+### 13.7. Seguranca preservada
+
+- o frontend usa apenas Supabase client normal e RLS;
+- nao ha `service_role` no frontend;
+- a tela nao recebe tokens, refresh tokens, client_secret ou connection strings;
+- APIs sensiveis continuam reservadas para Edge Functions, n8n ou backend confiavel.
+
+### 13.8. Proxima etapa recomendada
+
+```txt
+5.5A - Planejamento da primeira Edge Function Amazon Product Fees em modo unitario/controlado.
+```

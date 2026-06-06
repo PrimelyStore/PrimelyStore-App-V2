@@ -105,7 +105,8 @@ Etapas:
 - [ ] 5.3C-4 Migration de Schema 2 (Precificação e Cotações)
 - [ ] 5.3D Edge Functions de Tarifas
 - [ ] 5.3E Visualização e Gravação de Custos por Canal com Overrides
-- [ ] 5.4 Criar views analíticas de lucro e margem de vendas integrada no banco de dados
+- [x] 5.4F Tela de Mapeamento Marketplace em Custos & Margens
+- [ ] 5.5A Planejamento da primeira Edge Function Amazon Product Fees em modo unitario/controlado
 
 ---
 
@@ -373,3 +374,50 @@ Proximas etapas recomendadas:
 
 - 5.4F - Planejamento do service/frontend de leitura do mapeamento; ou
 - 5.5A - Planejamento da primeira Edge Function Amazon em modo unitario.
+
+---
+
+## Registro 2026-06-05 - Fase 5.4F-6
+
+Status: [x] Tela criada, validada e documentada
+
+Objetivo: registrar a conclusao da tela gerencial de Mapeamento Marketplace dentro de `Custos & Margens`.
+
+Service criado:
+
+- `src/services/produtoCanalMarketplaceService.ts`
+
+Pagina alterada:
+
+- `src/pages/CustosMargem.tsx`
+
+Funcionalidades concluidas:
+
+- aba `Mapeamento Marketplace`;
+- listagem com filtros por marketplace, status e busca textual;
+- criacao de mapeamento;
+- edicao de mapeamento;
+- inativacao logica via `status = inativo`;
+- campos condicionais para Amazon;
+- campos condicionais para Mercado Livre;
+- validacoes basicas de produto, canal, marketplace, moeda e cache;
+- tratamento de loading, estado vazio e erro/RLS.
+
+Limitacoes intencionais:
+
+- ainda nao consulta Amazon SP-API;
+- ainda nao consulta Mercado Livre;
+- ainda nao chama Edge Function;
+- ainda nao atualiza `produtos_precificacao`;
+- acao de consultar taxa fica para fase futura.
+
+Governanca:
+
+- a tela e cadastro gerencial de contexto para cotacao;
+- nao cria fluxo operacional de ERP;
+- nao consulta APIs sensiveis diretamente no frontend;
+- respeita RLS via Supabase client normal.
+
+Proxima etapa recomendada:
+
+- 5.5A - Planejamento da primeira Edge Function Amazon Product Fees em modo unitario/controlado.

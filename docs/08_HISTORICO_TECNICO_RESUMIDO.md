@@ -416,3 +416,54 @@ Proximas etapas recomendadas:
 
 - `5.4F - Planejamento do service/frontend de leitura do mapeamento`;
 - `5.5A - Planejamento da primeira Edge Function Amazon em modo unitario`.
+
+---
+
+## 15. Fase 5.4F-6 - Tela de Mapeamento Marketplace
+
+Em 2026-06-05, foi registrada a conclusao da tela gerencial de Mapeamento Marketplace dentro da pagina `Custos & Margens`.
+
+Arquivos envolvidos:
+
+```txt
+src/services/produtoCanalMarketplaceService.ts
+src/pages/CustosMargem.tsx
+```
+
+Funcionalidades concluidas:
+
+- service local para acesso a `produto_canal_marketplace_mapeamento`;
+- aba `Mapeamento Marketplace`;
+- listagem de mapeamentos com filtros por marketplace, status e busca textual;
+- criacao de mapeamento;
+- edicao de mapeamento;
+- inativacao logica via `status = inativo`;
+- campos condicionais Amazon;
+- campos condicionais Mercado Livre;
+- validacoes basicas;
+- estados de carregamento, vazio e erro/RLS.
+
+Limitacoes intencionais:
+
+- nao consulta Amazon SP-API;
+- nao consulta Mercado Livre;
+- nao chama Edge Function;
+- nao atualiza `produtos_precificacao`;
+- nao possui botao/acao de consultar taxa nesta etapa.
+
+Decisao preservada:
+
+```txt
+O Mapeamento Marketplace e uma configuracao gerencial para futuras cotacoes de taxas. Ele nao transforma o Primely Store em ERP operacional e nao chama APIs sensiveis diretamente no frontend.
+```
+
+Validacao registrada:
+
+- `npx tsc -b` passou;
+- `npm run build` deve ser executado pelo usuario em ambiente seguro quando necessario, pois Vite pode carregar `.env.local`.
+
+Proxima etapa recomendada:
+
+```txt
+5.5A - Planejamento da primeira Edge Function Amazon Product Fees em modo unitario/controlado.
+```
