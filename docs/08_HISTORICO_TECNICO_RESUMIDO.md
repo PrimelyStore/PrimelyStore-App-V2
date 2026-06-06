@@ -883,3 +883,56 @@ Proxima etapa recomendada:
 ```txt
 5.5E - Planejamento do esqueleto seguro da Edge Function, ainda sem chamar Amazon.
 ```
+
+---
+
+## 20. Fase 5.5E-4 - Esqueleto seguro local da Edge Function Amazon
+
+Em 2026-06-05, foi criado localmente o esqueleto seguro da futura Edge Function:
+
+```txt
+supabase/functions/amazon-fees-quote/index.ts
+```
+
+O que o esqueleto faz:
+
+- aceita `POST`;
+- responde `OPTIONS` para CORS;
+- valida `Authorization: Bearer`;
+- obtem usuario autenticado via JWT;
+- rejeita token ausente/invalido;
+- valida `mapeamento_id`;
+- valida `preco_consultado > 0`;
+- valida permissao financeira via `usuario_pode_acessar_financeiro`;
+- carrega `produto_canal_marketplace_mapeamento`;
+- valida status ativo;
+- valida `marketplace = amazon`;
+- valida `seller_sku`, `marketplace_id` e `is_amazon_fulfilled`;
+- aceita `is_amazon_fulfilled = false` como valido;
+- retorna resposta mock/controlada.
+
+O que ainda nao faz:
+
+- nao chama Amazon SP-API;
+- nao implementa LWA;
+- nao implementa assinatura SigV4;
+- nao grava `marketplace_fee_quotes`;
+- nao atualiza `produtos_precificacao`;
+- nao usa service role;
+- nao faz deploy.
+
+Ajuste aplicado:
+
+- body JSON invalido retorna erro controlado `400`.
+
+Decisao preservada:
+
+```txt
+O esqueleto valida a porta de entrada e o contexto gerencial antes de qualquer integracao externa. A conversa real com Amazon fica para fase futura.
+```
+
+Proxima etapa recomendada:
+
+```txt
+5.5F - Planejamento da validacao local/deploy controlado da Edge Function mock, sem Amazon.
+```

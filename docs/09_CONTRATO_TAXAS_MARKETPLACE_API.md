@@ -1326,3 +1326,82 @@ Somente depois acoplar LWA, assinatura SigV4 e chamada Product Fees.
 ```txt
 5.5E - Planejamento do esqueleto seguro da Edge Function, ainda sem chamar Amazon.
 ```
+
+---
+
+## 18. Conclusao 5.5E-4 - Esqueleto seguro local da `amazon-fees-quote`
+
+### 18.1. Arquivo criado
+
+```txt
+supabase/functions/amazon-fees-quote/index.ts
+```
+
+### 18.2. Comportamento implementado no esqueleto
+
+- aceita somente `POST`;
+- responde `OPTIONS` para CORS;
+- valida `Authorization: Bearer`;
+- obtem usuario autenticado via JWT;
+- rejeita token ausente/invalido;
+- valida body;
+- valida `mapeamento_id`;
+- valida `preco_consultado > 0`;
+- aplica default `false` para `atualizar_precificacao`;
+- aplica default `false` para `force_refresh`;
+- valida permissao financeira via `usuario_pode_acessar_financeiro`;
+- carrega `produto_canal_marketplace_mapeamento`;
+- valida `status = ativo`;
+- valida `marketplace = amazon`;
+- valida `seller_sku`;
+- valida `marketplace_id`;
+- valida `is_amazon_fulfilled` diferente de null/undefined;
+- aceita `is_amazon_fulfilled = false` como valido;
+- retorna resposta mock/controlada.
+
+### 18.3. Resposta mock
+
+```json
+{
+  "success": true,
+  "status": "mock",
+  "origem": "mock",
+  "marketplace": "amazon",
+  "mapeamento_id": "...",
+  "aplicado_em_precificacao": false,
+  "mensagem": "Esqueleto validado. Integracao Amazon Product Fees ainda nao ativada."
+}
+```
+
+### 18.4. O que ainda nao faz
+
+- nao chama Amazon SP-API;
+- nao implementa LWA;
+- nao implementa assinatura SigV4;
+- nao grava `marketplace_fee_quotes`;
+- nao atualiza `produtos_precificacao`;
+- nao usa service role;
+- nao faz deploy.
+
+### 18.5. Ajuste aplicado
+
+Body JSON invalido retorna erro controlado `400` com mensagem sanitizada:
+
+```txt
+Body JSON invalido.
+```
+
+### 18.6. Seguranca preservada
+
+- nao loga Authorization;
+- nao loga JWT;
+- nao retorna token;
+- nao retorna secrets;
+- nao inicializa `SUPABASE_SERVICE_ROLE_KEY`;
+- comentario explicito registra que service role futuro so pode ser usado apos JWT e autorizacao financeira.
+
+### 18.7. Proxima etapa recomendada
+
+```txt
+5.5F - Planejamento da validacao local/deploy controlado da Edge Function mock, sem Amazon.
+```

@@ -110,7 +110,8 @@ Etapas:
 - [x] 5.5B Planejamento dos secrets e variaveis da Edge Function Amazon
 - [x] 5.5C Planejamento da autenticacao/autorizacao da Edge Function `amazon-fees-quote`
 - [x] 5.5D Planejamento tecnico da implementacao da Edge Function `amazon-fees-quote`
-- [ ] 5.5E Planejamento do esqueleto seguro da Edge Function, ainda sem chamar Amazon
+- [x] 5.5E Esqueleto seguro local da Edge Function, ainda sem chamar Amazon
+- [ ] 5.5F Planejamento da validacao local/deploy controlado da Edge Function mock, sem Amazon
 
 ---
 
@@ -731,3 +732,48 @@ Recomendacao final:
 Proxima etapa recomendada:
 
 - 5.5E - Planejamento do esqueleto seguro da Edge Function, ainda sem chamar Amazon.
+
+---
+
+## Registro 2026-06-05 - Fase 5.5E-4
+
+Status: [x] Esqueleto local criado e documentado
+
+Arquivo criado:
+
+- `supabase/functions/amazon-fees-quote/index.ts`
+
+O que o esqueleto faz:
+
+- aceita `POST`;
+- responde `OPTIONS` para CORS;
+- valida `Authorization: Bearer`;
+- obtem usuario autenticado via JWT;
+- rejeita token ausente/invalido;
+- valida `mapeamento_id`;
+- valida `preco_consultado > 0`;
+- valida permissao financeira;
+- carrega `produto_canal_marketplace_mapeamento`;
+- valida status ativo;
+- valida `marketplace = amazon`;
+- valida `seller_sku`, `marketplace_id` e `is_amazon_fulfilled`;
+- aceita `is_amazon_fulfilled = false` como valido;
+- retorna resposta mock/controlada.
+
+O que ainda nao faz:
+
+- nao chama Amazon;
+- nao implementa LWA;
+- nao implementa SigV4;
+- nao grava `marketplace_fee_quotes`;
+- nao atualiza `produtos_precificacao`;
+- nao usa service role;
+- nao faz deploy.
+
+Ajuste aplicado:
+
+- body JSON invalido retorna erro controlado `400`.
+
+Proxima etapa recomendada:
+
+- 5.5F - Planejamento da validacao local/deploy controlado da Edge Function mock, sem Amazon.
