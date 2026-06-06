@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, type FormEvent } from 'react'
 import {
     buscarProdutosBasePrecificacaoV5,
     buscarConfiguracaoOperacaoV5,
@@ -16,12 +16,21 @@ import {
     type ParamentrosSimulacaoV5
 } from '../services/precificacaoService'
 import {
+    atualizarMapeamentoMarketplace,
+    criarMapeamentoMarketplace,
+    inativarMapeamentoMarketplace,
+    listarOpcoesCanaisVenda,
+    listarOpcoesProdutos,
     listarMapeamentosMarketplace,
+    type CanalVendaOpcaoMapeamento,
     type MarketplaceMapeamento,
+    type MarketplaceMapeamentoInput,
     type MarketplaceMapeamentoStatus,
-    type MarketplaceMapeamentoTipo
+    type MarketplaceMapeamentoTipo,
+    type ProdutoOpcaoMapeamento
 } from '../services/produtoCanalMarketplaceService'
 import {
+    AppButton,
     AppCard,
     DataTableContainer,
     PageHeader,
@@ -31,6 +40,81 @@ import {
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
 type AbaCustosMargem = 'custos' | 'simulador' | 'canais' | 'mapeamento' | 'parametros'
+type ModoFormularioMapeamento = 'novo' | 'editar'
+
+type MapeamentoFormState = {
+    produto_id: string
+    canal_venda_id: string
+    marketplace: MarketplaceMapeamentoTipo
+    seller_sku: string
+    asin: string
+    marketplace_id: string
+    item_id: string
+    category_id: string
+    listing_type_id: string
+    logistic_type: string
+    shipping_mode: string
+    free_shipping: boolean
+    is_amazon_fulfilled: boolean
+    moeda: string
+    manual_override: boolean
+    validade_cache_horas: string
+    status: MarketplaceMapeamentoStatus
+    observacoes: string
+}
+
+const marketplaceLabels: Record<MarketplaceMapeamentoTipo, string> = {
+    amazon: 'Amazon',
+    mercado_livre: 'Mercado Livre',
+    shopee: 'Shopee',
+    venda_manual: 'Venda manual',
+}
+
+function criarFormMapeamentoInicial(moedaPadrao = 'BRL'): MapeamentoFormState {
+    return {
+        produto_id: '',
+        canal_venda_id: '',
+        marketplace: 'amazon',
+        seller_sku: '',
+        asin: '',
+        marketplace_id: '',
+        item_id: '',
+        category_id: '',
+        listing_type_id: '',
+        logistic_type: '',
+        shipping_mode: '',
+        free_shipping: false,
+        is_amazon_fulfilled: false,
+        moeda: moedaPadrao.trim().toUpperCase() || 'BRL',
+        manual_override: false,
+        validade_cache_horas: '24',
+        status: 'ativo',
+        observacoes: '',
+    }
+}
+
+function criarFormMapeamentoDeRegistro(item: MarketplaceMapeamento): MapeamentoFormState {
+    return {
+        produto_id: item.produto_id,
+        canal_venda_id: item.canal_venda_id,
+        marketplace: item.marketplace,
+        seller_sku: item.seller_sku ?? '',
+        asin: item.asin ?? '',
+        marketplace_id: item.marketplace_id ?? '',
+        item_id: item.item_id ?? '',
+        category_id: item.category_id ?? '',
+        listing_type_id: item.listing_type_id ?? '',
+        logistic_type: item.logistic_type ?? '',
+        shipping_mode: item.shipping_mode ?? '',
+        free_shipping: item.free_shipping ?? false,
+        is_amazon_fulfilled: item.is_amazon_fulfilled ?? false,
+        moeda: item.moeda,
+        manual_override: item.manual_override,
+        validade_cache_horas: String(item.validade_cache_horas),
+        status: item.status,
+        observacoes: item.observacoes ?? '',
+    }
+}
 
 function formatarMoeda(valor?: number | string | null) {
     return new Intl.NumberFormat('pt-BR', {
@@ -67,6 +151,15 @@ export function CustosMargem() {
     const [mapeamentos, setMapeamentos] = useState<MarketplaceMapeamento[]>([])
     const [statusMapeamentos, setStatusMapeamentos] = useState<StatusCarregamento>('carregando')
     const [mensagemMapeamentos, setMensagemMapeamentos] = useState('Carregando mapeamentos marketplace...')
+    const [produtosMapeamento, setProdutosMapeamento] = useState<ProdutoOpcaoMapeamento[]>([])
+    const [canaisMapeamento, setCanaisMapeamento] = useState<CanalVendaOpcaoMapeamento[]>([])
+    const [opcoesMapeamentoCarregadas, setOpcoesMapeamentoCarregadas] = useState(false)
+    const [formularioMapeamentoAberto, setFormularioMapeamentoAberto] = useState(false)
+    const [modoFormularioMapeamento, setModoFormularioMapeamento] = useState<ModoFormularioMapeamento>('novo')
+    const [mapeamentoEmEdicao, setMapeamentoEmEdicao] = useState<MarketplaceMapeamento | null>(null)
+    const [formMapeamento, setFormMapeamento] = useState<MapeamentoFormState>(() => criarFormMapeamentoInicial())
+    const [salvandoMapeamento, setSalvandoMapeamento] = useState(false)
+    const [mensagemFormularioMapeamento, setMensagemFormularioMapeamento] = useState('')
 
     // Filtros
     const [busca, setBusca] = useState('')
@@ -167,6 +260,166 @@ export function CustosMargem() {
         }
     }
 
+    async function carregarOpcoesMapeamento(force = false) {
+        if (opcoesMapeamentoCarregadas && !force) return
+
+        const [produtos, canaisVenda] = await Promise.all([
+            listarOpcoesProdutos(),
+            listarOpcoesCanaisVenda(),
+        ])
+
+        setProdutosMapeamento(produtos)
+        setCanaisMapeamento(canaisVenda)
+        setOpcoesMapeamentoCarregadas(true)
+    }
+
+    function atualizarCampoMapeamento<K extends keyof MapeamentoFormState>(
+        campo: K,
+        valor: MapeamentoFormState[K]
+    ) {
+        setFormMapeamento((atual) => ({
+            ...atual,
+            [campo]: campo === 'moeda' && typeof valor === 'string' ? valor.toUpperCase() : valor,
+        }))
+    }
+
+    async function abrirNovoMapeamento() {
+        try {
+            setMensagemFormularioMapeamento('')
+            await carregarOpcoesMapeamento()
+            setModoFormularioMapeamento('novo')
+            setMapeamentoEmEdicao(null)
+            setFormMapeamento(criarFormMapeamentoInicial(configuracao?.moeda_padrao ?? 'BRL'))
+            setFormularioMapeamentoAberto(true)
+        } catch (error) {
+            if (error instanceof Error) {
+                setMensagemMapeamentos(`Erro ao carregar opcoes do formulario. Verifique permissoes/RLS: ${error.message}`)
+            } else {
+                setMensagemMapeamentos('Erro desconhecido ao carregar opcoes do formulario.')
+            }
+            setStatusMapeamentos('erro')
+        }
+    }
+
+    async function abrirEdicaoMapeamento(item: MarketplaceMapeamento) {
+        try {
+            setMensagemFormularioMapeamento('')
+            await carregarOpcoesMapeamento()
+            setModoFormularioMapeamento('editar')
+            setMapeamentoEmEdicao(item)
+            setFormMapeamento(criarFormMapeamentoDeRegistro(item))
+            setFormularioMapeamentoAberto(true)
+        } catch (error) {
+            if (error instanceof Error) {
+                setMensagemMapeamentos(`Erro ao carregar opcoes do formulario. Verifique permissoes/RLS: ${error.message}`)
+            } else {
+                setMensagemMapeamentos('Erro desconhecido ao carregar opcoes do formulario.')
+            }
+            setStatusMapeamentos('erro')
+        }
+    }
+
+    function validarFormularioMapeamento() {
+        if (!formMapeamento.produto_id) return 'Produto e obrigatorio.'
+        if (!formMapeamento.canal_venda_id) return 'Canal de venda e obrigatorio.'
+        if (!formMapeamento.marketplace) return 'Marketplace e obrigatorio.'
+
+        const moeda = formMapeamento.moeda.trim().toUpperCase()
+        if (!moeda || moeda.length !== 3) return 'Moeda deve conter exatamente 3 caracteres.'
+
+        const validade = Number(formMapeamento.validade_cache_horas)
+        if (!Number.isFinite(validade) || validade <= 0) {
+            return 'Validade do cache deve ser maior que zero.'
+        }
+
+        return ''
+    }
+
+    function montarPayloadFormularioMapeamento(): MarketplaceMapeamentoInput {
+        const marketplace = formMapeamento.marketplace
+        const isAmazon = marketplace === 'amazon'
+        const isMercadoLivre = marketplace === 'mercado_livre'
+
+        return {
+            produto_id: formMapeamento.produto_id,
+            canal_venda_id: formMapeamento.canal_venda_id,
+            marketplace,
+            seller_sku: formMapeamento.seller_sku,
+            asin: isAmazon ? formMapeamento.asin : null,
+            marketplace_id: isAmazon ? formMapeamento.marketplace_id : null,
+            item_id: isMercadoLivre ? formMapeamento.item_id : null,
+            category_id: isMercadoLivre ? formMapeamento.category_id : null,
+            listing_type_id: isMercadoLivre ? formMapeamento.listing_type_id : null,
+            logistic_type: isMercadoLivre ? formMapeamento.logistic_type : null,
+            shipping_mode: isMercadoLivre ? formMapeamento.shipping_mode : null,
+            free_shipping: isMercadoLivre ? formMapeamento.free_shipping : null,
+            is_amazon_fulfilled: isAmazon ? formMapeamento.is_amazon_fulfilled : null,
+            moeda: formMapeamento.moeda,
+            manual_override: formMapeamento.manual_override,
+            validade_cache_horas: Number(formMapeamento.validade_cache_horas),
+            status: formMapeamento.status,
+            observacoes: formMapeamento.observacoes,
+        }
+    }
+
+    async function salvarMapeamento(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault()
+
+        const erroValidacao = validarFormularioMapeamento()
+        if (erroValidacao) {
+            setMensagemFormularioMapeamento(erroValidacao)
+            return
+        }
+
+        try {
+            setSalvandoMapeamento(true)
+            setMensagemFormularioMapeamento('')
+
+            const payload = montarPayloadFormularioMapeamento()
+            if (modoFormularioMapeamento === 'editar' && mapeamentoEmEdicao) {
+                await atualizarMapeamentoMarketplace(mapeamentoEmEdicao.id, payload)
+            } else {
+                await criarMapeamentoMarketplace(payload)
+            }
+
+            setFormularioMapeamentoAberto(false)
+            setMapeamentoEmEdicao(null)
+            await carregarMapeamentos()
+        } catch (error) {
+            if (error instanceof Error) {
+                setMensagemFormularioMapeamento(`Erro ao salvar mapeamento. Verifique permissoes/RLS: ${error.message}`)
+            } else {
+                setMensagemFormularioMapeamento('Erro desconhecido ao salvar mapeamento.')
+            }
+        } finally {
+            setSalvandoMapeamento(false)
+        }
+    }
+
+    async function confirmarInativacaoMapeamento(item: MarketplaceMapeamento) {
+        const produto = produtosPorId.get(item.produto_id)
+        const produtoLabel = produto ? `${produto.sku} - ${produto.produto_nome}` : item.produto_id
+        const confirmou = window.confirm(
+            `Inativar o mapeamento de ${produtoLabel} em ${marketplaceLabels[item.marketplace]}? Esta acao nao exclui o registro.`
+        )
+
+        if (!confirmou) return
+
+        try {
+            setStatusMapeamentos('carregando')
+            setMensagemMapeamentos('Inativando mapeamento...')
+            await inativarMapeamentoMarketplace(item.id)
+            await carregarMapeamentos()
+        } catch (error) {
+            setStatusMapeamentos('erro')
+            if (error instanceof Error) {
+                setMensagemMapeamentos(`Erro ao inativar mapeamento. Verifique permissoes/RLS: ${error.message}`)
+            } else {
+                setMensagemMapeamentos('Erro desconhecido ao inativar mapeamento.')
+            }
+        }
+    }
+
     useEffect(() => {
         carregarDados()
     }, [])
@@ -174,6 +427,14 @@ export function CustosMargem() {
     useEffect(() => {
         if (abaAtiva === 'mapeamento') {
             carregarMapeamentos()
+            carregarOpcoesMapeamento().catch((error) => {
+                setStatusMapeamentos('erro')
+                if (error instanceof Error) {
+                    setMensagemMapeamentos(`Erro ao carregar opcoes do formulario. Verifique permissoes/RLS: ${error.message}`)
+                } else {
+                    setMensagemMapeamentos('Erro desconhecido ao carregar opcoes do formulario.')
+                }
+            })
         }
     }, [abaAtiva, marketplaceFiltro, statusMapeamentoFiltro])
 
@@ -216,6 +477,33 @@ export function CustosMargem() {
         }
         return mapa
     }, [canais])
+
+    const avisosFormularioMapeamento = useMemo(() => {
+        const avisos: string[] = []
+
+        if (formMapeamento.marketplace === 'amazon') {
+            if (!formMapeamento.seller_sku.trim()) {
+                avisos.push('Para Amazon, recomenda-se informar seller_sku.')
+            }
+            if (!formMapeamento.marketplace_id.trim()) {
+                avisos.push('Para Amazon, recomenda-se informar marketplace_id.')
+            }
+        }
+
+        if (formMapeamento.marketplace === 'mercado_livre') {
+            const temContextoAnuncio = formMapeamento.item_id.trim()
+            const temContextoCategoria =
+                formMapeamento.category_id.trim() &&
+                formMapeamento.listing_type_id.trim() &&
+                formMapeamento.logistic_type.trim()
+
+            if (!temContextoAnuncio && !temContextoCategoria) {
+                avisos.push('Para Mercado Livre, recomenda-se informar item_id ou category_id/listing_type_id/logistic_type.')
+            }
+        }
+
+        return avisos
+    }, [formMapeamento])
 
     // Cálculo reativo do simulador em memória
     const simulacaoResultado = useMemo(() => {
@@ -936,15 +1224,301 @@ export function CustosMargem() {
                                     Buscar
                                 </button>
                                 <button
-                                    disabled
-                                    title="Criação de mapeamentos será habilitada em fase futura."
-                                    className="rounded-lg border border-slate-800 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-500 opacity-70"
+                                    onClick={abrirNovoMapeamento}
+                                    className="rounded-lg border border-cyan-500 bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-400"
                                 >
                                     Novo mapeamento
                                 </button>
                             </div>
                         </div>
                     </AppCard>
+
+                    {formularioMapeamentoAberto && (
+                        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/80 px-4 py-6 backdrop-blur-sm">
+                            <form
+                                onSubmit={salvarMapeamento}
+                                className="w-full max-w-5xl rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"
+                            >
+                                <div className="flex flex-col gap-3 border-b border-slate-800 p-5 sm:flex-row sm:items-start sm:justify-between">
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-slate-100">
+                                            {modoFormularioMapeamento === 'novo' ? 'Novo mapeamento marketplace' : 'Editar mapeamento marketplace'}
+                                        </h3>
+                                        <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-400">
+                                            Cadastro gerencial para futuras cotacoes de taxas. Nenhuma API externa e chamada e nenhuma precificacao e atualizada automaticamente.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormularioMapeamentoAberto(false)}
+                                        className="w-fit rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-300 hover:border-slate-500 hover:text-white"
+                                        disabled={salvandoMapeamento}
+                                    >
+                                        Fechar
+                                    </button>
+                                </div>
+
+                                <div className="grid gap-5 p-5">
+                                    {mensagemFormularioMapeamento && (
+                                        <div className="rounded-lg border border-red-900/40 bg-red-950/20 p-3 text-sm text-red-200">
+                                            {mensagemFormularioMapeamento}
+                                        </div>
+                                    )}
+
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                            Produto *
+                                            <select
+                                                value={formMapeamento.produto_id}
+                                                onChange={(event) => atualizarCampoMapeamento('produto_id', event.target.value)}
+                                                className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                                disabled={salvandoMapeamento}
+                                            >
+                                                <option value="">Selecione um produto</option>
+                                                {produtosMapeamento.map((produto) => (
+                                                    <option key={produto.id} value={produto.id}>
+                                                        {produto.sku} - {produto.nome}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </label>
+
+                                        <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                            Canal de venda *
+                                            <select
+                                                value={formMapeamento.canal_venda_id}
+                                                onChange={(event) => atualizarCampoMapeamento('canal_venda_id', event.target.value)}
+                                                className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                                disabled={salvandoMapeamento}
+                                            >
+                                                <option value="">Selecione um canal</option>
+                                                {canaisMapeamento.map((canalVenda) => (
+                                                    <option key={canalVenda.id} value={canalVenda.id}>
+                                                        {canalVenda.nome} ({canalVenda.tipo})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </label>
+
+                                        <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                            Marketplace *
+                                            <select
+                                                value={formMapeamento.marketplace}
+                                                onChange={(event) => atualizarCampoMapeamento('marketplace', event.target.value as MarketplaceMapeamentoTipo)}
+                                                className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                                disabled={salvandoMapeamento}
+                                            >
+                                                <option value="amazon">Amazon</option>
+                                                <option value="mercado_livre">Mercado Livre</option>
+                                                <option value="shopee">Shopee</option>
+                                                <option value="venda_manual">Venda Manual</option>
+                                            </select>
+                                        </label>
+
+                                        <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                            Seller SKU
+                                            <input
+                                                type="text"
+                                                value={formMapeamento.seller_sku}
+                                                onChange={(event) => atualizarCampoMapeamento('seller_sku', event.target.value)}
+                                                className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                                disabled={salvandoMapeamento}
+                                            />
+                                        </label>
+                                    </div>
+
+                                    {formMapeamento.marketplace === 'amazon' && (
+                                        <div className="grid gap-4 rounded-lg border border-slate-800 bg-slate-950/60 p-4 md:grid-cols-3">
+                                            <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                                ASIN
+                                                <input
+                                                    type="text"
+                                                    value={formMapeamento.asin}
+                                                    onChange={(event) => atualizarCampoMapeamento('asin', event.target.value.toUpperCase())}
+                                                    className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                                    disabled={salvandoMapeamento}
+                                                />
+                                            </label>
+                                            <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                                Marketplace ID
+                                                <input
+                                                    type="text"
+                                                    value={formMapeamento.marketplace_id}
+                                                    onChange={(event) => atualizarCampoMapeamento('marketplace_id', event.target.value)}
+                                                    className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                                    disabled={salvandoMapeamento}
+                                                />
+                                            </label>
+                                            <label className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-900 px-3 py-3 text-sm text-slate-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formMapeamento.is_amazon_fulfilled}
+                                                    onChange={(event) => atualizarCampoMapeamento('is_amazon_fulfilled', event.target.checked)}
+                                                    className="h-4 w-4 rounded border-slate-600 bg-slate-950"
+                                                    disabled={salvandoMapeamento}
+                                                />
+                                                Amazon fulfilled (FBA)
+                                            </label>
+                                        </div>
+                                    )}
+
+                                    {formMapeamento.marketplace === 'mercado_livre' && (
+                                        <div className="grid gap-4 rounded-lg border border-slate-800 bg-slate-950/60 p-4 md:grid-cols-3">
+                                            <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                                Item ID
+                                                <input
+                                                    type="text"
+                                                    value={formMapeamento.item_id}
+                                                    onChange={(event) => atualizarCampoMapeamento('item_id', event.target.value)}
+                                                    className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                                    disabled={salvandoMapeamento}
+                                                />
+                                            </label>
+                                            <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                                Category ID
+                                                <input
+                                                    type="text"
+                                                    value={formMapeamento.category_id}
+                                                    onChange={(event) => atualizarCampoMapeamento('category_id', event.target.value)}
+                                                    className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                                    disabled={salvandoMapeamento}
+                                                />
+                                            </label>
+                                            <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                                Listing Type ID
+                                                <input
+                                                    type="text"
+                                                    value={formMapeamento.listing_type_id}
+                                                    onChange={(event) => atualizarCampoMapeamento('listing_type_id', event.target.value)}
+                                                    className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                                    disabled={salvandoMapeamento}
+                                                />
+                                            </label>
+                                            <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                                Logistic Type
+                                                <input
+                                                    type="text"
+                                                    value={formMapeamento.logistic_type}
+                                                    onChange={(event) => atualizarCampoMapeamento('logistic_type', event.target.value)}
+                                                    className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                                    disabled={salvandoMapeamento}
+                                                />
+                                            </label>
+                                            <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                                Shipping Mode
+                                                <input
+                                                    type="text"
+                                                    value={formMapeamento.shipping_mode}
+                                                    onChange={(event) => atualizarCampoMapeamento('shipping_mode', event.target.value)}
+                                                    className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                                    disabled={salvandoMapeamento}
+                                                />
+                                            </label>
+                                            <label className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-900 px-3 py-3 text-sm text-slate-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formMapeamento.free_shipping}
+                                                    onChange={(event) => atualizarCampoMapeamento('free_shipping', event.target.checked)}
+                                                    className="h-4 w-4 rounded border-slate-600 bg-slate-950"
+                                                    disabled={salvandoMapeamento}
+                                                />
+                                                Free shipping
+                                            </label>
+                                        </div>
+                                    )}
+
+                                    <div className="grid gap-4 md:grid-cols-4">
+                                        <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                            Moeda *
+                                            <input
+                                                type="text"
+                                                maxLength={3}
+                                                value={formMapeamento.moeda}
+                                                onChange={(event) => atualizarCampoMapeamento('moeda', event.target.value)}
+                                                className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-semibold uppercase text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                                disabled={salvandoMapeamento}
+                                            />
+                                        </label>
+
+                                        <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                            Cache (horas) *
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                value={formMapeamento.validade_cache_horas}
+                                                onChange={(event) => atualizarCampoMapeamento('validade_cache_horas', event.target.value)}
+                                                className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                                disabled={salvandoMapeamento}
+                                            />
+                                        </label>
+
+                                        <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                            Status
+                                            <select
+                                                value={formMapeamento.status}
+                                                onChange={(event) => atualizarCampoMapeamento('status', event.target.value as MarketplaceMapeamentoStatus)}
+                                                className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                                disabled={salvandoMapeamento}
+                                            >
+                                                <option value="ativo">Ativo</option>
+                                                <option value="inativo">Inativo</option>
+                                            </select>
+                                        </label>
+
+                                        <label className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-950 px-3 py-3 text-sm text-slate-300">
+                                            <input
+                                                type="checkbox"
+                                                checked={formMapeamento.manual_override}
+                                                onChange={(event) => atualizarCampoMapeamento('manual_override', event.target.checked)}
+                                                className="h-4 w-4 rounded border-slate-600 bg-slate-950"
+                                                disabled={salvandoMapeamento}
+                                            />
+                                            Manual override
+                                        </label>
+                                    </div>
+
+                                    {formMapeamento.manual_override && (
+                                        <div className="rounded-lg border border-yellow-900/50 bg-yellow-950/20 p-3 text-xs leading-relaxed text-yellow-100">
+                                            Quando ativo, a API pode consultar taxas, mas nao sobrescreve automaticamente a precificacao.
+                                        </div>
+                                    )}
+
+                                    {avisosFormularioMapeamento.length > 0 && (
+                                        <div className="rounded-lg border border-amber-900/40 bg-amber-950/20 p-3 text-xs leading-relaxed text-amber-100">
+                                            {avisosFormularioMapeamento.map((aviso) => (
+                                                <p key={aviso}>{aviso}</p>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <label className="flex flex-col gap-1.5 text-xs text-slate-400">
+                                        Observacoes
+                                        <textarea
+                                            value={formMapeamento.observacoes}
+                                            onChange={(event) => atualizarCampoMapeamento('observacoes', event.target.value)}
+                                            rows={3}
+                                            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                            disabled={salvandoMapeamento}
+                                        />
+                                    </label>
+                                </div>
+
+                                <div className="flex flex-col gap-3 border-t border-slate-800 p-5 sm:flex-row sm:justify-end">
+                                    <AppButton
+                                        variant="secondary"
+                                        type="button"
+                                        onClick={() => setFormularioMapeamentoAberto(false)}
+                                        disabled={salvandoMapeamento}
+                                    >
+                                        Cancelar
+                                    </AppButton>
+                                    <AppButton type="submit" disabled={salvandoMapeamento}>
+                                        {salvandoMapeamento ? 'Salvando...' : 'Salvar mapeamento'}
+                                    </AppButton>
+                                </div>
+                            </form>
+                        </div>
+                    )}
 
                     {statusMapeamentos === 'carregando' && (
                         <AppCard>
@@ -982,7 +1556,7 @@ export function CustosMargem() {
                                 </div>
                             ) : (
                                 <DataTableContainer>
-                                    <table className="w-full min-w-[1500px] border-collapse text-left text-xs sm:text-sm">
+                                    <table className="w-full min-w-[1650px] border-collapse text-left text-xs sm:text-sm">
                                         <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                             <tr>
                                                 <th className="px-3 py-3 font-medium sm:px-4">Produto</th>
@@ -997,6 +1571,7 @@ export function CustosMargem() {
                                                 <th className="px-3 py-3 font-medium sm:px-4 text-right">Cache</th>
                                                 <th className="px-3 py-3 font-medium sm:px-4 text-center">Status</th>
                                                 <th className="px-3 py-3 font-medium sm:px-4">Atualizado em</th>
+                                                <th className="px-3 py-3 font-medium sm:px-4 text-right">Ações</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800 bg-slate-900">
@@ -1042,6 +1617,25 @@ export function CustosMargem() {
                                                         </td>
                                                         <td className="px-3 py-3 sm:px-4 text-slate-400">
                                                             {formatarDataHora(item.updated_at)}
+                                                        </td>
+                                                        <td className="px-3 py-3 sm:px-4">
+                                                            <div className="flex justify-end gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => abrirEdicaoMapeamento(item)}
+                                                                    className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:border-indigo-500 hover:text-white"
+                                                                >
+                                                                    Editar
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => confirmarInativacaoMapeamento(item)}
+                                                                    disabled={item.status === 'inativo'}
+                                                                    className="rounded-lg border border-red-900/50 px-3 py-1.5 text-xs font-semibold text-red-200 hover:bg-red-950/40 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                >
+                                                                    Inativar
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 )
