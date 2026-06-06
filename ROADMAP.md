@@ -111,7 +111,8 @@ Etapas:
 - [x] 5.5C Planejamento da autenticacao/autorizacao da Edge Function `amazon-fees-quote`
 - [x] 5.5D Planejamento tecnico da implementacao da Edge Function `amazon-fees-quote`
 - [x] 5.5E Esqueleto seguro local da Edge Function, ainda sem chamar Amazon
-- [ ] 5.5F Planejamento da validacao local/deploy controlado da Edge Function mock, sem Amazon
+- [x] 5.5F Planejamento da validacao local/deploy controlado da Edge Function mock, sem Amazon
+- [ ] 5.5G Validacao estatica local da Edge Function mock
 
 ---
 
@@ -777,3 +778,62 @@ Ajuste aplicado:
 Proxima etapa recomendada:
 
 - 5.5F - Planejamento da validacao local/deploy controlado da Edge Function mock, sem Amazon.
+
+---
+
+## Registro 2026-06-05 - Fase 5.5F
+
+Status: [x] Planejamento documentado
+
+Objetivo: documentar como validar a Edge Function `amazon-fees-quote` em modo mock antes de qualquer integracao real com Amazon.
+
+Validacao estatica planejada:
+
+- confirmar imports;
+- confirmar ausencia de SDK Amazon e libs novas;
+- confirmar ausencia de `fetch`;
+- confirmar ausencia de endpoint Amazon;
+- confirmar ausencia de LWA;
+- confirmar ausencia de SigV4;
+- confirmar ausencia de insert/update/upsert/delete;
+- confirmar ausencia de uso operacional de `marketplace_fee_quotes`;
+- confirmar ausencia de update em `produtos_precificacao`;
+- confirmar ausencia de `SUPABASE_SERVICE_ROLE_KEY`;
+- confirmar retorno mock claro.
+
+Comandos seguros sugeridos, nao executados nesta fase:
+
+- `deno check supabase/functions/amazon-fees-quote/index.ts`;
+- `supabase functions serve amazon-fees-quote`;
+- `curl` local com JWT de teste nao exposto.
+
+Matriz de cenarios:
+
+- metodo diferente de POST;
+- sem Authorization;
+- token invalido;
+- body JSON invalido;
+- `mapeamento_id` ausente/invalido;
+- `preco_consultado` ausente/invalido;
+- usuario sem permissao;
+- mapeamento inexistente;
+- mapeamento inativo;
+- marketplace diferente de Amazon;
+- Amazon sem `seller_sku`;
+- Amazon sem `marketplace_id`;
+- `is_amazon_fulfilled` null;
+- `is_amazon_fulfilled = false` valido;
+- mapeamento Amazon valido retornando mock.
+
+Deploy controlado futuro:
+
+- somente apos validacao local;
+- dev/staging primeiro;
+- sem configurar Amazon secrets ainda;
+- validar apenas autenticacao, autorizacao, body e mapeamento;
+- confirmar `origem = mock`;
+- confirmar logs sem Authorization/JWT.
+
+Proxima etapa recomendada:
+
+- 5.5G - Validacao estatica local da Edge Function mock.

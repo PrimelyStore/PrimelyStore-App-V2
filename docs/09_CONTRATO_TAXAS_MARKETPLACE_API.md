@@ -1405,3 +1405,127 @@ Body JSON invalido.
 ```txt
 5.5F - Planejamento da validacao local/deploy controlado da Edge Function mock, sem Amazon.
 ```
+
+---
+
+## 19. Planejamento 5.5F - Validacao local/deploy controlado mock
+
+### 19.1. Objetivo
+
+Validar a Edge Function `amazon-fees-quote` em modo mock antes de qualquer integracao real com Amazon.
+
+Esta fase nao executa comandos, nao faz deploy, nao chama Amazon, nao implementa LWA/SigV4, nao grava `marketplace_fee_quotes` e nao atualiza `produtos_precificacao`.
+
+### 19.2. Validacao estatica do arquivo
+
+Checklist planejado:
+
+- confirmar imports;
+- confirmar ausencia de SDK Amazon;
+- confirmar ausencia de libs novas;
+- confirmar ausencia de `fetch`;
+- confirmar ausencia de endpoint Amazon;
+- confirmar ausencia de LWA;
+- confirmar ausencia de SigV4;
+- confirmar ausencia de insert/update/upsert/delete;
+- confirmar ausencia de uso operacional de `marketplace_fee_quotes`;
+- confirmar ausencia de update em `produtos_precificacao`;
+- confirmar ausencia de `SUPABASE_SERVICE_ROLE_KEY`;
+- confirmar retorno mock claro.
+
+### 19.3. Comandos seguros sugeridos
+
+Comandos apenas sugeridos, nao executados nesta fase:
+
+```txt
+deno check supabase/functions/amazon-fees-quote/index.ts
+supabase functions serve amazon-fees-quote
+curl local com JWT de teste nao exposto
+```
+
+Observacoes:
+
+- `deno check` pode resolver dependencias `npm:`;
+- `supabase functions serve` pode carregar variaveis locais;
+- JWT real nunca deve ser colado em documentacao, chat ou logs.
+
+### 19.4. Matriz de cenarios esperados
+
+| Cenario | Resultado esperado |
+|---|---|
+| Metodo diferente de POST | `405`, erro sanitizado. |
+| Sem Authorization | `401`, Bearer obrigatorio. |
+| Token invalido | `401`, usuario nao autenticado/token invalido. |
+| Body JSON invalido | `400`, body JSON invalido. |
+| `mapeamento_id` ausente/invalido | `400`, mapeamento obrigatorio/invalido. |
+| `preco_consultado` ausente/invalido | `400`, preco maior que zero. |
+| Usuario sem permissao | `403`, usuario sem permissao financeira. |
+| Mapeamento inexistente | `404`, mapeamento nao encontrado. |
+| Mapeamento inativo | `400`, mapeamento inativo. |
+| Marketplace diferente de Amazon | `400`, marketplace invalido. |
+| Amazon sem `seller_sku` | `400`, `seller_sku` obrigatorio. |
+| Amazon sem `marketplace_id` | `400`, `marketplace_id` obrigatorio. |
+| `is_amazon_fulfilled` null | `400`, campo deve estar definido. |
+| `is_amazon_fulfilled = false` | Valido, retorna mock. |
+| Mapeamento Amazon valido | `200`, mock controlado. |
+
+### 19.5. Plano de teste manual
+
+1. Fazer inspecao estatica do arquivo.
+2. Rodar `deno check`, se o ambiente permitir.
+3. Servir localmente a funcao.
+4. Testar com JWT de teste sem expor valor.
+5. Conferir respostas HTTP e body.
+6. Confirmar ausencia de escrita em banco.
+7. Confirmar logs sem Authorization/JWT.
+8. Confirmar que `origem = mock`.
+
+### 19.6. Deploy controlado futuro
+
+Quando fazer:
+
+- somente apos validacao local;
+- apos confirmar branch/commit;
+- apos confirmar projeto Supabase correto.
+
+Ambiente:
+
+- dev/staging primeiro;
+- producao somente depois de validacao controlada.
+
+Como validar sem Amazon:
+
+- manter retorno mock;
+- nao configurar Amazon secrets ainda;
+- validar apenas autenticacao, autorizacao, body e mapeamento;
+- confirmar `origem = mock`;
+- confirmar logs sanitizados.
+
+### 19.7. Riscos
+
+- `supabase functions serve` carregar variaveis locais;
+- `deno check` resolver dependencias;
+- `--no-verify-jwt` nao simular producao;
+- vazamento de JWT em terminal/log/chat;
+- RLS bloquear mapeamento;
+- mock ser confundido com integracao real.
+
+### 19.8. Checklist antes do primeiro deploy mock
+
+- projeto Supabase correto;
+- branch/commit correto;
+- funcao sem `fetch`;
+- funcao sem LWA/SigV4;
+- funcao sem escrita em banco;
+- sem service role;
+- `origem = mock`;
+- usuario financeiro de teste;
+- `mapeamento_id` Amazon de teste;
+- logs sem Authorization/JWT;
+- dev/staging primeiro.
+
+### 19.9. Proxima etapa recomendada
+
+```txt
+5.5G - Validacao estatica local da Edge Function mock.
+```
