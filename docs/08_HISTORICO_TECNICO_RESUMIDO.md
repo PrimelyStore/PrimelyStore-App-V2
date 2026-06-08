@@ -1081,3 +1081,100 @@ Proxima etapa recomendada:
 ```txt
 5.5I - Planejamento do teste local com supabase functions serve, ainda sem Amazon.
 ```
+
+---
+
+## 23. Fase 5.5I - Planejamento do teste local com Supabase Functions Serve
+
+Em 2026-06-08, foi documentado o planejamento do teste local da Edge Function mock:
+
+```txt
+amazon-fees-quote
+```
+
+Objetivo:
+
+- testar localmente a funcao em modo mock;
+- nao chamar Amazon;
+- nao fazer deploy;
+- nao gravar no banco;
+- nao expor JWT, tokens ou secrets.
+
+Pre-requisitos:
+
+- Supabase CLI disponivel;
+- Deno disponivel;
+- projeto Supabase corretamente linkado;
+- ambiente local seguro;
+- JWT de teste valido sem expor valor;
+- usuario de teste com e sem permissao financeira, se possivel;
+- `mapeamento_id` Amazon de teste cadastrado;
+- funcao ainda em modo mock, sem `fetch`, LWA, SigV4, service role e escrita no banco.
+
+Comando futuro planejado:
+
+```txt
+supabase functions serve amazon-fees-quote
+```
+
+Cuidados:
+
+- nao usar `--no-verify-jwt` para validar fluxo real de autenticacao;
+- `--no-verify-jwt` somente para teste isolado de CORS/metodo;
+- nao colar JWT no chat;
+- nao commitar JWT;
+- nao imprimir headers completos;
+- nao ler nem expor `.env.local`;
+- nao usar Amazon secrets;
+- nao configurar secrets Amazon nesta etapa;
+- nao rodar deploy;
+- nao registrar Authorization/JWT em logs.
+
+Cenarios planejados:
+
+- `OPTIONS`;
+- `GET` retornando 405;
+- POST sem Authorization retornando 401;
+- POST com token invalido retornando 401;
+- JSON invalido retornando 400;
+- `mapeamento_id` invalido retornando 400;
+- `preco_consultado` invalido retornando 400;
+- usuario sem permissao retornando 403;
+- mapeamento inexistente retornando 404;
+- mapeamento inativo retornando erro controlado;
+- marketplace diferente de Amazon retornando erro controlado;
+- Amazon sem `seller_sku` retornando erro controlado;
+- Amazon sem `marketplace_id` retornando erro controlado;
+- `is_amazon_fulfilled` null retornando erro controlado;
+- `is_amazon_fulfilled = false` valido;
+- Amazon valido retornando 200 com `status = mock`, `origem = mock` e `aplicado_em_precificacao = false`.
+
+Riscos:
+
+- `supabase functions serve` pode carregar variaveis locais;
+- JWT pode vazar se copiado para chat/logs;
+- `--no-verify-jwt` pode dar falsa sensacao de validacao real;
+- RLS pode bloquear leitura do mapeamento;
+- usuario sem permissao pode falhar corretamente e parecer erro funcional;
+- mock pode ser confundido com cotacao real;
+- ambiente linkado errado pode levar a testes contra projeto indevido.
+
+Checklist antes de rodar:
+
+- confirmar projeto Supabase correto;
+- confirmar ambiente local seguro;
+- confirmar Deno disponivel;
+- confirmar Supabase CLI disponivel;
+- confirmar que nao havera deploy;
+- confirmar que nao serao usados Amazon secrets;
+- confirmar JWT de teste sem expor valor;
+- confirmar `mapeamento_id` Amazon de teste;
+- confirmar usuario com acesso financeiro;
+- confirmar logs sem Authorization/JWT;
+- confirmar funcao sem `fetch` e sem escrita no banco.
+
+Proxima etapa recomendada:
+
+```txt
+5.5J - Executar teste local controlado com supabase functions serve, somente apos autorizacao.
+```

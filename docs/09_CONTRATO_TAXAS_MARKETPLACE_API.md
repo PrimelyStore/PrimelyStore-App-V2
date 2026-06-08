@@ -1594,3 +1594,134 @@ Passou.
 ```txt
 5.5I - Planejamento do teste local com supabase functions serve, ainda sem Amazon.
 ```
+
+---
+
+## 21. Planejamento 5.5I - Teste local com `supabase functions serve`
+
+### 21.1. Objetivo
+
+Planejar o teste local da Edge Function mock `amazon-fees-quote` usando `supabase functions serve`, sem Amazon, sem deploy e sem gravacao no banco.
+
+### 21.2. Pre-requisitos
+
+- Supabase CLI disponivel;
+- Deno disponivel;
+- projeto Supabase corretamente linkado;
+- ambiente local seguro;
+- JWT de teste valido sem expor valor;
+- usuario de teste com e sem permissao financeira, se possivel;
+- `mapeamento_id` Amazon de teste cadastrado;
+- funcao ainda em modo mock, sem `fetch`, LWA, SigV4, service role e escrita no banco.
+
+### 21.3. Comando futuro
+
+```txt
+supabase functions serve amazon-fees-quote
+```
+
+Este comando nao foi executado nesta fase.
+
+### 21.4. Cuidados
+
+- nao usar `--no-verify-jwt` para validar fluxo real de autenticacao;
+- `--no-verify-jwt` so deve ser usado para teste isolado de CORS/metodo;
+- nao colar JWT no chat;
+- nao commitar JWT;
+- nao imprimir headers completos;
+- nao ler nem expor `.env.local`;
+- nao usar Amazon secrets;
+- nao configurar secrets Amazon nesta etapa;
+- nao rodar deploy;
+- nao registrar Authorization/JWT em logs.
+
+### 21.5. Comandos conceituais com placeholders
+
+OPTIONS:
+
+```txt
+curl -i -X OPTIONS http://127.0.0.1:54321/functions/v1/amazon-fees-quote
+```
+
+GET retornando 405:
+
+```txt
+curl -i -X GET http://127.0.0.1:54321/functions/v1/amazon-fees-quote
+```
+
+POST sem Authorization:
+
+```txt
+curl -i -X POST http://127.0.0.1:54321/functions/v1/amazon-fees-quote \
+  -H "Content-Type: application/json" \
+  -d '{"mapeamento_id":"<UUID_TESTE>","preco_consultado":100}'
+```
+
+POST com JWT de teste nao exposto:
+
+```txt
+curl -i -X POST http://127.0.0.1:54321/functions/v1/amazon-fees-quote \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <JWT_DE_TESTE_NAO_EXPOSTO>" \
+  -d '{"mapeamento_id":"<UUID_TESTE>","preco_consultado":100}'
+```
+
+JSON invalido:
+
+```txt
+curl -i -X POST http://127.0.0.1:54321/functions/v1/amazon-fees-quote \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <JWT_DE_TESTE_NAO_EXPOSTO>" \
+  -d '{json-invalido'
+```
+
+### 21.6. Matriz de resultados esperados
+
+| Cenario | Resultado esperado |
+|---|---|
+| `OPTIONS` | `200`, resposta CORS simples. |
+| `GET` | `405`, metodo nao permitido. |
+| POST sem Authorization | `401`, Bearer obrigatorio. |
+| Token invalido | `401`, usuario nao autenticado/token invalido. |
+| JSON invalido | `400`, body JSON invalido. |
+| `mapeamento_id` invalido | `400`, mapeamento obrigatorio/invalido. |
+| `preco_consultado` invalido | `400`, preco maior que zero. |
+| Usuario sem permissao | `403`, usuario sem permissao financeira. |
+| Mapeamento inexistente | `404`, mapeamento nao encontrado. |
+| Mapeamento inativo | Erro controlado. |
+| Marketplace diferente de Amazon | Erro controlado. |
+| Amazon sem `seller_sku` | Erro controlado. |
+| Amazon sem `marketplace_id` | Erro controlado. |
+| `is_amazon_fulfilled` null | Erro controlado. |
+| `is_amazon_fulfilled = false` | Valido. |
+| Amazon valido | `200`, `status = mock`, `origem = mock`, `aplicado_em_precificacao = false`. |
+
+### 21.7. Riscos
+
+- `supabase functions serve` pode carregar variaveis locais;
+- JWT pode vazar se copiado para chat/logs;
+- `--no-verify-jwt` pode dar falsa sensacao de validacao real;
+- RLS pode bloquear leitura do mapeamento;
+- usuario sem permissao pode falhar corretamente e parecer erro funcional;
+- mock pode ser confundido com cotacao real;
+- ambiente linkado errado pode levar a testes contra projeto indevido.
+
+### 21.8. Checklist antes de rodar
+
+- confirmar projeto Supabase correto;
+- confirmar ambiente local seguro;
+- confirmar Deno disponivel;
+- confirmar Supabase CLI disponivel;
+- confirmar que nao havera deploy;
+- confirmar que nao serao usados Amazon secrets;
+- confirmar JWT de teste sem expor valor;
+- confirmar `mapeamento_id` Amazon de teste;
+- confirmar usuario com acesso financeiro;
+- confirmar logs sem Authorization/JWT;
+- confirmar funcao sem `fetch` e sem escrita no banco.
+
+### 21.9. Proxima etapa recomendada
+
+```txt
+5.5J - Executar teste local controlado com supabase functions serve, somente apos autorizacao.
+```
