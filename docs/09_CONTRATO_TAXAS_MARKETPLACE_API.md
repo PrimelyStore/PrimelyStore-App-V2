@@ -1529,3 +1529,68 @@ Como validar sem Amazon:
 ```txt
 5.5G - Validacao estatica local da Edge Function mock.
 ```
+
+---
+
+## 20. Validacao 5.5H-2 - Deno/TypeScript da `amazon-fees-quote`
+
+### 20.1. Arquivo validado
+
+```txt
+supabase/functions/amazon-fees-quote/index.ts
+```
+
+### 20.2. Problema corrigido
+
+Foi corrigido erro de tipagem TS2322 envolvendo:
+
+```txt
+ReturnType<typeof createClient>
+```
+
+Causa registrada:
+
+- `ReturnType<typeof createClient>` inferia generics incompatíveis para o Supabase client no contexto do Deno check.
+
+Correcao aplicada:
+
+- import de tipo `SupabaseClient`;
+- criacao do alias `AppSupabaseClient`;
+- substituicao dos usos de `ReturnType<typeof createClient>` por `AppSupabaseClient`.
+
+Trecho conceitual:
+
+```txt
+type AppSupabaseClient = SupabaseClient<any, 'public', any>
+```
+
+### 20.3. Resultado
+
+Comando validado no ambiente do usuario:
+
+```txt
+deno check supabase/functions/amazon-fees-quote/index.ts
+```
+
+Resultado:
+
+```txt
+Passou.
+```
+
+### 20.4. Garantias mantidas
+
+- sem chamada Amazon;
+- sem LWA;
+- sem SigV4;
+- sem `fetch`;
+- sem escrita em `marketplace_fee_quotes`;
+- sem atualizacao em `produtos_precificacao`;
+- sem service role funcional;
+- sem deploy.
+
+### 20.5. Proxima etapa recomendada
+
+```txt
+5.5I - Planejamento do teste local com supabase functions serve, ainda sem Amazon.
+```

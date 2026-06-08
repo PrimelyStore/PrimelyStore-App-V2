@@ -1030,3 +1030,54 @@ Proxima etapa recomendada:
 ```txt
 5.5G - Validacao estatica local da Edge Function mock.
 ```
+
+---
+
+## 22. Fase 5.5H-2 - Validacao Deno/TypeScript da Edge Function mock
+
+Em 2026-06-08, foi documentada a validacao Deno/TypeScript da Edge Function mock:
+
+```txt
+supabase/functions/amazon-fees-quote/index.ts
+```
+
+Problema corrigido:
+
+- erro TS2322 envolvendo `ReturnType<typeof createClient>`;
+- a inferencia dos generics do `createClient` gerava incompatibilidade de tipo no `AuthContext`;
+- a correcao usou import de tipo `SupabaseClient` e alias local `AppSupabaseClient`.
+
+Trecho conceitual da correcao:
+
+```txt
+type AppSupabaseClient = SupabaseClient<any, 'public', any>
+```
+
+Resultado:
+
+```txt
+deno check supabase/functions/amazon-fees-quote/index.ts
+```
+
+Status:
+
+```txt
+Passou no ambiente do usuario.
+```
+
+Garantias mantidas:
+
+- sem chamada Amazon;
+- sem LWA;
+- sem SigV4;
+- sem `fetch`;
+- sem escrita em `marketplace_fee_quotes`;
+- sem atualizacao em `produtos_precificacao`;
+- sem service role funcional;
+- sem deploy.
+
+Proxima etapa recomendada:
+
+```txt
+5.5I - Planejamento do teste local com supabase functions serve, ainda sem Amazon.
+```

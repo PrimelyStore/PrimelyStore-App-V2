@@ -112,7 +112,9 @@ Etapas:
 - [x] 5.5D Planejamento tecnico da implementacao da Edge Function `amazon-fees-quote`
 - [x] 5.5E Esqueleto seguro local da Edge Function, ainda sem chamar Amazon
 - [x] 5.5F Planejamento da validacao local/deploy controlado da Edge Function mock, sem Amazon
-- [ ] 5.5G Validacao estatica local da Edge Function mock
+- [x] 5.5G Validacao estatica local da Edge Function mock
+- [x] 5.5H Validacao Deno/TypeScript da Edge Function mock
+- [ ] 5.5I Planejamento do teste local com `supabase functions serve`, ainda sem Amazon
 
 ---
 
@@ -837,3 +839,36 @@ Deploy controlado futuro:
 Proxima etapa recomendada:
 
 - 5.5G - Validacao estatica local da Edge Function mock.
+
+---
+
+## Registro 2026-06-08 - Fase 5.5H-2
+
+Status: [x] Validacao Deno/TypeScript documentada
+
+Arquivo validado:
+
+- `supabase/functions/amazon-fees-quote/index.ts`
+
+Problema corrigido:
+
+- erro TS2322 envolvendo `ReturnType<typeof createClient>`;
+- correcao aplicada usando `SupabaseClient` e alias `AppSupabaseClient`.
+
+Resultado:
+
+- `deno check supabase/functions/amazon-fees-quote/index.ts` passou no ambiente do usuario.
+
+Garantias mantidas:
+
+- sem chamada Amazon;
+- sem LWA;
+- sem SigV4;
+- sem `fetch`;
+- sem escrita em `marketplace_fee_quotes`;
+- sem atualizacao em `produtos_precificacao`;
+- sem service role funcional.
+
+Proxima etapa recomendada:
+
+- 5.5I - Planejamento do teste local com `supabase functions serve`, ainda sem Amazon.
