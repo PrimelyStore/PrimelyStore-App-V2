@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,10 +21,12 @@ type ValidatedBody = {
   force_refresh: boolean
 }
 
+type AppSupabaseClient = SupabaseClient<any, 'public', any>
+
 type AuthContext = {
   user_id: string
   email: string | null
-  userClient: ReturnType<typeof createClient>
+  userClient: AppSupabaseClient
 }
 
 type MarketplaceMapping = {
@@ -181,7 +183,7 @@ async function validarAuth(req: Request): Promise<AuthContext> {
   }
 }
 
-async function validarPermissaoFinanceira(userClient: ReturnType<typeof createClient>) {
+async function validarPermissaoFinanceira(userClient: AppSupabaseClient) {
   const { data, error } = await userClient.rpc('usuario_pode_acessar_financeiro')
 
   if (error) {
@@ -194,7 +196,7 @@ async function validarPermissaoFinanceira(userClient: ReturnType<typeof createCl
 }
 
 async function carregarMapeamento(
-  userClient: ReturnType<typeof createClient>,
+  userClient: AppSupabaseClient,
   mapeamentoId: string
 ) {
   const { data, error } = await userClient
