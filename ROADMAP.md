@@ -114,7 +114,8 @@ Etapas:
 - [x] 5.5F Planejamento da validacao local/deploy controlado da Edge Function mock, sem Amazon
 - [x] 5.5G Validacao estatica local da Edge Function mock
 - [x] 5.5H Validacao Deno/TypeScript da Edge Function mock
-- [ ] 5.5I Planejamento do teste local com `supabase functions serve`, ainda sem Amazon
+- [x] 5.5I Planejamento do teste local com `supabase functions serve`, ainda sem Amazon
+- [ ] 5.5J Executar teste local controlado com `supabase functions serve`, somente apos autorizacao
 
 ---
 
@@ -872,3 +873,62 @@ Garantias mantidas:
 Proxima etapa recomendada:
 
 - 5.5I - Planejamento do teste local com `supabase functions serve`, ainda sem Amazon.
+
+---
+
+## Registro 2026-06-08 - Fase 5.5I
+
+Status: [x] Planejamento documentado
+
+Objetivo: documentar o teste local planejado da Edge Function mock `amazon-fees-quote` usando `supabase functions serve`, sem Amazon, sem deploy e sem gravacao no banco.
+
+Pre-requisitos:
+
+- Supabase CLI disponivel;
+- Deno disponivel;
+- projeto Supabase corretamente linkado;
+- ambiente local seguro;
+- JWT de teste valido sem expor valor;
+- usuario de teste com e sem permissao financeira, se possivel;
+- `mapeamento_id` Amazon de teste cadastrado;
+- funcao ainda em modo mock, sem `fetch`, LWA, SigV4, service role e escrita no banco.
+
+Comando futuro:
+
+- `supabase functions serve amazon-fees-quote`
+
+Cuidados:
+
+- nao usar `--no-verify-jwt` para validar fluxo real de autenticacao;
+- `--no-verify-jwt` somente para teste isolado de CORS/metodo;
+- nao colar JWT no chat;
+- nao commitar JWT;
+- nao imprimir headers completos;
+- nao ler nem expor `.env.local`;
+- nao usar Amazon secrets;
+- nao configurar secrets Amazon nesta etapa;
+- nao rodar deploy;
+- nao registrar Authorization/JWT em logs.
+
+Matriz esperada:
+
+- `OPTIONS` retorna 200;
+- `GET` retorna 405;
+- POST sem Authorization retorna 401;
+- token invalido retorna 401;
+- JSON invalido retorna 400;
+- `mapeamento_id` invalido retorna 400;
+- `preco_consultado` invalido retorna 400;
+- usuario sem permissao retorna 403;
+- mapeamento inexistente retorna 404;
+- mapeamento inativo retorna erro controlado;
+- marketplace diferente de Amazon retorna erro controlado;
+- Amazon sem `seller_sku` retorna erro controlado;
+- Amazon sem `marketplace_id` retorna erro controlado;
+- `is_amazon_fulfilled` null retorna erro controlado;
+- `is_amazon_fulfilled = false` e valido;
+- Amazon valido retorna 200 com `status = mock`, `origem = mock` e `aplicado_em_precificacao = false`.
+
+Proxima etapa recomendada:
+
+- 5.5J - Executar teste local controlado com `supabase functions serve`, somente apos autorizacao.
