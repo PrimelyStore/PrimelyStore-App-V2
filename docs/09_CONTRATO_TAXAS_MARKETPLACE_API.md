@@ -1725,3 +1725,59 @@ curl -i -X POST http://127.0.0.1:54321/functions/v1/amazon-fees-quote \
 ```txt
 5.5J - Executar teste local controlado com supabase functions serve, somente apos autorizacao.
 ```
+
+---
+
+## 22. Conclusao 5.5J-4A & 5.5J-5 - Teste local autenticado e estrategia de baseline
+
+Em 2026-06-09, foi validado o esqueleto seguro da Edge Function `amazon-fees-quote` em modo autenticado no ambiente local de desenvolvimento, e formulada a recomendacao de baseline.
+
+### 22.1. Resultados das chamadas locais a Edge Function
+
+- **OPTIONS**: `HTTP 200` com cabecalhos CORS corretos.
+- **GET**: `HTTP 405` com erro `"Metodo nao permitido. Use POST."`.
+- **POST sem Authorization**: `HTTP 401` com erro `"Authorization Bearer obrigatorio."`.
+- **POST com Bearer invalido**: `HTTP 401` com erro `"Usuario nao autenticado ou token invalido."`.
+- **POST com JSON invalido**: `HTTP 400` com erro `"Body JSON invalido."`.
+- **POST com UUID de mapeamento_id em formato nulo/invalido (ex: `00000000-0000-0000-0000-000000000000`)**: `HTTP 400` com erro `"mapeamento_id obrigatorio ou invalido."` (validando a regex interna do esqueleto).
+- **POST com Token Valido e UUID sintatico valido (`d3b07384-d113-4956-a5cc-48419eb42597`)**:
+  - Usuario ficticio `teste-financeiro-local@primely.local` logado com sucesso no Auth local.
+  - Perfil cadastrado em `public.usuarios_perfis` com papel `financeiro` e status `ativo` diretamente via SQL no Docker.
+  - O Deno Edge Runtime local foi executado com a flag `--no-verify-jwt` para contornar incompatibilidade local do gateway Kong ao ler chaves ES256 como HMAC (erro: `TypeError: Key for the ES256 algorithm must be of type CryptoKey`).
+  - A validacao manual interna da Edge Function chamando o GoTrue local via `userClient.auth.getUser()` funcionou com sucesso (obtendo o usuario e validando seu perfil financeiro via RPC).
+  - Como o mapeamento sintatico valido nao existia no banco de dados local, a chamada retornou a resposta esperada de `HTTP 404` com erro controlado:
+    ```json
+    {
+      "success": false,
+      "status": "erro",
+      "origem": "mock",
+      "erro": "Mapeamento marketplace nao encontrado."
+    }
+    ```
+
+### 22.2. Seguranca e conformidade
+
+- **Secrets preservados**: Chaves `ANON_KEY`, JWT, tokens, senhas de teste e connection strings foram mantidos unicamente em memoria e nunca expostos ou gravados no repositorio.
+- **Sem chamadas externas**: Nenhuma chamada externa a LWA, Amazon SP-API ou chaves de assinatura SigV4 foi efetuada nesta validacao.
+- **Sem banco de dados remoto**: Nenhuma modificacao, script SQL ou migracao foi aplicada no ambiente remoto de producao.
+- **Git status limpo**: O repositorio final manteve-se inalterado de commits ou arquivos untracked novos nos caminhos de producao.
+
+### 22.3. Recomendacao de Baseline Local
+
+Para lidar com a migracao untracked local (`supabase/migrations/20260515000000_baseline_schema_legado_minimo.sql`), a recomendacao tecnica indica a **Opcao B (Mover para pasta docs/baseline ou similar)**.
+- **Justificativa**: Evita erros operacionais e comandos remotos complexos (como `supabase db push` ou `migration repair`) no banco de dados de producao do painel gerencial inteligente, enquanto garante que outros desenvolvedores possam clonar a baseline local manualmente quando necessario para subir o banco docker local.
+
+---
+
+## 23. Conclusao 5.5J-6 - Mover baseline local para docs/baseline com seguranca
+
+Em 2026-06-09, foi concluida a migracao do arquivo de baseline local para a pasta segura de documentacao tecnica, isolando a pasta `supabase/migrations/` de dependencias locais que pudessem causar push ou repair indevidos.
+
+### 23.1. Detalhes tecnicos da movimentacao
+
+- **Novo local da Baseline**: `docs/baseline/20260515000000_baseline_schema_legado_minimo.sql` (agora devidamente versionada no Git).
+- **Pasta de migrations limpa**: O arquivo foi removido da pasta `supabase/migrations/`, eliminando o estado `untracked` e o risco de deploy em producao.
+- **Manual de Integracao Local**: Criado o arquivo `docs/baseline/README.md` que documenta os passos necessarios para que outros desenvolvedores possam copiar temporariamente a baseline e recriar o banco de dados docker local via `supabase start` ou `supabase db reset`, com a obrigatoriedade de excluir o arquivo da pasta de migracoes apos o procedimento.
+- **Conformidade de Arquitetura**: A baseline nao introduz dados reais nem tenta transformar o Primely Store em ERP (mantendo a separacao entre Olist/Tiny como ERP operacional e o Primely como painel gerencial inteligente).
+
+

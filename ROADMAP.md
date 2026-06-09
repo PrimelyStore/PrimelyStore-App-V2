@@ -932,3 +932,58 @@ Matriz esperada:
 Proxima etapa recomendada:
 
 - 5.5J - Executar teste local controlado com `supabase functions serve`, somente apos autorizacao.
+
+---
+
+## Registro 2026-06-09 - Fase 5.5J-4A & 5.5J-5
+
+Status: [x] Concluido
+
+Objetivo: automatizar o teste autenticado local da Edge Function `amazon-fees-quote` em modo mock e documentar os resultados e estrategias de baseline.
+
+Resultado do Teste Autenticado Local:
+- Usuario ficticio `teste-financeiro-local@primely.local` criado/atualizado com sucesso no Auth local.
+- Perfil financeiro correspondente inserido em `public.usuarios_perfis` com papel `financeiro` e status `ativo` diretamente via SQL/Docker.
+- Login e obtencao do JWT em memoria concluidos com sucesso.
+- Endpoint `/auth/v1/user` respondeu com `HTTP 200`.
+- Edge Function `amazon-fees-quote` executada com sucesso com `--no-verify-jwt` no Deno Edge Runtime local para contornar incompatibilidade na validacao automatica do gateway local (que tentava verificar chaves ES256 como HMAC).
+- Chamada autenticada para a Edge Function com UUID de teste valido `d3b07384-d113-4956-a5cc-48419eb42597` retornou `HTTP 404` com erro controlado:
+  ```json
+  {
+    "success": false,
+    "status": "erro",
+    "origem": "mock",
+    "erro": "Mapeamento marketplace nao encontrado."
+  }
+  ```
+- Teste com nil UUID `00000000-0000-0000-0000-000000000000` retornou `HTTP 400` com erro de formato de UUID, validando as regras do esqueleto.
+
+Garantias de Seguranca:
+- Nenhum token, chave, segredo ou senha real foi exposto em logs ou salvo no repositorio.
+- Nenhuma chamada real foi efetuada para Amazon SP-API, LWA ou assinaturas AWS SigV4.
+- Nenhuma gravacao/atualizacao de tabelas reais de producao foi executada.
+- O Git status permaneceu limpo, sem nenhuma alteracao nos arquivos do repositorio.
+
+Estrategia de Baseline Local:
+- Avaliada a recomendacao sobre a baseline local untracked (`supabase/migrations/20260515000000_baseline_schema_legado_minimo.sql`).
+- Recomendada a **Opcao B (Mover para pasta docs/baseline ou similar)** como caminho seguro para manter o repositorio e o historico de migracoes remota limpos.
+
+Proxima etapa recomendada:
+- 5.5K - Definicao formal e aprovacao da estrategia da baseline antes da integracao real da Amazon.
+
+---
+
+## Registro 2026-06-09 - Fase 5.5J-6
+
+Status: [x] Concluido
+
+Objetivo: mover a baseline local untracked (`20260515000000_baseline_schema_legado_minimo.sql`) para a pasta de documentacao `docs/baseline/` para evitar `supabase db push` ou desvios de migracao remota.
+
+Acoes concluidas:
+- Criada a pasta `docs/baseline/`.
+- Movido o arquivo da baseline legado de `supabase/migrations/` para `docs/baseline/20260515000000_baseline_schema_legado_minimo.sql`.
+- Criado o arquivo `docs/baseline/README.md` com as diretrizes de reproducao local temporaria, regras de exclusao pos-start local e preservacao do conceito de ERP oficial (Olist/Tiny) x Painel Inteligente (Primely Store).
+- A pasta `supabase/migrations/` foi limpa da baseline legado, eliminando qualquer risco de push acidental.
+
+Proxima etapa recomendada:
+- 5.5K - Planejamento da chamada real da API Product Fees da Amazon SP-API.

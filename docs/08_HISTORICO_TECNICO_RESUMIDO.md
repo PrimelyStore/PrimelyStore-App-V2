@@ -1178,3 +1178,63 @@ Proxima etapa recomendada:
 ```txt
 5.5J - Executar teste local controlado com supabase functions serve, somente apos autorizacao.
 ```
+
+---
+
+## 24. Fase 5.5J-4A & 5.5J-5 - Teste local autenticado e estrategia de baseline
+
+Em 2026-06-09, foi executado o teste autenticado local da Edge Function `amazon-fees-quote` em modo mock e documentada a recomendacao tecnica de baseline.
+
+### 24.1. Cenarios testados e resultados
+
+- **CORS e metodo**:
+  - `OPTIONS` respondeu `HTTP 200`.
+  - `GET` respondeu `HTTP 405` (metodo nao permitido).
+- **Validacao de Token (Sem JWT e Token Invalido)**:
+  - Chamada sem header `Authorization` retornou `HTTP 401`.
+  - Chamada com JWT expirado/invalido retornou `HTTP 401`.
+- **Validacao de Usuario e Perfil Ficticio**:
+  - Usuario `teste-financeiro-local@primely.local` criado localmente.
+  - Perfil cadastrado em `public.usuarios_perfis` com papel `financeiro` e status `ativo` diretamente por SQL no container Docker.
+  - Login obteve o JWT com sucesso em memoria.
+  - `/auth/v1/user` respondeu com `HTTP 200`.
+- **Execucao com Deno Edge Runtime**:
+  - O Deno Edge Runtime local apresentou um erro de validacao de assinatura (`TypeError: Key for the ES256 algorithm must be of type CryptoKey. Received an instance of Uint8Array`) no gateway Kong porque tentava validar chaves ES256 com logica de HMAC.
+  - O contorno foi iniciar o servidor local com a flag `--no-verify-jwt` no gateway, permitindo que a Edge Function fizesse a validacao manual chamando a API de Auth (GoTrue), que resolveu o token perfeitamente.
+- **Resposta da Edge Function**:
+  - Chamada autenticada com UUID de teste valido `d3b07384-d113-4956-a5cc-48419eb42597` retornou `HTTP 404` com erro controlado:
+    ```json
+    {
+      "success": false,
+      "status": "erro",
+      "origem": "mock",
+      "erro": "Mapeamento marketplace nao encontrado."
+    }
+    ```
+  - Teste com nil UUID `00000000-0000-0000-0000-000000000000` retornou `HTTP 400` com erro de validacao de formato.
+
+### 24.2. Seguranca e governanca
+
+- Nenhuma credencial real de producao foi lida ou salva em arquivos do repositorio.
+- Nenhuma chamada real foi feita a servicos da Amazon, Keepa, LWA ou AWS SigV4.
+- Nenhuma gravacao/escrita operacional foi feita em banco.
+- O Git status permaneceu inalterado (nenhuma mudanca no repositorio de producao).
+- A baseline local `supabase/migrations/20260515000000_baseline_schema_legado_minimo.sql` continuou isolada e untracked.
+
+### 24.3. Recomendacao sobre a Baseline Local
+
+Recomenda-se adotar a **Opcao B (Mover para docs/baseline ou similar)** e documentar seu uso local. Isso evita sujar o fluxo oficial do `supabase/migrations/` (impedindo tentativas de `supabase db push` ou `migration repair` desnecessarios no remoto de producao), enquanto ainda disponibiliza o arquivo para outros desenvolvedores ou agentes locais.
+
+---
+
+## 25. Fase 5.5J-6 - Mover baseline local para docs/baseline com seguranca
+
+Em 2026-06-09, foi implementada a estrategia de baseline local atraves da Opcao B (Desvinculacao do diretorio de migrations principais).
+
+### 25.1. Acoes concluidas
+
+- **Estruturacao de Pastas**: Criado o diretorio `docs/baseline/`.
+- **Relocacao do Arquivo**: O arquivo `20260515000000_baseline_schema_legado_minimo.sql` foi transferido de `supabase/migrations/` para `docs/baseline/20260515000000_baseline_schema_legado_minimo.sql`.
+- **Remocao de Risco**: O diretorio `supabase/migrations/` foi limpo da baseline, garantindo que o Supabase CLI nao execute `supabase db push` acidental com este arquivo para o ambiente de producao.
+- **Documentacao de Instrucoes**: Criado o arquivo `docs/baseline/README.md` detalhando a finalidade de reprodutibilidade local, os passos para copia temporaria e remocao pos-start, o papel do Olist/Tiny como ERP operacional e do Primely Store como painel gerencial inteligente.
+
