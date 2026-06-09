@@ -1053,17 +1053,48 @@ Detalhes do Planejamento de Transicao:
 
 
 Plano de Microfases Futuras:
-- **5.5K-2**: Contrato tecnico detalhado da Product Fees (payloads reais de request/response e tratamento de FBA x FBM).
-- **5.5K-3**: Implementar modulo LWA isolado (Deno/Deno-TS).
-- **5.5K-4**: Implementar assinatura AWS SigV4 isolada.
-- **5.5K-5**: Preparar as variaveis de ambiente locais e remotas.
-- **5.5K-6**: Teste de integracao controlado com chaves reais em ambiente local de desenvolvimento.
-- **5.5K-7**: Acoplar persistencia de cache local em `marketplace_fee_quotes`.
-- **5.5K-8**: Acoplar atualizacao de precificacao com tratamento de `manual_override`.
-- **5.5K-9**: Deploy controlado da Edge Function.
+- **5.5K-2**: Definir contrato técnico ASIN x SellerSKU x operação em lote para Amazon Product Fees.
+- **5.5K-3**: revisar schema de `marketplace_fee_quotes` para suportar modo_consulta/identificador usado/cache.
+- **5.5K-4**: preparar helpers puros para montar payload SellerSKU/ASIN sem chamar Amazon.
+- **5.5K-5**: preparar contrato de erros e normalização da resposta da Amazon.
+- **5.5K-6**: planejar LWA/SigV4 isolados.
+- **5.5K-7**: teste real controlado somente após autorização explícita.
+
+---
+
+## Registro 2026-06-09 - Fase 5.5K-2
+
+Status: [x] Contrato Tecnico Definido
+
+Objetivo: definir a estrategia oficial do contrato tecnico da Edge Function `amazon-fees-quote` ao trafegar consultas por ASIN, por SellerSKU ou em lote, mitigando divergencias e determinando as regras de fallback.
+
+Estrategia Oficial de Consulta e Decisao:
+1. **Modos de Operacao (`modo_consulta`)**:
+   - `"auto"` (Padrao): Tentar primeiro `SellerSKU` (se `seller_sku` preenchido); caso falhe por SKU inexistente/indisponivel na Amazon, acionar fallback automatico para `ASIN` (se `asin` preenchido); se ambos falharem, retornar erro controlado.
+   - `"sku"`: Consultar unicamente via `SellerSKU`, obrigando preenchimento do SKU.
+   - `"asin"`: Consultar unicamente via `ASIN`, obrigando preenchimento do ASIN.
+   - `"batch"`: Reservado para futuras rotinas de sincronizacao e atualizacao de cache em massa.
+2. **Caminhos da API Amazon**:
+   - `SellerSKU`: `POST /products/fees/v0/listings/{SellerSKU}/feesEstimate` (Mais preciso para itens ja listados pelo seller).
+   - `ASIN`: `POST /products/fees/v0/items/{Asin}/feesEstimate` (Ideal para catalogo ou simulacao antes de listar).
+   - `Lote`: `POST /products/fees/v0/feesEstimate` (Aceita ate 20 itens por chamada).
+3. **Evolucao do Input da Edge Function**:
+   - Planejada a expansao do body para incluir: `modo_consulta` (`"auto" | "sku" | "asin"`), `permitir_fallback_asin` (boolean), `usar_cache` (boolean) e `contexto` (`"unitario" | "rotina_cache" | "simulador_precificacao"`).
+4. **Validacao de Inputs**:
+   - Exigencia estrita de `marketplace_id` (Brasil: `A2Q3Y263D00KWC`), `preco_consultado > 0`, moeda `BRL` e a flag de modalidade logistica `is_amazon_fulfilled` (para separar taxas FBA de FBM/DBA).
+5. **Mitigacoes de Risco Adicionais**:
+   - URL encoding obrigatorio para o parametro `SellerSKU` na rota do request.
+   - Tratamento de divergencias entre ASIN do catalogo e SKU real vendido.
+   - Isolamento de erros: falhas de fallback ou cadastro nao mascarados.
+
+Ajuste do Plano de Microfases:
+- **5.5K-3**: revisar schema de `marketplace_fee_quotes` para suportar modo_consulta/identificador usado/cache.
+- **5.5K-4**: preparar helpers puros para montar payload SellerSKU/ASIN sem chamar Amazon.
+- **5.5K-5**: preparar contrato de erros e normalização da resposta da Amazon.
+- **5.5K-6**: planejar LWA/SigV4 isolados.
+- **5.5K-7**: teste real controlado somente após autorização explícita.
 
 Garantias de Seguranca:
 - O planejamento foi executado de forma puramente teorica e documental.
 - Nenhuma chave secreta foi criada, lida ou exposta.
 - A Edge Function original de mock nao sofreu alteracoes funcionais e continua ativa no repositorio.
-

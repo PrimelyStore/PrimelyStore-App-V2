@@ -1877,18 +1877,135 @@ Em 2026-06-09, foi finalizado o planejamento da transicao da Edge Function `amaz
 
 ### 25.4. Plano de Microfases
 
-- **5.5K-2**: Contrato detalhado com payloads reais de FBA x FBM.
-- **5.5K-3**: Criacao do modulo LWA no Deno.
-- **5.5K-4**: Criacao da assinatura AWS SigV4 no Deno.
-- **5.5K-5**: Documentacao tecnica de secrets do ambiente.
-- **5.5K-6**: Testes de integracao locais.
-- **5.5K-7**: Persistencia de cache no banco.
-- **5.5K-8**: Persistencia em `produtos_precificacao` com controle de `manual_override`.
-- **5.5K-9**: Deploy controlado final.
+- **5.5K-2**: Definir contrato técnico ASIN x SellerSKU x operação em lote para Amazon Product Fees.
+- **5.5K-3**: revisar schema de `marketplace_fee_quotes` para suportar modo_consulta/identificador usado/cache.
+- **5.5K-4**: preparar helpers puros para montar payload SellerSKU/ASIN sem chamar Amazon.
+- **5.5K-5**: preparar contrato de erros e normalização da resposta da Amazon.
+- **5.5K-6**: planejar LWA/SigV4 isolados.
+- **5.5K-7**: teste real controlado somente após autorização explícita.
 
 ### 25.5. Estrategia de Identificacao (ASIN x SellerSKU)
 
 A Product Fees API possui operacoes por ASIN, por SellerSKU e tambem operacao em lote. Como o Primely Store armazena seller_sku e pode armazenar ASIN no mapeamento Amazon, a Fase 5.5K-2 devera definir a estrategia oficial: usar ASIN, usar SellerSKU ou aplicar fallback controlado entre ambos. Nenhuma decisao de implementacao real foi tomada nesta fase.
+
+---
+
+## 26. Planejamento 5.5K-2 - Contrato Técnico ASIN x SellerSKU x Operação em Lote para Amazon Product Fees
+
+Em 2026-06-09, foi definido o contrato técnico oficial de tomada de decisão para a futura integração real com a Amazon Product Fees API. Nenhuma alteração de código ou chamada real foi realizada.
+
+### 26.1. Estratégia Recomendada para o Primely Store
+
+1. **Priorização por SellerSKU**: Para cotações unitárias operacionais ou gerenciais associadas ao mapeamento do Primely Store, a chamada prioritária será feita usando `SellerSKU` sempre que este campo estiver preenchido. Isso se deve ao fato de o mapeamento de produtos no Primely Store operar primordialmente através do SKU do seller, garantindo correspondência direta com as listagens e dados de faturamento.
+2. **Fallback Controlado por ASIN**: Se a consulta por `SellerSKU` falhar por um erro de identificação compatível com item não cadastrado (ex: "Listing not found") ou se o SKU não estiver disponível no mapeamento, a Edge Function ativará o fallback automático usando o `ASIN` como parâmetro de consulta secundário, contanto que o `ASIN` esteja cadastrado e disponível no mapeamento.
+3. **Operação em Lote (Batch) Futura**: A chamada em lote (`getMyFeesEstimates`) é reservada para rotinas assíncronas de background (atualização noturna, rotinas de cache em lote, sincronização em massa de tabelas). Cotações unitárias demandadas em tempo de simulação ou tela no frontend devem priorizar requisições diretas de item único (`SellerSKU` ou `ASIN`) para evitar processamentos redundantes e atrasos de resposta.
+
+### 26.2. Comparação dos Três Caminhos Técnicos
+
+| Método / Endpoint | Parâmetro Chave | Cenário de Uso Principal | Vantagens | Limitações |
+|---|---|---|---|---|
+| **SellerSKU**<br>`POST /products/fees/v0/listings/{SellerSKU}/feesEstimate` | `SellerSKU` (na URL) | Itens ativos e listados na conta do seller. | Retorna comissões e taxas de envio específicas e precisas baseadas na listagem e regras do seller. | Requer obrigatoriamente que o SKU exista na conta Amazon vinculada. Exige URL encoding estrito. |
+| **ASIN**<br>`POST /products/fees/v0/items/{Asin}/feesEstimate` | `Asin` (na URL) | Análise de catálogo geral, simulações pré-listagem ou fallback quando o SKU falhar. | Funciona para qualquer produto no catálogo da Amazon, independentemente de estar listado pelo seller ou não. | Pode não refletir taxas promocionais ou especificidades exclusivas do seller. |
+| **Lote (Batch)**<br>`POST /products/fees/v0/feesEstimate` | Lista de requests no Body | Atualizações recorrentes em massa de cache de precificação no background. | Permite cotar até 20 itens em uma única chamada HTTP, minimizando consumo de rate limit. | Taxa máxima de requisição reduzida (rate limit da API em lote). Resposta mais complexa para desmembrar. |
+
+### 26.3. Contrato de Decisão da Edge Function (`modo_consulta`)
+
+O comportamento da Edge Function `amazon-fees-quote` ao processar a cotação será guiado pela variável `modo_consulta` definida no request body:
+
+* **Se `modo_consulta = "auto"` (Padrão)**:
+  1. Verifica se `seller_sku` está preenchido no mapeamento. Se sim, executa a requisição por `SellerSKU`.
+  2. Se a chamada por `SellerSKU` retornar falha de SKU não encontrado (ex: erro `Listing not found`), ou se `seller_sku` estiver vazio, e o campo `asin` estiver preenchido, tenta obter a estimativa via `ASIN`.
+  3. Se ambas as tentativas falharem ou não puderem ser efetuadas por falta de dados, a Edge Function retorna um erro estruturado e grava um cache de erro no banco de dados para evitar requisições redundantes consecutivas.
+* **Se `modo_consulta = "sku"`**:
+  * Executa a consulta unicamente por `SellerSKU`. Se o campo estiver ausente ou a chamada falhar, retorna erro sem tentar o fallback por ASIN.
+* **Se `modo_consulta = "asin"`**:
+  * Executa a consulta unicamente por `ASIN`. Se o campo estiver ausente ou a chamada falhar, retorna erro direto.
+* **Se `modo_consulta = "batch"`**:
+  * Reservado para a futura rotina de sincronização em massa (fora do escopo da chamada síncrona unitária).
+
+### 26.4. Evolução Futura do Payload do Request
+
+Abaixo está o contrato do body planejado para a evolução futura da Edge Function (sem implementar agora):
+
+```typescript
+type AmazonFeesQuoteRequest = {
+  mapeamento_id: string;              // UUID do mapeamento local
+  preco_consultado: number;           // Preço para cálculo de taxas
+  atualizar_precificacao?: boolean;   // Se atualiza produtos_precificacao (default: false)
+  force_refresh?: boolean;            // Ignora o cache local (default: false)
+  
+  // Novos parâmetros conceituais introduzidos na Fase 5.5K-2:
+  modo_consulta?: "auto" | "sku" | "asin"; // Modo de busca (default: "auto")
+  permitir_fallback_asin?: boolean;        // Se permite acionar ASIN se SKU falhar (default: true)
+  usar_cache?: boolean;                     // Habilita uso do cache local (default: true)
+  contexto?: "unitario" | "rotina_cache" | "simulador_precificacao"; // Origem do trigger (default: "unitario")
+}
+```
+
+### 26.5. Validação de Dados Obrigatórios
+
+Antes de iniciar qualquer chamada externa à Amazon, a Edge Function deverá aplicar as seguintes validações locais estritas:
+
+1. **`marketplace_id`**: Obrigatório e não-nulo (Brasil: `A2Q3Y263D00KWC`).
+2. **`preco_consultado`**: Deve ser maior que zero (`preco_consultado > 0`).
+3. **`moeda`**: Deve ser validado como `BRL` (moeda padrão aceita nas precificações brasileiras).
+4. **`is_amazon_fulfilled`**: Deve ser booleano obrigatório (indica se as taxas calculadas serão FBA (`true`) ou FBM/DBA (`false`)).
+5. **Validações por Modo**:
+   - Para `modo_consulta = "sku"`, o campo `seller_sku` deve estar presente e não-vazio.
+   - Para `modo_consulta = "asin"`, o campo `asin` deve estar presente e não-vazio.
+   - Para `modo_consulta = "auto"`, pelo menos um entre `seller_sku` ou `asin` deve estar presente e não-vazio.
+
+### 26.6. Cache Futuro em `marketplace_fee_quotes`
+
+Para otimizar o uso de rate limit da API da Amazon e manter um histórico confiável de auditorias financeiras, a lógica de chave e dados do cache deve obedecer aos seguintes critérios:
+
+* **Chave Lógica de Cache**: O cache será único e composto pelo conjunto:
+  `mapeamento_id` + `preco_consultado` + `moeda` + `is_amazon_fulfilled` + `modo_consulta` + `identificador_usado`.
+* **Colunas de Registro**: Ao persistir em `marketplace_fee_quotes`, além do JSON bruto (`payload_bruto`), devem ser gravados campos lógicos como:
+  - `identificador_usado`: SKU ou ASIN consultado.
+  - `tipo_consulta`: `sp_api_product_fees_sku` ou `sp_api_product_fees_asin`.
+  - `status`: `sucesso` ou `erro`.
+  - `erro`: mensagem de erro sanitizada (limpa de credenciais/JWT/chaves).
+  - `validade_cache_horas`: período em horas que a cotação é válida (padrão: 24 horas).
+  - `origem`: indicar de onde veio a cotação (`api`, `api_recente`, `mock` ou `matriz`).
+
+### 26.7. Atualização Futura em `produtos_precificacao`
+
+A atualização dos campos `taxa_marketplace` (referral fee) e `taxa_logistica` (FBA fee) na tabela `produtos_precificacao` obedecerá a uma regra estrita de segurança e consentimento:
+
+* **Trigger**: Ocorre apenas quando `atualizar_precificacao = true` e a chamada à API Amazon real retornar HTTP 200 com valores válidos.
+* **Permissão**: O usuário realizador da chamada deve possuir permissão de escrita financeira/admin ativa.
+* **Manual Override**: Se o campo `manual_override` estiver marcado como `true` no mapeamento do produto-canal, a Edge Function não atualizará a precificação automaticamente e retornará o status `bloqueado_manual_override` com `aplicado_em_precificacao = false` para preservar a decisão do gestor.
+* **Default Seguro**: Por padrão, cotações de teste ou auditoria são salvas apenas no histórico (`marketplace_fee_quotes`) com `aplicado_em_precificacao = false`.
+
+### 26.8. Riscos e Proteções
+
+1. **Risco de SKU com caracteres especiais**: SKUs podem conter barras, espaços ou traços que quebram requisições na URL.
+   * *Proteção*: A Edge Function utilizará URL encoding obrigatório (`encodeURIComponent`) ao injetar o `SellerSKU` na rota `/listings/{SellerSKU}/feesEstimate`.
+2. **Divergência entre ASIN e SKU**: O ASIN mapeado no Primely pode pertencer a um produto do catálogo que difere do SKU real comercializado na conta do seller.
+   * *Proteção*: Registrar separadamente no cache qual identificador gerou as taxas e manter logs sanitizados detalhando o fluxo de decisão (se SKU ou ASIN foi usado).
+3. **Erros de logística FBA x FBM**: O cálculo de taxas varia substancialmente com a modalidade logística.
+   * *Proteção*: A flag `is_amazon_fulfilled` deve ser rigidamente verificada antes do request. Se houver divergência ou valor nulo, a cotação falhará antes de chamar a Amazon.
+4. **Rate Limit e Quotas de API**: A Product Fees API possui restrições severas de rate limit.
+   * *Proteção*: Bloqueio e limitação do parâmetro `force_refresh` por IP/usuário e cache obrigatório de 24h para cotações com mesmo preço.
+5. **Mascaramento de erro de cadastro**: O fallback para ASIN pode esconder falhas no cadastro do SKU do vendedor na Amazon.
+   * *Proteção*: Retornar no JSON de response a propriedade `identificador_usado` e, caso tenha recorrido ao fallback por falha de SKU, adicionar um aviso estruturado (`warnings`) sem interromper o fluxo operacional.
+
+### 26.9. Cronograma de Microfases Futuras
+
+* **`5.5K-3`**: revisar schema de `marketplace_fee_quotes` para suportar modo_consulta/identificador usado/cache.
+* **`5.5K-4`**: preparar helpers puros para montar payload SellerSKU/ASIN sem chamar Amazon.
+* **`5.5K-5`**: preparar contrato de erros e normalização da resposta da Amazon.
+* **`5.5K-6`**: planejar LWA/SigV4 isolados.
+* **`5.5K-7`**: teste real controlado somente após autorização explícita.
+
+### 26.10. Garantias de Segurança e Limitação do Escopo
+
+* Esta fase consistiu puramente de planejamento e documentação conceitual.
+* Nenhuma chamada real foi efetuada à Amazon SP-API, LWA ou AWS SigV4.
+* Nenhuma alteração de código ou modificação física de arquivos foi realizada na Edge Function `amazon-fees-quote`, mantendo o esqueleto mock seguro e testado localmente.
+* Não foram manipuladas chaves privadas, secrets de ambiente ou credenciais reais.
+
 
 
 
