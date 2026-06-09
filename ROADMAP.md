@@ -1023,3 +1023,47 @@ Garantias de Seguranca:
 Proxima etapa recomendada:
 - 5.5K - Planejamento da chamada real da API Product Fees da Amazon SP-API.
 
+---
+
+## Registro 2026-06-09 - Fase 5.5K-1
+
+Status: [x] Planejamento concluido
+
+Objetivo: planejar a transicao da Edge Function `amazon-fees-quote` do modo mock para a integracao real com a Amazon Product Fees API, desenhando a arquitetura de segredos, cache, precificacao, riscos e microfases futuras de implementacao.
+
+Detalhes do Planejamento de Transicao:
+1. **Fluxo de Conexao Amazon**:
+   - Autenticacao via LWA (Login With Amazon) para obter token temporario de acesso a partir de `AMAZON_LWA_REFRESH_TOKEN` e segredos do app.
+   - Assinatura de requisicao padrao AWS SigV4 (Signature Version 4) usando chaves IAM AWS.
+   - Endpoint real da SP-API: `POST /products/fees/v0/items/{Asin}/feesEstimate` com payload contendo `MarketplaceId` (Brasil: `A2Q3Y263D00KWC`), preco de venda simulado (`ListingPrice`), contexto logistico (`IsAmazonFulfilled` true/false) e moeda (`BRL`).
+2. **Estrategia de Cache local**:
+   - Consultar na tabela `marketplace_fee_quotes` por `mapeamento_id + preco_consultado` antes de bater na API da Amazon, respeitando a janela definida por `validade_cache_horas` (default 24h).
+   - Se cache valido e `force_refresh = false`, retornar dados locais com `origem = api_recente`.
+   - Se chamada da API falhar por limites de quota ou rate limit (429), gravar log de erro no cache local para facilitar auditoria.
+3. **Estrategia de Precificacao**:
+   - Ao receber `atualizar_precificacao = true` sob perfil de escrita financeira/admin e se `manual_override = false` no mapeamento, atualizar na tabela `produtos_precificacao` as colunas `taxa_marketplace` (referral fee) e `taxa_logistica` (FBA fee), marcando `aplicado_em_precificacao = true` na cotacao gravada.
+4. **Secrets do Supabase Vault**:
+   - `AMAZON_LWA_CLIENT_ID`, `AMAZON_LWA_CLIENT_SECRET`, `AMAZON_LWA_REFRESH_TOKEN`, `AMAZON_AWS_ACCESS_KEY_ID`, `AMAZON_AWS_SECRET_ACCESS_KEY`, `AMAZON_AWS_ROLE_ARN`, `AMAZON_SPAPI_ENDPOINT`, `AMAZON_SPAPI_REGION`.
+5. **Mitigacao de Riscos**:
+   - RLS rigido para impedir acesso anonimo.
+   - Restricao de `force_refresh` por IP/usuario para mitigar abusos de cota de API.
+   - Isolamento completo de credenciais por ambiente (dev/prod).
+6. **Observacao Tecnica de Integracao (ASIN x SellerSKU)**:
+   - A Product Fees API possui operacoes por ASIN, por SellerSKU e tambem operacao em lote. Como o Primely Store armazena seller_sku e pode armazenar ASIN no mapeamento Amazon, a Fase 5.5K-2 devera definir a estrategia oficial: usar ASIN, usar SellerSKU ou aplicar fallback controlado entre ambos. Nenhuma decisao de implementacao real foi tomada nesta fase.
+
+
+Plano de Microfases Futuras:
+- **5.5K-2**: Contrato tecnico detalhado da Product Fees (payloads reais de request/response e tratamento de FBA x FBM).
+- **5.5K-3**: Implementar modulo LWA isolado (Deno/Deno-TS).
+- **5.5K-4**: Implementar assinatura AWS SigV4 isolada.
+- **5.5K-5**: Preparar as variaveis de ambiente locais e remotas.
+- **5.5K-6**: Teste de integracao controlado com chaves reais em ambiente local de desenvolvimento.
+- **5.5K-7**: Acoplar persistencia de cache local em `marketplace_fee_quotes`.
+- **5.5K-8**: Acoplar atualizacao de precificacao com tratamento de `manual_override`.
+- **5.5K-9**: Deploy controlado da Edge Function.
+
+Garantias de Seguranca:
+- O planejamento foi executado de forma puramente teorica e documental.
+- Nenhuma chave secreta foi criada, lida ou exposta.
+- A Edge Function original de mock nao sofreu alteracoes funcionais e continua ativa no repositorio.
+

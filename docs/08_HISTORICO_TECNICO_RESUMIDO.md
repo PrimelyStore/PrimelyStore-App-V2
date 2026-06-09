@@ -1271,3 +1271,45 @@ Em 2026-06-09, foi validado o fluxo de sucesso (HTTP 200) com dados ficticios lo
 - Nenhuma gravacao/atualizacao foi feita em tabelas de producao real (`marketplace_fee_quotes`, `produtos_precificacao`).
 - O Git status permaneceu inalterado de arquivos ou diretorios novos na estrutura principal do projeto.
 
+---
+
+## 27. Fase 5.5K-1 - Planejamento da transicao do mock para Amazon Product Fees real
+
+Em 2026-06-09, foi concluido o planejamento da evolucao da Edge Function `amazon-fees-quote` do modo mock para a integracao real com a Amazon Product Fees API.
+
+### 27.1. Arquitetura futura da integracao
+
+- **Secrets da Amazon**:
+  - `AMAZON_LWA_CLIENT_ID` / `AMAZON_LWA_CLIENT_SECRET`: credenciais do app LWA.
+  - `AMAZON_LWA_REFRESH_TOKEN`: refresh token de longa duracao para gerar tokens de acesso por hora.
+  - `AMAZON_AWS_ACCESS_KEY_ID` / `AMAZON_AWS_SECRET_ACCESS_KEY` / `AMAZON_AWS_ROLE_ARN`: credenciais IAM necessarias caso a assinatura SigV4 de chamadas a SP-API seja exigida pelo tipo de app.
+  - `AMAZON_SPAPI_ENDPOINT` / `AMAZON_SPAPI_REGION`: endpoints regionais (Brasil: `us-east-1` e `https://sellingpartnerapi-na.amazon.com`).
+- **Chamada e Payload real**:
+  - POST para `https://api.amazon.com/auth/o2/token` obtera o access token temporario.
+  - POST para `https://sellingpartnerapi-na.amazon.com/products/fees/v0/items/{Asin}/feesEstimate` com payload contendo `MarketplaceId` (`A2Q3Y263D00KWC`), preco de simulacao, moeda `BRL` e contexto logistico `IsAmazonFulfilled` (true para FBA, false para FBM/DBA).
+- **Cache com `marketplace_fee_quotes`**:
+  - Gravar os retornos de sucesso (status `sucesso`) e de falha de requisicao (status `erro` com mensagem sanitizada) no banco de dados local para fins de auditoria tecnica.
+  - Consultar cache antes de bater na Amazon, economizando rate limit de API se a janela de `validade_cache_horas` (default 24h) estiver ativa e `force_refresh = false`.
+- **Logica de Precificacao**:
+  - Sob comando `atualizar_precificacao = true`, perfil financeiro de escrita/admin e se `manual_override = false` no mapeamento, persistir as taxas recalculadas na tabela `produtos_precificacao` (`taxa_marketplace` e `taxa_logistica`), marcando `aplicado_em_precificacao = true` na cotacao gravada.
+- **Estrategia de Identificacao (ASIN x SellerSKU)**:
+  - A Product Fees API possui operacoes por ASIN, por SellerSKU e tambem operacao em lote. Como o Primely Store armazena seller_sku e pode armazenar ASIN no mapeamento Amazon, a Fase 5.5K-2 devera definir a estrategia oficial: usar ASIN, usar SellerSKU ou aplicar fallback controlado entre ambos. Nenhuma decisao de implementacao real foi tomada nesta fase.
+
+
+### 27.2. Microfases futuras de implementacao
+
+- `5.5K-2`: Desenhar o contrato de request/response e payloads reais da API.
+- `5.5K-3`: Codificar o modulo isolado LWA no Deno.
+- `5.5K-4`: Codificar a assinatura AWS SigV4 isolada no Deno.
+- `5.5K-5`: Documentar as variaveis de ambiente locais/remotas necessarias.
+- `5.5K-6`: Realizar testes de integracao com credenciais reais de desenvolvimento.
+- `5.5K-7`: Implementar persistencia de cache local no banco.
+- `5.5K-8`: Implementar a logica de atualizacao da precificacao.
+- `5.5K-9`: Executar deploy final controlado.
+
+### 27.3. Seguranca e riscos mitigados
+
+- **secrets**: Restritos exclusivamente a Edge Function Secrets do Supabase local/remoto; nunca expostos ou passados ao frontend.
+- **rate limiting**: Cache automatico de 24h impede o esgotamento de cota ou retornos HTTP 429 da API da Amazon.
+- **sobrescrita manual**: A verificacao da flag `manual_override` no mapeamento garante a integridade e impede a alteracao indevida de precificacoes manuais decididas pelo gestor.
+
