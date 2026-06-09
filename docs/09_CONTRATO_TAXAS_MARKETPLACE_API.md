@@ -1780,4 +1780,40 @@ Em 2026-06-09, foi concluida a migracao do arquivo de baseline local para a past
 - **Manual de Integracao Local**: Criado o arquivo `docs/baseline/README.md` que documenta os passos necessarios para que outros desenvolvedores possam copiar temporariamente a baseline e recriar o banco de dados docker local via `supabase start` ou `supabase db reset`, com a obrigatoriedade de excluir o arquivo da pasta de migracoes apos o procedimento.
 - **Conformidade de Arquitetura**: A baseline nao introduz dados reais nem tenta transformar o Primely Store em ERP (mantendo a separacao entre Olist/Tiny como ERP operacional e o Primely como painel gerencial inteligente).
 
+---
+
+## 24. Conclusao 5.5J-7 & 5.5J-8 - Teste mock de sucesso HTTP 200 da amazon-fees-quote
+
+Em 2026-06-09, foi validado localmente o cenario de sucesso mock (HTTP 200) com um fluxo completo de ponta a ponta e dados ficticios no banco local Docker.
+
+### 24.1. Resultados e dados do teste de sucesso
+
+- **Entidades Ficticias Temporarias**:
+  - Usuario: `teste-financeiro-local@primely.local` (papel `financeiro`, status `ativo`).
+  - Produto: `Produto Teste Amazon Fees Local` (SKU `TESTE-AMZ-FEES-LOCAL`, ASIN `B000TESTE1`).
+  - Canal: `Amazon FBA Teste Local` (tipo `marketplace`, modalidade `fba`, codigo externo `amazon_fba_teste_local`).
+  - Mapeamento: Criado ativamente em `public.produto_canal_marketplace_mapeamento` com os IDs correspondentes.
+- **Validacao de endpoints**:
+  - Login e autenticacao com JWT gerado localmente em memoria validado com `HTTP 200` no endpoint `/auth/v1/user`.
+  - Chamada a Edge Function `/functions/v1/amazon-fees-quote` contendo o header de autorizacao e o `mapeamento_id` ficticio real recem-gerado no banco local retornou `HTTP 200`.
+  - Resposta do Mock de Sucesso validada:
+    ```json
+    {
+      "success": true,
+      "status": "mock",
+      "origem": "mock",
+      "marketplace": "amazon",
+      "mapeamento_id": "c826c03d-57a7-4eab-a833-7eac07eae29d",
+      "aplicado_em_precificacao": false,
+      "mensagem": "Esqueleto validado. Integracao Amazon Product Fees ainda nao ativada."
+    }
+    ```
+  - **Limpeza de dados**: Todos os registros gerados para o teste foram totalmente e cirurgicamente removidos das tabelas locais do Postgres pos-validacao.
+
+### 24.2. Diretrizes de Governanca Cumpridas
+
+- **Sem exposicao de chaves**: Nenhum segredo ou chave foi impresso ou exposto.
+- **Isolamento de Producao**: Nenhuma chamada foi realizada a servidores da Amazon, Keepa, LWA ou assinaturas de cabecalho AWS SigV4. Nenhuma escrita em `marketplace_fee_quotes` ou `produtos_precificacao` de producao foi efetuada.
+
+
 

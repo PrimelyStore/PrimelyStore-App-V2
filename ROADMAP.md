@@ -987,3 +987,39 @@ Acoes concluidas:
 
 Proxima etapa recomendada:
 - 5.5K - Planejamento da chamada real da API Product Fees da Amazon SP-API.
+
+---
+
+## Registro 2026-06-09 - Fase 5.5J-7 & 5.5J-8
+
+Status: [x] Concluido
+
+Objetivo: testar e documentar o cenario de sucesso mock (HTTP 200) da Edge Function `amazon-fees-quote` no ambiente local do Supabase, utilizando entidades ficticias validas (usuario, perfil, produto, canal e mapeamento) sem dependencias externas.
+
+Cenario de Sucesso Mock Validado:
+- **Entidades Ficticias**: Criadas no banco local Docker (`teste-financeiro-local@primely.local`, produto `TESTE-AMZ-FEES-LOCAL`, canal `Amazon FBA Teste Local` e mapeamento ativo correspondente).
+- **Validacao de Auth**: Login do usuario e validacao do JWT contra `/auth/v1/user` retornou `HTTP 200`.
+- **Validacao da Funcao**: Chamada para `/functions/v1/amazon-fees-quote` com o `mapeamento_id` ficticio real e token no header retornou `HTTP 200`.
+- **Resposta Mock**:
+  ```json
+  {
+    "success": true,
+    "status": "mock",
+    "origem": "mock",
+    "marketplace": "amazon",
+    "mapeamento_id": "c826c03d-57a7-4eab-a833-7eac07eae29d",
+    "aplicado_em_precificacao": false,
+    "mensagem": "Esqueleto validado. Integracao Amazon Product Fees ainda nao ativada."
+  }
+  ```
+- **Limpeza**: Todos os dados e chaves ficticias criados para o teste foram totalmente limpos do banco local pos-execucao por chaves primarias especificas.
+
+Garantias de Seguranca:
+- O gateway Kong local usou a flag `--no-verify-jwt` para evitar conflito local de chaves ES256, mas a autenticacao e permissao financeira foram executadas manualmente por codigo interno da Edge Function integrando-se com o Supabase Auth local.
+- Nenhuma chave secreta, JWT ou senha real foi exposta nos logs.
+- Nao houve chamadas reais para LWA, Amazon SP-API, Keepa ou assinaturas AWS SigV4.
+- Nenhuma gravacao/atualizacao de tabelas reais de producao (`marketplace_fee_quotes`, `produtos_precificacao`) foi efetuada.
+
+Proxima etapa recomendada:
+- 5.5K - Planejamento da chamada real da API Product Fees da Amazon SP-API.
+

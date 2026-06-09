@@ -1238,3 +1238,36 @@ Em 2026-06-09, foi implementada a estrategia de baseline local atraves da Opcao 
 - **Remocao de Risco**: O diretorio `supabase/migrations/` foi limpo da baseline, garantindo que o Supabase CLI nao execute `supabase db push` acidental com este arquivo para o ambiente de producao.
 - **Documentacao de Instrucoes**: Criado o arquivo `docs/baseline/README.md` detalhando a finalidade de reprodutibilidade local, os passos para copia temporaria e remocao pos-start, o papel do Olist/Tiny como ERP operacional e do Primely Store como painel gerencial inteligente.
 
+---
+
+## 26. Fase 5.5J-7 & 5.5J-8 - Teste mock de sucesso HTTP 200 da amazon-fees-quote
+
+Em 2026-06-09, foi validado o fluxo de sucesso (HTTP 200) com dados ficticios locais de teste e documentados os resultados do esqueleto mock da Edge Function `amazon-fees-quote`.
+
+### 26.1. Detalhes tecnicos e resultados
+
+- **Mock de Sucesso**:
+  - Usuario ficticio `teste-financeiro-local@primely.local` criado e autenticado localmente (retornando `AUTH HTTP 200`).
+  - Criado o perfil de usuario com papel `financeiro` e status `ativo`.
+  - Criadas entidades ficticias no banco de dados local Docker de forma controlada: produto `TESTE-AMZ-FEES-LOCAL`, canal `Amazon FBA Teste Local` e mapeamento ativo correspondente na tabela `public.produto_canal_marketplace_mapeamento` com os parametros estritos da Amazon (`seller_sku`, `asin`, `marketplace_id`, `is_amazon_fulfilled = true`).
+  - Executada a chamada contra `/functions/v1/amazon-fees-quote` com o `mapeamento_id` real recem-gerado, retornando `FUNCAO HTTP 200` e a resposta estruturada do mock:
+    ```json
+    {
+      "success": true,
+      "status": "mock",
+      "origem": "mock",
+      "marketplace": "amazon",
+      "mapeamento_id": "c826c03d-57a7-4eab-a833-7eac07eae29d",
+      "aplicado_em_precificacao": false,
+      "mensagem": "Esqueleto validado. Integracao Amazon Product Fees ainda nao ativada."
+    }
+    ```
+  - Todos os dados foram totalmente limpos pos-teste por identificadores especificos, mantendo o banco de dados local integro e higienizado.
+
+### 26.2. Governanca e seguranca
+
+- Nenhuma credencial, JWT ou senha real de producao foi gravada em arquivos ou logs.
+- Nao houve chamadas reais a servicos da Amazon, Keepa, LWA ou assinaturas de cabecalho SigV4.
+- Nenhuma gravacao/atualizacao foi feita em tabelas de producao real (`marketplace_fee_quotes`, `produtos_precificacao`).
+- O Git status permaneceu inalterado de arquivos ou diretorios novos na estrutura principal do projeto.
+
