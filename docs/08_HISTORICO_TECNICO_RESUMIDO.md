@@ -1552,4 +1552,36 @@ Em 2026-06-10, foi concluída a integração física dos helpers puros TypeScrip
 * **`git status`**: Apenas o arquivo `index.ts` e as documentações sofreram modificações. As migrations continuam 100% intocadas.
 * **Rede/Segredos**: Nenhuma chamada `fetch` ou uso de credenciais AWS/LWA reais foi implementado.
 
+---
+
+## 35. Fase 5.5K-9 / 5.5K-9A / 5.5K-9B - Testes locais da Edge Function integrada aos helpers
+
+Em 2026-06-10, foram executados e documentados os testes locais da Edge Function `amazon-fees-quote` integrada aos helpers puros. Foram realizadas validações estruturais, testes de encoding de SKU especial e auditorias de segurança no banco de dados Supabase local.
+
+### 35.1. Resultados das Validações Locais
+- **Modo Mock Seguro**: A Edge Function permanece em modo mock seguro. Nenhuma chamada externa à API da Amazon foi realizada e nenhuma implementação real de LWA/SigV4 foi feita.
+- **Autenticação e Autorização**: O fluxo autenticado financeiro continua plenamente válido, respondendo com HTTP 401 para chamadas anônimas e HTTP 403 para usuários sem acesso financeiro.
+- **Cenário de Mapeamento Válido (HTTP 200)**: Uma requisição com mapeamento ativo cadastrado retornou sucesso mock contendo:
+  - `"success": true`
+  - `"status": "mock"`
+  - `"origem": "mock"`
+  - `"marketplace": "amazon"`
+  - `"aplicado_em_precificacao": false`
+- **Payload Enriquecido (Não Sensível)**: O retorno foi enriquecido com metadados para fins de debug e rastreabilidade:
+  - `modo_consulta`: define o modo resolvido (ex: `"auto"`, `"sku"` ou `"asin"`).
+  - `identificador_usado`: indica se a consulta foi feita via SKU ou ASIN.
+  - `payload_mock_sanitizado`: contém a estrutura do request simulado formatado para a Amazon, limpo de dados sensíveis.
+- **Garantias de Pureza no Payload Sanitizado**: Confirmou-se que o `payload_mock_sanitizado` não contém segredos, tais como cabeçalhos `Authorization`, `Bearer` tokens, `JWT`, `access_token`, `refresh_token`, `client_secret`, AWS Access/Secret Keys, credenciais `service_role` ou `anon_key`.
+
+### 35.2. Testes de Casos Especiais e Encoding
+- **URL Encoding Simples do SellerSKU**: Foi testado o SKU especial `TESTE SKU/AMZ FEES` para auditar a ocorrência de duplo encoding. Validou-se que a codificação é executada de forma simples, gerando o endpoint lógico esperado `/products/fees/v0/listings/TESTE%20SKU%2FAMZ%20FEES/feesEstimate` sem problemas de duplo encoding.
+- **Normalização de ASIN**: ASINs estruturados sem iniciar com a letra `"B"` (ex: numéricos de 10 dígitos) foram testados e não são bloqueados de forma rígida pela validação (geram apenas avisos), garantindo compatibilidade com identificadores alternativos.
+- **Modalidade Logística (FBM/DBA)**: Parâmetros informando `is_amazon_fulfilled = false` foram validados com sucesso como booleanos válidos, assegurando a futura suportabilidade de canais logísticos de terceiros ou próprios.
+
+### 35.3. Higienização e Ferramentas Deno
+- **Execução do Deno**: `deno test` rodou localmente com 16 testes unitários no total (um teste extra adicionado especificamente para SKU com barra e espaço).
+- **Limpeza Operacional**: Nenhuma gravação foi efetuada em `marketplace_fee_quotes` e nenhuma alteração foi gravada em `produtos_precificacao` no banco local, mantendo a integridade dos dados históricos reais. Todos os registros inseridos de forma transitória foram completamente purgados do ambiente local.
+- **Governança**: Nenhum deploy para produção, `supabase db push` ou `migration repair` foi realizado. A Edge Function segue estritamente segura para mock.
+
+
 

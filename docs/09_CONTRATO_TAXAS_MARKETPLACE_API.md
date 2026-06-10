@@ -2775,6 +2775,43 @@ Em 2026-06-10, foi finalizada a integração dos helpers puros TypeScript na Edg
 * **`deno test`**: Preservou todos os 15 testes unitários de helpers verdes.
 * **Segurança e Rede**: Garantido que nenhuma chamada externa `fetch` ou uso de credenciais AWS/LWA foi executado ou integrado nesta etapa.
 
+---
+
+## 33. Conclusão Física 5.5K-9 / 5.5K-9A / 5.5K-9B - Validação Local Integrada e Auditoria de URL Encoding
+
+Em 2026-06-10, foi executado o conjunto completo de testes de integração local para a Edge Function `amazon-fees-quote` integrada aos helpers puros. Foi auditado o URL encoding de SellerSKU com caracteres especiais e expandida a cobertura de testes unitários.
+
+### 33.1. Cenários de Testes de Integração Local Validados
+Os testes de integração foram executados no Supabase Local (porta 54321) com o gateway de desenvolvimento configurado no modo `--no-verify-jwt` para validação manual de token Auth (GoTrue). Foram mapeados e cobertos com sucesso absoluto 9 cenários de envio:
+
+1. **OPTIONS / CORS**: Retornou `HTTP 200` com os headers CORS esperados.
+2. **GET (Método inválido)**: Retornou `HTTP 405` de método não permitido.
+3. **POST sem Authorization**: Retornou `HTTP 401` com erro de Authorization header ausente.
+4. **POST com Bearer inválido**: Retornou `HTTP 401` de usuário não autenticado pelo Supabase Auth.
+5. **Mapeamento inexistente**: Chamada autenticada com UUID aleatório retornou `HTTP 404` com erro controlado.
+6. **Mapeamento válido (Amazon FBA)**: Chamada autenticada enviando um `mapeamento_id` ativo válido com `is_amazon_fulfilled = true` retornou `HTTP 200` com sucesso e o payload mock enriquecido contendo os metadados de consulta.
+7. **SKU especial com caracteres especiais**: Testado com SKU `"TESTE SKU/AMZ FEES"`. Validou-se que o helper de montagem do payload gerou o endpoint `/products/fees/v0/listings/TESTE%20SKU%2FAMZ%20FEES/feesEstimate` com URL encoding simples, sem ocorrência de duplo encoding.
+8. **ASIN sem iniciar com B**: Testado com ASIN `"1234567890"`. A consulta não foi bloqueada no mock, retornando aviso no JSON de resposta.
+9. **Modalidade FBM/DBA**: Chamada enviando `is_amazon_fulfilled = false` foi processada e aceita como valor booleano válido.
+
+### 33.2. Pureza do Payload de Retorno Mock
+O objeto `payload_mock_sanitizado` retornado no payload de debug da resposta HTTP 200 foi auditado e comprovadamente não vazou nenhuma das seguintes credenciais confidenciais:
+* `Authorization` (Bearer token ou credenciais);
+* JWT / auth tokens;
+* `access_token` / `refresh_token` / `client_secret` de LWA ou SP-API;
+* Chaves de acesso AWS (AWS Access Key ID / AWS Secret Access Key);
+* Assinaturas de transporte AWS SigV4;
+* Chave de privilégios Supabase `service_role` ou `anon_key`.
+
+### 33.3. Testes Unitários de Helpers Puros
+Adicionado teste unitário estrito no arquivo `_helpers.test.ts` para verificar o SKU `"TESTE SKU/AMZ FEES"`, elevando a cobertura de testes unitários locais do Deno para **16 testes** executados com 100% de sucesso (`16 passed | 0 failed`).
+
+### 33.4. Garantias e Limpeza
+* **Banco Local**: Todos os registros de teste criados temporariamente no Supabase local (usuário auth, perfil financeiro, produto, canal de venda e mapeamento) foram totalmente removidos ao fim dos testes.
+* **Integridade**: A Edge Function permanece em estado mock seguro, não realizando chamadas HTTP reais (`fetch`) de rede para a Amazon e não salvando dados de cotações em `marketplace_fee_quotes` nem atualizando `produtos_precificacao`.
+* **Governança**: Nenhum deploy, push ou reparo de migração foi disparado, preservando o repositório em modo estrito de documentação.
+
+
 
 
 

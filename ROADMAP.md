@@ -1246,6 +1246,36 @@ Garantias Cumpridas:
 * Não foram manipulados segredos de ambiente ou chaves AWS/LWA reais.
 * Nenhuma migration foi criada ou alterada, mantendo o banco e Git limpos de dados espúrios.
 
+---
+
+## Registro 2026-06-10 - Fase 5.5K-9 / 5.5K-9A / 5.5K-9B
+
+Status: [x] Testes Locais e Documentação Concluídos com Sucesso
+
+Objetivo: testar localmente a Edge Function `amazon-fees-quote` integrada aos helpers, auditar o URL encoding de SKU especial, e documentar oficialmente os resultados das validações sem rede e sem chaves privadas.
+
+Cenários de Teste Local e Validações:
+1. **OPTIONS**: Retornou `HTTP 200` CORS pré-verificado.
+2. **GET (Método inválido)**: Retornou `HTTP 405` com mensagem sanitizada do mock.
+3. **POST sem Auth**: Retornou `HTTP 401` com erro controlado de Authorization ausente.
+4. **POST com Bearer inválido**: Retornou `HTTP 401` de usuário não autenticado pelo Supabase Auth local.
+5. **Mapeamento inexistente**: Retornou `HTTP 404` com erro controlado.
+6. **Mapeamento Amazon FBA válido**: Retornou `HTTP 200` com os campos mock e os dados de debug enriquecidos (`modo_consulta`, `identificador_usado`, `payload_mock_sanitizado` limpo).
+7. **SKU com caractere especial**: Executado com SKU `"TESTE SKU/AMZ FEES"`. O endpoint path lógico do helper é formatado com codificação de URL simples (`TESTE%20SKU%2FAMZ%20FEES`), sem ocorrência de duplo encoding.
+8. **ASIN sem iniciar com B**: Executado com ASIN `"1234567890"` e aceito sem bloqueios, emitindo o warning apropriado de formato suspeito.
+9. **FBM/DBA**: Executado com `is_amazon_fulfilled = false` e aceito como booleano válido.
+
+Resultados de Auditoria e Prevenção de Segredos:
+* **Duplo Encoding**: Investigado e comprovado que o helper `montarPayloadFeesSku` realiza a codificação simples. Adicionado teste unitário extra no `_helpers.test.ts` cobrindo o SKU `"TESTE SKU/AMZ FEES"`.
+* **Sanitização de Payloads**: O `payload_mock_sanitizado` não contém metadados de autenticação, JWT, tokens LWA, secrets AWS IAM ou connection strings.
+* **Limpeza Local**: Todas as entidades temporárias inseridas locais (perfil, produto, canal, mapeamento e usuário auth) foram purgadas do banco local após o término dos testes de integração.
+* **Ferramentas Deno**: `deno fmt --check`, `deno check` e `deno test` (agora com 16 testes unitários) passaram com sucesso absoluto.
+
+Garantias Cumpridas:
+* A Edge Function continua mockada e segura, não devendo ser considerada integração real com a Amazon.
+* Nenhuma chamada de rede `fetch` foi efetuada, nenhum secret lido e nenhuma migration de banco alterada.
+
+
 
 
 
