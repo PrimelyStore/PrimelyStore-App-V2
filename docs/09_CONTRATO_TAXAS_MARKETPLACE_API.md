@@ -2483,6 +2483,115 @@ Os logs da Edge Function (`console.log`, `console.error`) são de extrema relev�
 * Nenhuma credencial foi lida ou armazenada.
 * O esqueleto mock da Edge Function continua operando de forma 100% segura.
 
+---
+
+## 30. Implementação Física 5.5K-6 - Helpers Puros de Validação e Formatação de Payload da Amazon Product Fees
+
+Em 2026-06-10, foi finalizada a criação e validação dos helpers puros e testes locais no Deno para a futura integração da Amazon Product Fees API. 
+
+### 30.1. Contrato Técnico Implementado (Assinatura das Funções)
+
+As funções implementadas em [_helpers.ts](file:///d:/Programacao/PrimelyStore/primely-store-app/supabase/functions/amazon-fees-quote/_helpers.ts) possuem os seguintes contratos:
+
+```typescript
+// Tipos
+export type ModoConsultaAmazonFees = "auto" | "sku" | "asin";
+export type TipoConsultaAmazonFees = "sku" | "asin" | "batch";
+
+export type EntradaFeesQuote = {
+  mapeamento_id: string;
+  marketplace_id: string;
+  preco_consultado: number;
+  moeda?: string;
+  is_amazon_fulfilled: boolean;
+  seller_sku?: string | null;
+  asin?: string | null;
+  modo_consulta?: string | null;
+  permitir_fallback_asin?: boolean;
+};
+
+export type EntradaPayloadSku = {
+  seller_sku: string;
+  marketplace_id: string;
+  preco_consultado: number;
+  moeda: string;
+  is_amazon_fulfilled: boolean;
+};
+
+export type EntradaPayloadAsin = {
+  asin: string;
+  marketplace_id: string;
+  preco_consultado: number;
+  moeda: string;
+  is_amazon_fulfilled: boolean;
+};
+
+export type EntradaPayloadBatchItem = {
+  identificador: string;
+  tipo_identificador: "sku" | "asin";
+  marketplace_id: string;
+  preco_consultado: number;
+  moeda: string;
+  is_amazon_fulfilled: boolean;
+};
+
+export type ResultadoPayloadFees = {
+  tipo_consulta: TipoConsultaAmazonFees;
+  endpoint_path: string;
+  identificador_usado: "sku" | "asin";
+  seller_sku_usado: string | null;
+  asin_usado: string | null;
+  payload_request_sanitizado: Record<string, unknown>;
+  warnings: string[];
+  erros_validacao: string[];
+};
+
+export type ResumoTaxasAmazonFees = {
+  taxa_marketplace: number | null;
+  taxa_logistica: number | null;
+  taxa_total: number | null;
+  detalhes: Array<{ tipo: string; valor: number; moeda: string }>;
+  warnings: string[];
+  erros_validacao: string[];
+};
+
+// Helpers
+export function normalizarModoConsulta(valor?: unknown): ModoConsultaAmazonFees;
+export function validarEntradaFeesQuote(entrada: Record<string, unknown>): EntradaFeesQuote;
+export function montarPayloadFeesSku(entrada: EntradaPayloadSku): ResultadoPayloadFees;
+export function montarPayloadFeesAsin(entrada: EntradaPayloadAsin): ResultadoPayloadFees;
+export function montarPayloadFeesBatch(itens: EntradaPayloadBatchItem[]): {
+  endpoint_path: string;
+  payload_request_sanitizado: Array<Record<string, unknown>>;
+  warnings: string[];
+  erros_validacao: string[];
+};
+export function sanitizarPayloadAmazonFees<T>(payload: T): T;
+export function extrairResumoTaxasAmazon(responseBody: unknown): ResumoTaxasAmazonFees;
+```
+
+### 30.2. Cobertura de Testes Unitários
+
+O arquivo [_helpers.test.ts](file:///d:/Programacao/PrimelyStore/primely-store-app/supabase/functions/amazon-fees-quote/_helpers.test.ts) valida:
+1. **Normalização do Modo**: Teste de valores vazios/nulos resolvendo em `"auto"`, e de diferentes cases executando normalizações corretas.
+2. **Validação do Payload**: UUIDs válidos e inválidos, preços finitos e maiores que zero, flag de logística obrigatória.
+3. **Prevenção Ativa de Secrets**: Rejeição de requests que contenham campos sensíveis como secrets e chaves de API.
+4. **URL Encoding do SKU**: SKUs com caracteres especiais (como barras e espaços) sofrem URL encoding de forma estrita no endpoint path.
+5. **ASIN 10 chars**: Validação estrutural de 10 caracteres alfanuméricos sem obrigar o prefixo 'B', gerando um warning não-bloqueante apenas.
+6. **Lote (Batch)**: Rejeição de lotes com mais de 20 elementos e mapeamento de dados de lote no padrão do request da Amazon.
+7. **Sanitização de Payloads**: Mascaramento recursivo de propriedades como `authorization`, `password`, `token` e `secret` em payloads complexos.
+8. **Normalização de Taxas**: Extração de ReferralFee como taxa de marketplace, taxas logísticas e tratamento tolerante de falhas ou cotações vazias.
+
+### 30.3. Resultados das Validações Locais
+* **`deno check`**: Passou com sucesso.
+* **`deno test`**: Retornou `15 passed | 0 failed (22ms)` com sucesso absoluto.
+
+### 30.4. Regras de Governança
+* O arquivo principal da Edge Function (`index.ts`) permaneceu intocado.
+* Não houve qualquer chamada real de rede (fetch) ou leitura de credenciais/secrets do sistema.
+* Não houve interações com banco local ou remoto (nenhuma migration criada ou modificada).
+
+
 
 
 

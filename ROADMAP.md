@@ -1165,5 +1165,37 @@ Garantias de Seguranca:
 - Atividade puramente documental, sem códigos físicos ou migrations alterados/criados.
 - O Git status permanece focado nos registros de documentação técnica.
 
+---
+
+## Registro 2026-06-10 - Fase 5.5K-6
+
+Status: [x] Helpers Puros Concluidos e Testados
+
+Objetivo: criar helpers puros no Deno para a Edge Function `amazon-fees-quote`, contendo tipagens TypeScript e testes unitários locais, sem rede, sem secrets e sem interações de banco.
+
+Helpers Implementados em `_helpers.ts`:
+1. **`normalizarModoConsulta`**: Normalização robusta do modo para `"auto" | "sku" | "asin"`.
+2. **`validarEntradaFeesQuote`**: Validações de UUID, preço maior que zero, moeda `BRL`, flag de logística FBA/FBM e prevenção ativa contra injeção de cabeçalhos de autenticação/tokens.
+3. **`montarPayloadFeesSku`**: Monta o endpoint `/listings/{SellerSKU}/feesEstimate` aplicando URL encoding estrito ao SKU e constrói o body.
+4. **`montarPayloadFeesAsin`**: Monta o endpoint `/items/{Asin}/feesEstimate` com ASIN em uppercase e validação conservadora de 10 caracteres alfanuméricos.
+5. **`montarPayloadFeesBatch`**: Agrupa cotações em lote de até 20 itens no padrão esperado pela API Amazon.
+6. **`sanitizarPayloadAmazonFees`**: Filtra chaves sensíveis (Authorization, passwords, tokens) recursivamente no payload.
+7. **`extrairResumoTaxasAmazon`**: Normaliza a resposta da Amazon, extraindo as taxas estimadas e consolidando os custos em camelCase.
+
+Testes Unitarios (`_helpers.test.ts`):
+- 15 testes unitários criados e validados contra todas as funções de montagem, validação e sanitização.
+- Executado via `deno test` local com resultado: `15 passed | 0 failed (32ms)`.
+- Validação estrita de SKU com caracteres especiais saindo codificado, ASIN de 10 caracteres sem prefixo B obrigatório, e remoção de tokens.
+
+Garantias de Seguranca:
+- O arquivo principal da Edge Function `index.ts` não foi alterado nem importou os helpers.
+- Nenhuma migration foi criada ou alterada, e nenhuma escrita no banco local ou remoto foi feita.
+- Nenhuma chamada à rede externa (LWA/SigV4/Amazon) foi efetuada.
+- O Git status acusa os novos arquivos de helpers isolados.
+
+Plano de Microfases Futuras:
+- **5.5K-7**: teste real controlado somente após autorização explícita.
+
+
 
 

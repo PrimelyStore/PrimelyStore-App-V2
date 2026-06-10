@@ -1472,8 +1472,33 @@ Definiram-se 14 categorias de sucesso e erro (como `sucesso_real`, `sucesso_cach
 * Nenhuma chamada real foi efetuada a servidores externos.
 * A Edge Function `amazon-fees-quote` não sofreu alterações físicas de código.
 
+---
 
+## 32. Fase 5.5K-6 - Criar helpers puros em arquivo isolado sem fetch e sem secrets
 
+Em 2026-06-10, foi concluída a implementação e testes unitários locais dos helpers puros TypeScript para a Edge Function `amazon-fees-quote`, visando a futura integração real com a Amazon Product Fees API sem efeitos colaterais de rede, segredos, banco de dados ou alterações na Edge Function principal `index.ts`.
 
+### 32.1. Arquivos Criados
+* `supabase/functions/amazon-fees-quote/_helpers.ts` (Lógica e tipagens TypeScript).
+* `supabase/functions/amazon-fees-quote/_helpers.test.ts` (Testes unitários locais no Deno).
 
+### 32.2. Resumo dos Helpers Puros Implementados
+1. **`normalizarModoConsulta`**: Normaliza strings arbitrárias para `"auto" | "sku" | "asin"`, lançando exceção se o valor for inválido.
+2. **`validarEntradaFeesQuote`**: Valida a integridade estrutural do request body (UUID de mapeamento_id, preço maior que zero, formato da moeda, boolean de logística, validação do ASIN alfanumérico de 10 caracteres) e rejeita ativamente requisições que contenham chaves sensíveis como secrets ou tokens.
+3. **`montarPayloadFeesSku`**: Constrói o payload estruturado de simulação de taxas por SKU e formata o endpoint correspondente aplicando URL encoding estrito (`encodeURIComponent`) ao SKU do vendedor para prevenir falhas de quebra de endpoint.
+4. **`montarPayloadFeesAsin`**: Constrói o payload estruturado de simulação por ASIN normalizado para caixa alta, gerando um warning não-bloqueante se o ASIN não iniciar com o prefixo 'B' padrão da Amazon.
+5. **`montarPayloadFeesBatch`**: Estrutura requisições em lote de até 20 itens no formato exigido pela Amazon, rejeitando listas vazias ou maiores que o limite técnico de 20.
+6. **`sanitizarPayloadAmazonFees`**: Filtra e substitui recursivamente chaves confidenciais como `authorization`, `password`, `token`, `secret`, etc. por `[REDACTED_SENSITIVE_FIELD]`.
+7. **`extrairResumoTaxasAmazon`**: Normaliza a resposta simulada (ou real futura) da Amazon mapeando a ReferralFee e taxas logísticas, calculando o total estimado de taxas de forma tolerante a campos nulos/ausentes e tratando erros estruturados da Amazon.
 
+### 32.3. Execução e Resultados de Testes Unitários
+* Foram criados 15 cenários de testes unitários isolados no arquivo `_helpers.test.ts` cobrindo cenários de sucesso, avisos, fallbacks, validações de chaves sensíveis, restrições de batch e URL encoding do SKU.
+* Os testes foram executados via `deno test` resultando em sucesso absoluto: `15 passed | 0 failed (22ms)`.
+* Executado `deno check` com sucesso nos arquivos criados.
+
+### 32.4. Garantias de Governança Cumpridas
+* A Edge Function principal (`index.ts`) não foi alterada nem importa os helpers criados.
+* Nenhuma migration foi criada ou executada, e nenhuma alteração no banco de dados local ou remoto foi feita.
+* Nenhuma chave de segurança real, segredo ou token foi exposto nos arquivos.
+* Nenhuma requisição externa ou chamada à API Amazon/LWA/SigV4 foi feita (rede desabilitada/não utilizada nos testes).
+* O Git status registra apenas a alteração documental e os novos arquivos de helpers isolados.
