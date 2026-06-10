@@ -2006,7 +2006,142 @@ A atualização dos campos `taxa_marketplace` (referral fee) e `taxa_logistica` 
 * Nenhuma alteração de código ou modificação física de arquivos foi realizada na Edge Function `amazon-fees-quote`, mantendo o esqueleto mock seguro e testado localmente.
 * Não foram manipuladas chaves privadas, secrets de ambiente ou credenciais reais.
 
+---
 
+## 27. Auditoria e Revisão de Schema 5.5K-3 - marketplace_fee_quotes para Amazon Product Fees Cache
+
+Em 2026-06-09, foi realizada a auditoria de schema do banco de dados local da tabela `public.marketplace_fee_quotes` e suas relações para verificar sua capacidade de atuar como cache real para as cotações da Amazon Product Fees API.
+
+### 27.1. Estrutura Real Auditada no Banco de Dados
+
+A tabela `public.marketplace_fee_quotes` existe no banco e foi originalmente criada na migration `20260603000300_precificacao_e_cotacoes.sql` e estendida na migration `20260605000100_produto_canal_marketplace_mapeamento.sql`.
+
+#### 1. Relações e Chaves Estrangeiras (Foreign Keys)
+* `mapeamento_id` -> `produto_canal_marketplace_mapeamento(id)` ON DELETE SET NULL
+* `produto_id` -> `produtos(id)` ON DELETE SET NULL
+* `canal_venda_id` -> `canais_venda(id)` ON DELETE SET NULL
+
+#### 2. RLS (Row Level Security) e Políticas Ativas
+O RLS está ativado e as políticas de segurança ativas são:
+* `select_financeiro_fee_quotes`: Permite SELECT apenas para usuários autenticados que passam no check `usuario_pode_acessar_financeiro()`.
+* `insert_financeiro_fee_quotes`: Permite INSERT apenas para usuários autenticados que passam no check `usuario_pode_escrever_financeiro()`.
+* `delete_admin_fee_quotes`: Permite DELETE apenas para usuários administradores que passam no check `usuario_e_admin()`.
+* *Observação*: Como os registros de cotação são concebidos como logs históricos imutáveis, não existe policy de UPDATE cadastrada.
+
+#### 3. Índices Existentes
+* `marketplace_fee_quotes_pkey` (btree, UNIQUE) em `(id)`
+* `idx_fee_quotes_prod_canal` (btree) em `(produto_id, canal_venda_id)`
+* `idx_fee_quotes_consultado_em` (btree) em `(consultado_em)`
+* `idx_fee_quotes_mapeamento_id` (btree) em `(mapeamento_id)`
+
+---
+
+### 27.2. Tabela Comparativa de Campos de Cache (Exigido vs. Existente)
+
+Avaliamos a estrutura atual frente aos campos exigidos para a lógica robusta de cache temporal e controle de fallback:
+
+| Campo Exigido | Coluna na Tabela Atual | Tipo de Dado | Nullable? | Default | Status/Análise |
+|---|---|---|---|---|---|
+| `mapeamento_id` | `mapeamento_id` | `uuid` | SIM | NULL | **Disponível**. Vincula ao cadastro de mapeamento. |
+| `marketplace` | `marketplace` | `text` | NÃO | - | **Disponível** (com constraint CHECK para amazon, mercado_livre, etc). |
+| `modo_consulta` | - | - | - | - | **AUSENTE**. Necessário para rastrear se foi `auto`, `sku`, `asin` ou `batch`. |
+| `identificador_usado`| - | - | - | - | **AUSENTE**. Necessário para registrar se a estimativa veio de SKU ou ASIN. |
+| `seller_sku_usado` | - | - | - | - | **AUSENTE**. *Nota*: A tabela possui `produto_sku_snapshot` (geral), mas necessita de `seller_sku_usado` explícito. |
+| `asin_usado` | - | - | - | - | **AUSENTE**. Necessário para o controle de fallback por ASIN. |
+| `preco_consultado` | `preco_consultado` | `numeric` | NÃO | `0` | **Disponível** (com check `>= 0`). |
+| `moeda` | - | - | - | - | **AUSENTE**. Mapeamento possui moeda, mas a cotação precisa consolidar o dado histórico (default `BRL`). |
+| `is_amazon_fulfilled`| - | - | - | - | **AUSENTE**. Crítico para saber se a cotação do cache é FBA ou FBM/DBA. |
+| `origem` | `origem` | `text` | NÃO | `'api'` | **Disponível** (com check para api, manual, matriz, estimativa, config). |
+| `status` | `status` | `text` | NÃO | `'sucesso'` | **Disponível** (com check para sucesso, erro). |
+| `taxa_referencia` | `taxa_marketplace_calculada`| `numeric` | NÃO | `0` | **Equivalente**. Representa a referral fee/comissão. |
+| `taxa_fba` | `taxa_logistica_calculada` | `numeric` | NÃO | `0` | **Equivalente**. Representa a taxa logística de entrega/FBA. |
+| `taxa_total` | `custo_total_calculado` | `numeric` | NÃO | `0` | **Equivalente**. Soma das taxas acima. |
+| `payload_request_sanitizado`| - | - | - | - | **AUSENTE**. Necessário para auditoria de payloads enviados. |
+| `payload_response_sanitizado`| `payload_bruto` | `jsonb` | SIM | NULL | **Equivalente**. Armazena a resposta da API limpa. |
+| `erro_codigo` | - | - | - | - | **AUSENTE**. Armazena o código de erro retornado pela Amazon. |
+| `erro_mensagem` | `erro` | `text` | SIM | NULL | **Equivalente**. Armazena a mensagem descritiva sanitizada do erro. |
+| `warnings` | - | - | - | - | **AUSENTE**. Necessário para gravar avisos (ex: fallback acionado). |
+| `consultado_em` | `consultado_em` | `timestamptz` | NÃO | `now()` | **Disponível**. Registra data/hora da cotação. |
+| `valido_ate` | - | - | - | - | **AUSENTE**. Essencial para o cálculo de expiração temporal do cache. |
+| `criado_por` | - | - | - | - | **AUSENTE**. Rastreabilidade de qual usuário ou automação executou. |
+| `atualizado_em` | `created_at` | `timestamptz` | NÃO | `now()` | **Equivalente**. Indica a data de criação do registro de log. |
+
+---
+
+### 27.3. Lacunas de Schema e Riscos Identificados
+
+1. **Ausência de Controle Temporal do Cache (`valido_ate`)**: Atualmente a tabela de cotações não tem prazo de validade próprio. A Edge Function não consegue inferir por SQL se um cache expirou sem recalcular dinamicamente somando a data de consulta com a validade do mapeamento, o que é ineficiente.
+2. **Falta de Parâmetros de Entrada no Cache (`is_amazon_fulfilled` e `modo_consulta`)**: Como as taxas logísticas FBA e FBM variam substancialmente e os modos de consulta podem alternar, a falta dessas colunas impossibilita a criação de uma chave lógica de cache segura. A Edge Function correria o risco de servir taxas de FBM para um produto configurado como FBA.
+3. **Histórico e Logs de Cotações**: Por funcionar como um log histórico de auditoria imutável, a tabela acumulará registros de forma cronológica. A Edge Function deverá buscar a cotação válida mais recente com `valido_ate > now()` e ordenação decrescente de validade, não devendo forçar unicidade rígida. Eventuais duplicidades por concorrência de chamadas paralelas não devem ser resolvidas com índice parcial baseado em `now()`.
+4. **Ausência de Auditoria de Requisição (`payload_request_sanitizado` e `criado_por`)**: Sem o payload do request e sem referenciar o usuário que fez o trigger, auditorias de estouro de rate limit ou cotação indevida tornam-se inviáveis.
+
+---
+
+### 27.4. Proposta Documental de Migration (DDL)
+
+Recomenda-se a criação de uma migration futura (ex: `20260609000100_estender_cache_fee_quotes.sql`) para estender a tabela e criar um índice normal de lookup de alta performance:
+
+```sql
+-- [PROPOSTA TÉCNICA DOCUMENTAL - NÃO EXECUTAR]
+
+-- 1. Adicionar colunas necessárias para cache temporal e controle de fallback da Amazon
+ALTER TABLE public.marketplace_fee_quotes
+    ADD COLUMN modo_consulta text NULL 
+        CONSTRAINT check_modo_consulta_quote CHECK (modo_consulta IN ('auto', 'sku', 'asin', 'batch')),
+    ADD COLUMN identificador_usado text NULL 
+        CONSTRAINT check_identificador_usado CHECK (identificador_usado IN ('sku', 'asin')),
+    ADD COLUMN seller_sku_usado text NULL,
+    ADD COLUMN asin_usado text NULL,
+    ADD COLUMN moeda text NOT NULL DEFAULT 'BRL' 
+        CONSTRAINT check_moeda_quote_tamanho CHECK (char_length(moeda) = 3)
+        CONSTRAINT check_moeda_quote_upper CHECK (moeda = upper(moeda)),
+    ADD COLUMN is_amazon_fulfilled boolean NULL,
+    ADD COLUMN payload_request_sanitizado jsonb NULL,
+    ADD COLUMN erro_codigo text NULL,
+    ADD COLUMN warnings jsonb NULL,
+    ADD COLUMN valido_ate timestamptz NULL,
+    ADD COLUMN criado_por uuid NULL REFERENCES auth.users(id) ON DELETE SET NULL,
+    ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now();
+
+-- 2. Habilitar trigger para updated_at
+CREATE TRIGGER trigger_fee_quotes_updated_at
+    BEFORE UPDATE ON public.marketplace_fee_quotes
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_updated_at();
+
+-- 3. Trigger para preenchimento automático de criado_por (se executado via auth de usuário)
+CREATE TRIGGER trigger_fee_quotes_criado_por
+    BEFORE INSERT ON public.marketplace_fee_quotes
+    FOR EACH ROW
+    EXECUTE FUNCTION public.definir_atualizado_por();
+
+-- 4. Índice normal de lookup para busca rápida de cache de cotações válidas ordenadas por expiração
+CREATE INDEX IF NOT EXISTS idx_fee_quotes_cache_lookup
+    ON public.marketplace_fee_quotes (
+        mapeamento_id,
+        preco_consultado,
+        moeda,
+        is_amazon_fulfilled,
+        modo_consulta,
+        identificador_usado,
+        status,
+        valido_ate DESC
+    );
+```
+
+### 27.4.1. Lógica de Consulta e Controle de Concorrência
+
+1. **Acesso ao Cache**: A Edge Function consultará a tabela `marketplace_fee_quotes` buscando o registro mais recente que satisfaça a validade temporal (`valido_ate > now()`), ordenado decrescentemente por `valido_ate DESC` (ou `consultado_em DESC`) e limitando a resposta a 1 registro (`LIMIT 1`).
+2. **Force Refresh**: Caso o parâmetro `force_refresh = true` seja enviado no body do request, o cache válido existente será ignorado, resultando em uma nova requisição direta à Amazon Product Fees API.
+3. **Controle de Concorrência**: Por se tratar de uma tabela histórica, eventuais duplicidades pontuais geradas por concorrência de requisições síncronas paralelas não quebram o fluxo, sendo resolvidas na consulta que retorna o registro mais novo. Se no futuro for necessária a prevenção rígida de concorrência, devem ser avaliadas estratégias como *advisory locks* no Postgres ou controle transacional específico (e.g., chave lógica calculada estática).
+
+
+### 27.5. Garantias de Governança Cumpridas
+
+* Esta fase consistiu puramente de auditoria de schema via metadados do PostgreSQL.
+* Nenhuma migration real foi criada em `supabase/migrations/`.
+* Não foram feitas escritas, alterações de dados, db push ou deploys.
+* O esqueleto mock da Edge Function continua operando de forma 100% segura e limpa.
 
 
 

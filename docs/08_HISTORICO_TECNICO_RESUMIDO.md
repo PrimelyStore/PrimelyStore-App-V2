@@ -1360,4 +1360,51 @@ Em 2026-06-09, foi definido o contrato técnico oficial de tomada de decisão pa
 * Nenhuma chamada real foi efetuada à Amazon SP-API, LWA ou AWS SigV4.
 * A Edge Function `amazon-fees-quote` manteve seu esqueleto mock original intacto.
 
+---
+
+## 29. Fase 5.5K-3 - Revisar schema de marketplace_fee_quotes para suportar cache real da Amazon Product Fees
+
+Em 2026-06-09, foi executada a auditoria física de schema da tabela `public.marketplace_fee_quotes` e suas dependências diretas (`public.produto_canal_marketplace_mapeamento` e `public.produtos_precificacao`) no banco de dados local.
+
+### 29.1. Diagnóstico e Resultados da Auditoria
+
+1. **Existência e Relações**:
+   - A tabela `public.marketplace_fee_quotes` existe no banco (criada em `20260603000300_precificacao_e_cotacoes.sql` e estendida em `20260605000100_produto_canal_marketplace_mapeamento.sql`).
+   - Possui chaves estrangeiras com `public.produtos(id)`, `public.canais_venda(id)` e `public.produto_canal_marketplace_mapeamento(id)`.
+2. **Políticas de RLS**:
+   - RLS ativo com políticas robustas que limitam SELECT e INSERT apenas para perfis autenticados com permissões financeiras (`usuario_pode_acessar_financeiro()` e `usuario_pode_escrever_financeiro()`), e DELETE restrito a administradores. Não há policy de UPDATE, mantendo a imutabilidade histórica do cache.
+3. **Mapeamento de Lacunas (Gaps)**:
+   - *Campos já presentes*: `mapeamento_id`, `marketplace`, `preco_consultado`, `origem`, `status`, `consultado_em` (com equivalentes lógicos para taxas de marketplace/logística e payload response bruto).
+   - *Campos ausentes para cache robusto*: `modo_consulta`, `identificador_usado`, `seller_sku_usado`, `asin_usado`, `moeda`, `is_amazon_fulfilled`, `payload_request_sanitizado`, `erro_codigo`, `warnings`, `valido_ate`, `criado_por`.
+   - *Riscos identificados*: Por funcionar como log imutável, a tabela acumulará registros de forma cronológica. A Edge Function deverá ler a cotação válida mais recente com `valido_ate > now()`. Eventuais concorrências de chamadas paralelas de cotação não devem ser resolvidas com índices dinâmicos parciais baseados em `now()`. Se necessário, controles específicos transacionais ou *advisory locks* devem ser avaliados no futuro.
+
+### 29.2. Proposta Técnica de Migration (DDL Recomendado)
+
+Desenhou-se uma proposta conceitual de DDL (sem implementação real) para evolução do cache:
+* **Novas Colunas**: `modo_consulta` (com check para auto/sku/asin/batch), `identificador_usado` (sku/asin), `seller_sku_usado`, `asin_usado`, `moeda` (upper de 3 caracteres), `is_amazon_fulfilled` (booleano), `payload_request_sanitizado` (jsonb), `erro_codigo` (text), `warnings` (jsonb), `valido_ate` (timestamptz), `criado_por` (uuid).
+* **Lookup do Cache**:
+  ```sql
+  CREATE INDEX IF NOT EXISTS idx_fee_quotes_cache_lookup
+      ON public.marketplace_fee_quotes (
+          mapeamento_id,
+          preco_consultado,
+          moeda,
+          is_amazon_fulfilled,
+          modo_consulta,
+          identificador_usado,
+          status,
+          valido_ate DESC
+      );
+  ```
+  O cache é consultado pela cotação válida mais recente (`valido_ate > now()`), ordenada decrescentemente por data de expiração, mantendo a característica de histórico.
+
+### 29.3. Garantias de Governança Cumpridas
+
+* A auditoria foi puramente de metadados do PostgreSQL.
+* Nenhuma migration física foi gerada.
+* Nenhum SQL de escrita ou comando destrutivo (INSERT, UPDATE, DELETE, TRUNCATE, DROP) foi executado.
+* Nenhuma credencial foi lida, salva ou exposta, e o Git status permanece focado exclusivamente nos registros de documentação técnica.
+
+
+
 

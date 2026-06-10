@@ -1098,3 +1098,24 @@ Garantias de Seguranca:
 - O planejamento foi executado de forma puramente teorica e documental.
 - Nenhuma chave secreta foi criada, lida ou exposta.
 - A Edge Function original de mock nao sofreu alteracoes funcionais e continua ativa no repositorio.
+
+---
+
+## Registro 2026-06-09 - Fase 5.5K-3
+
+Status: [x] Auditoria de Schema Concluida
+
+Objetivo: auditar a estrutura atual da tabela `public.marketplace_fee_quotes` e suas relacoes para diagnosticar se ela atende as necessidades de cache de dados reais da API da Amazon.
+
+Resultados da Auditoria:
+1. **Campos Existentes**: `mapeamento_id`, `marketplace`, `preco_consultado`, `origem`, `status`, `consultado_em` (com equivalentes logicos para taxas de marketplace/logistica e payload response bruto).
+2. **Campos Faltantes (Gaps)**: `modo_consulta`, `identificador_usado`, `seller_sku_usado`, `asin_usado`, `moeda`, `is_amazon_fulfilled`, `payload_request_sanitizado`, `erro_codigo`, `warnings`, `valido_ate`, `criado_por`.
+3. **Riscos e Performance**: Funcionamento como historico/log de cotacoes acumulado cronologicamente, necessitando de indice normal de lookup com ordenacao de expiracao, sem impor restricao rigida de unicidade.
+4. **Proposta DDL**: Desenho conceitual de DDL para estender a tabela com as colunas ausentes e criar um indice composto de lookup ordenado.
+
+
+Garantias de Seguranca:
+- Nenhuma migration fisica foi criada ou enviada ao banco de dados.
+- Nenhuma chamada real foi efetuada e a Edge Function permanece em mock seguro.
+- O Git status permanece focado nos registros de documentacao tecnica.
+
