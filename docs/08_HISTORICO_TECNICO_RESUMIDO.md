@@ -1439,6 +1439,40 @@ Em 2026-06-10, foi finalizado o planejamento do contrato técnico dos helpers pu
 * Nenhuma chamada real foi efetuada a servidores externos da Amazon.
 * O esqueleto mock da Edge Function `amazon-fees-quote` permanece idêntico e preservado.
 
+---
+
+## 31. Fase 5.5K-5 - Definir contrato de erros e normalização da resposta Amazon Product Fees
+
+Em 2026-06-10, foi finalizado o planejamento do contrato de erros, alertas e normalização de resposta da futura integração real com a Amazon Product Fees API. O trabalho foi puramente documental e conceitual.
+
+### 31.1. Categorias de Resultados e Estrutura de Retorno
+
+Definiram-se 14 categorias de sucesso e erro (como `sucesso_real`, `sucesso_cache`, `erro_lwa`, `erro_sigv4`, `erro_amazon_429`, entre outros) para mapeamento da Edge Function. O payload de response foi unificado em um formato JSON que retorna a propriedade `success`, `status` (`"sucesso" | "erro" | "cache"`), `origem`, dados de entrada/rastreabilidade (`identificador_usado`, `seller_sku_usado`, `asin_usado`), objeto de `taxas` (marketplace, logística, total e array de componentes), status do `cache`, e um objeto estruturado de `erro` contendo código, mensagem sanitizada e tipo.
+
+### 31.2. Lógicas de Normalização e Fallback
+
+1. **Normalização de Sucesso**: O retorno da Amazon é processado para extrair a referral fee e a taxa logística FBA, consolidando o custo total e listando os componentes lógicos convertidos em camelCase.
+2. **Fallback no Modo Auto**: A Edge Function tentará obter as taxas por SKU. Em caso de erro compatível com listing/SKU não encontrado e com ASIN preenchido, fará a chamada de fallback por ASIN. O JSON de resposta conterá o warning `fallback_sku_para_asin`, e preservará a mensagem do erro original do SKU para auditoria de cadastro sem mascarar problemas.
+
+### 31.3. Tratamento de Erros, Cache e Segurança de Logs
+
+1. **Validações Locais**: Erros pré-chamada evitam disparar tráfego na rede se dados obrigatórios estiverem ausentes.
+2. **Erros de Conexão e API**: Mapeamento de falhas LWA/SigV4 retornam erros de sistema sem expor tokens ou secrets AWS. Erros HTTP 4xx, 429 e 5xx da Amazon são capturados.
+3. **Estratégia de Cache para Erros**: Falhas persistidas no cache local com `status = "erro"` e payload sanitizado. Definição de validade curta (5 minutos) para falhas transitórias (HTTP 429, timeouts) e longa (24 horas) para falhas de cadastro (HTTP 404).
+4. **Logs Limpos**: Proibição de exibir tokens LWA, secrets AWS, headers ou chaves de transporte SigV4 nos logs operacionais (`console.log`/`console.error`).
+
+### 31.4. Próxima Microfase Recomendada
+
+* **Próxima Fase**: `5.5K-6 — Criar helpers puros em arquivo isolado sem fetch e sem secrets`.
+* **Justificativa**: Com os contratos de payload de request (Fase 5.5K-4) e response/erros (Fase 5.5K-5) estabelecidos formalmente, a etapa seguinte e mais segura é implementar o arquivo de helpers puros `amazon-fees-quote/_helpers.ts` no Deno. Isso possibilita desenvolver testes unitários antes de acoplar a rede real e tokens (Fase 5.5K-7).
+
+### 31.5. Garantias de Governança
+
+* Nenhuma credencial foi criada, lida ou exposta.
+* Nenhuma chamada real foi efetuada a servidores externos.
+* A Edge Function `amazon-fees-quote` não sofreu alterações físicas de código.
+
+
 
 
 

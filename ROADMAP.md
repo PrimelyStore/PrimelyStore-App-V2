@@ -1143,4 +1143,27 @@ Garantias de Seguranca:
 - Nenhuma linha de código foi escrita ou alterada no repositório.
 - Nenhuma chamada real foi efetuada à Amazon e nenhuma credencial real foi exposta.
 
+---
+
+## Registro 2026-06-10 - Fase 5.5K-5
+
+Status: [x] Contrato de Erros e Normalizacao Concluido
+
+Objetivo: planejar e estruturar conceitualmente as regras de tratamento de erros, alertas e normalização do retorno (request/response) da futura integração com a Amazon Product Fees API.
+
+Definicoes de Erro e Normalizacao:
+1. **Response Padronizado**: JSON unificado mapeando status do cache, detalhes de taxas estruturados (marketplace, logística e totais) e objeto de erro com código, mensagem sanitizada e categoria.
+2. **Fallback no Modo Auto**: Teste inicial via SKU com fallback para ASIN se falhar por SKU inexistente. Preservação da mensagem de erro do SKU no warning `fallback_sku_para_asin` para fins de auditoria de cadastro.
+3. **Tratamento de Erros e Cache**: Validações locais, erros LWA/SigV4 isolados e expiração de cache lógica (5 minutos para erros temporários/rate limit e 24 horas para erros de cadastro).
+4. **Logs Sanitizados**: Proibição estrita de vazar Authorization, tokens LWA ou segredos AWS IAM no console.
+
+Ajuste de Cronograma de Microfases:
+- **5.5K-6**: Criar helpers puros em arquivo isolado sem fetch e sem secrets.
+- **5.5K-7**: teste real controlado somente após autorização explícita.
+
+Garantias de Seguranca:
+- Atividade puramente documental, sem códigos físicos ou migrations alterados/criados.
+- O Git status permanece focado nos registros de documentação técnica.
+
+
 

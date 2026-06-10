@@ -2319,6 +2319,171 @@ A integração real seguirá o fluxo abaixo:
 * Nenhuma credencial real foi lida ou salva em arquivos do repositório.
 * Nenhuma chamada real foi efetuada a serviços da Amazon, LWA ou AWS SigV4.
 
+---
+
+## 29. Planejamento 5.5K-5 - Contrato de Erros e Normalização da Resposta Amazon Product Fees
+
+Em 2026-06-10, foi definido o contrato de erros, alertas e normalização de respostas para a futura integração real com a Amazon Product Fees API. O trabalho é estritamente analítico e documental.
+
+### 29.1. Categorias de Resultados Planejados
+
+A Edge Function categorizará seus retornos sob as seguintes classes de sucesso e erro:
+
+* **`sucesso_real`**: Taxas obtidas com sucesso diretamente da Amazon Product Fees API.
+* **`sucesso_cache`**: Cotação válida reaproveitada do cache local em `marketplace_fee_quotes`.
+* **`erro_validacao`**: Dados de entrada inválidos ou mapeamento inexistente/inativo.
+* **`erro_permissao`**: Token de usuário inválido ou sem nível de acesso financeiro/admin.
+* **`erro_cache`**: Falha na leitura/gravação da tabela local de cotações.
+* **`erro_lwa`**: Falha na conexão com LWA ou refresh token inválido para gerar access token.
+* **`erro_sigv4`**: Erro de criptografia ou cabeçalhos de assinatura AWS SigV4.
+* **`erro_amazon_4xx`**: Resposta 400/403/404 da API Amazon (ex: request malformado ou cadastro inexistente).
+* **`erro_amazon_429`**: Estouro de quota ou rate limit da API da Amazon.
+* **`erro_amazon_5xx`**: Erro interno ou indisponibilidade temporária dos servidores Amazon.
+* **`erro_timeout`**: Tempo limite de requisição excedido na chamada da API Amazon.
+* **`erro_resposta_invalida`**: Resposta JSON malformada ou corrompida.
+* **`erro_sem_taxas`**: Resposta bem-sucedida, mas sem o detalhamento de custos (ex: referral fee ausente).
+* **`erro_fallback_indisponivel`**: Falha por SKU e impossibilidade de fallback (sem ASIN cadastrado).
+
+### 29.2. Contrato de Retorno Normalizado da Edge Function
+
+A estrutura JSON recomendada a ser retornada pela Edge Function é definida abaixo:
+
+```json
+{
+  "success": true,
+  "status": "sucesso",
+  "origem": "amazon_product_fees",
+  "marketplace": "amazon",
+  "mapeamento_id": "c826c03d-57a7-4eab-a833-7eac07eae29d",
+  "modo_consulta": "auto",
+  "identificador_usado": "sku",
+  "seller_sku_usado": "TESTE-AMZ-FEES-LOCAL",
+  "asin_usado": "B000TESTE1",
+  "preco_consultado": 120.00,
+  "moeda": "BRL",
+  "is_amazon_fulfilled": true,
+  "taxas": {
+    "taxa_marketplace": 18.00,
+    "taxa_logistica": 15.50,
+    "taxa_total": 33.50,
+    "detalhes": [
+      {
+        "tipo": "ReferralFee",
+        "valor": 18.00,
+        "moeda": "BRL"
+      },
+      {
+        "tipo": "FBAAdminFee",
+        "valor": 15.50,
+        "moeda": "BRL"
+      }
+    ]
+  },
+  "cache": {
+    "usado": false,
+    "valido_ate": "2026-06-11T14:14:00Z",
+    "force_refresh": false
+  },
+  "aplicado_em_precificacao": false,
+  "warnings": [],
+  "erro": {
+    "codigo": null,
+    "mensagem": null,
+    "tipo": null
+  }
+}
+```
+
+### 29.3. Lógica de Normalização de Sucesso
+
+A camada de normalização da Edge Function lerá o response JSON da Amazon Product Fees e o traduzirá para a estrutura padronizada da seguinte forma:
+
+1. **Taxa de Marketplace (Referral Fee)**: Varre a propriedade `FeesEstimateResult.FeesEstimate.FeeDetailList` buscando o item com `FeeType = "ReferralFee"`. O valor numérico de `FeeAmount.Amount` é extraído para `taxa_marketplace`.
+2. **Taxa Logística (FBA Fee)**: Varre a lista buscando itens do tipo logística (e.g., `DeliveryFee` ou `FBAAdminFee`). O valor numérico correspondente é extraído para `taxa_logistica` se `is_amazon_fulfilled = true`. Se for FBM, `taxa_logistica` é atribuída como `0`.
+3. **Taxa Total**: Representa a soma de `taxa_marketplace` + `taxa_logistica`.
+4. **Detalhes**: Mapeia o array de componentes originais da resposta Amazon convertendo as chaves para camelCase amigável.
+5. **Rastreabilidade**: Mapeia `identificador_usado` (se cotação respondeu ao SKU ou ASIN) e flag de cache.
+
+### 29.4. Lógica de Tratamento de Fallback
+
+No modo de consulta `"auto"`:
+1. A Edge Function tenta a chamada via `SellerSKU`.
+2. Se a API Amazon retornar falha por SKU inexistente/indisponível (como erro `Listing not found` ou status HTTP 404/400 mapeável), a função verifica se o mapeamento possui o campo `asin` preenchido.
+3. Se `asin` estiver cadastrado e `permitir_fallback_asin = true` (padrão):
+   - Realiza a segunda tentativa via `ASIN`.
+   - Se obtiver sucesso, adiciona o warning `"fallback_sku_para_asin"` no array `warnings` de resposta.
+   - Preserva o erro original do SKU na propriedade `warnings` ou logs internos para auditoria (impedindo que o erro de cadastro do SKU no seller seja silenciosamente ignorado pelo gestor).
+   - Define o `identificador_usado = "asin"`.
+4. Se o ASIN também falhar, a função retorna o erro correspondente ao ASIN e encerra o fluxo.
+5. Se `permitir_fallback_asin = false` no request, a falha do SKU interrompe o fluxo imediatamente, gerando erro.
+
+### 29.5. Erros de Validação Pré-Chamada (Local)
+
+Para poupar chamadas de rede e evitar erros na Amazon, a função rejeitará requisições locais imediatamente se:
+* `mapeamento_id` estiver ausente ou não for UUID válido.
+* `preco_consultado` for menor ou igual a zero.
+* `marketplace_id` estiver vazio ou nulo.
+* `seller_sku` estiver ausente quando `modo_consulta = "sku"`.
+* `asin` estiver ausente quando `modo_consulta = "asin"`.
+* Ambos estiverem vazios quando `modo_consulta = "auto"`.
+* `is_amazon_fulfilled` for nulo ou indefinido.
+* `moeda` for diferente de `BRL`.
+
+### 29.6. Erros de Conexão e Autenticação (LWA/SigV4)
+
+* **Falhas LWA**: Erros ao bater em `https://api.amazon.com/auth/o2/token` (ex: client secret expirado ou refresh token revogado) geram erro com código `erro_lwa`. A mensagem de erro devolvida ao cliente será genérica e limpa de segredos.
+* **Assinatura SigV4**: Falha na geração do hash HMAC por chaves AWS inválidas ou divergência de relógio do container gera erro `erro_sigv4`.
+* **Segurança**: Erros da camada de transporte e chaves são registrados em logs internos do Deno (sanitizados) e retornam ao cliente final como erro de sistema de integração, ocultando credenciais AWS.
+
+### 29.7. Erros da API Amazon (HTTP)
+
+* **HTTP 400**: Corpo de requisição inválido ou Marketplace incorreto (`erro_amazon_4xx`).
+* **HTTP 401/403**: Falhas de autenticação de chaves ou escopo LWA desautorizado (`erro_amazon_4xx`).
+* **HTTP 404**: Item não cadastrado na Amazon (`erro_amazon_4xx`).
+* **HTTP 429**: Excesso de quota da API da Amazon (`erro_amazon_429`).
+* **HTTP 5xx**: Falha temporária nos servidores da Amazon (`erro_amazon_5xx`).
+* **Timeout**: Caso a API Amazon não responda em 10 segundos (`erro_timeout`).
+
+### 29.8. Estratégia de Cache para Cenários de Erro
+
+Para otimizar o rate limit e manter a rastreabilidade em caso de erros:
+1. **Gravação**: Todo erro retornado na requisição de API será persistido em `marketplace_fee_quotes` com `status = "erro"`, gravando o código do erro (`erro_codigo`) e a mensagem de erro sanitizada (`erro`), além do payload de request.
+2. **Tempo de Cache Curto (Erros Temporários)**: Para erros transitórios (HTTP 429, timeouts, erros 5xx), o campo `valido_ate` no cache será curto (e.g., 5 minutos). Isso impede que cliques repetidos do usuário sobrecarreguem as cotas da API, mas permite nova tentativa rápida.
+3. **Tempo de Cache Longo (Erros de Cadastro)**: Para erros permanentes (HTTP 404, SKU não encontrado), o cache será persistido por mais tempo (e.g., 1 hora ou 24 horas), uma vez que o erro só será corrigido quando o gestor ajustar o cadastro.
+4. **Sem Secrets**: O payload bruto gravado em caso de erro é completamente sanitizado de cabeçalhos HTTP contendo chaves AWS ou LWA tokens.
+
+### 29.9. Normalização para as Tabelas Locais
+
+* **Para `marketplace_fee_quotes`**:
+  O registro será inserido com o mapeamento direto das colunas auditadas na Fase 5.5K-3. O campo `payload_bruto` guardará o response JSON da Amazon sem os metadados de transporte HTTP.
+* **Para `produtos_precificacao`**:
+  A escrita e atualização automática dos valores recalculados de taxas ocorrerá apenas se:
+  - `atualizar_precificacao = true` no request body.
+  - O usuário que disparou a chamada possui papel financeiro ou admin.
+  - A resposta da chamada da API Amazon real retornou com `status = "sucesso"`.
+  - A flag `manual_override` no mapeamento correspondente está como `false`.
+  - Por padrão, o campo `aplicado_em_precificacao` na cotação será mantido como `false` e as tabelas de precificação não serão alteradas se as condições acima falharem.
+
+### 29.10. Diretrizes de Segurança nos Logs
+
+Os logs da Edge Function (`console.log`, `console.error`) são de extrema relevância operacional, mas devem obedecer às diretrizes:
+* Nunca imprimir cabeçalhos `Authorization` ou `x-amz-access-token`.
+* Nunca expor segredos lidos do Supabase Vault no console em caso de exceções.
+* Qualquer payload de request/response impresso para depuração deve passar por uma função local de sanitização de segredos.
+
+### 29.11. Cronograma de Próxima Microfase e Justificativa
+
+* **Microfase Recomendada**: `5.5K-6 — Criar helpers puros em arquivo isolado sem fetch e sem secrets`.
+* **Justificativa**: Agora que as especificações de payloads de entrada (Fase 5.5K-4) e os formatos de resposta, normalizações e tratamento de erros (Fase 5.5K-5) estão totalmente definidos em documentação, o próximo passo lógico e seguro é codificar os helpers puros Deno no arquivo `amazon-fees-quote/_helpers.ts`. Isso permite isolar a lógica pura e implementar testes unitários de formatação e validações locais antes de expor os fluxos à rede e às credenciais reais LWA/SigV4 (Fase 5.5K-7).
+
+### 29.12. Garantias de Segurança e Limitação do Escopo
+
+* Esta fase consistiu puramente de planejamento e documentação técnica.
+* Nenhuma linha de código foi implementada ou alterada no repositório.
+* Nenhuma credencial foi lida ou armazenada.
+* O esqueleto mock da Edge Function continua operando de forma 100% segura.
+
+
 
 
 
