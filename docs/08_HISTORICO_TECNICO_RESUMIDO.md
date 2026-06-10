@@ -1533,3 +1533,23 @@ A integração física futura deve ser validada contra todos os cenários de err
 * **Vazamento de Segredos**: Logs limpos de credenciais e uso obrigatório do sanitizador recursivo.
 * **Quebra de Mock**: Preservação da porta de saída simulada e ausência completa de chamadas `fetch` à Amazon.
 
+---
+
+## 34. Fase 5.5K-8 - Integrar helpers no index.ts mantendo mock
+
+Em 2026-06-10, foi concluída a integração física dos helpers puros TypeScript na Edge Function principal `amazon-fees-quote/index.ts`. A integração foi estruturada preservando 100% o comportamento mock e as validações de segurança da Edge Function existentes.
+
+### 34.1. Alterações efetuadas no `index.ts`
+1. **Importações**: Importados os helpers `normalizarModoConsulta`, `validarEntradaFeesQuote`, `montarPayloadFeesSku`, `montarPayloadFeesAsin` e `sanitizarPayloadAmazonFees` de `./_helpers.ts`.
+2. **Definições e Tipagens**: Estendidos os tipos do request body (`FeesQuoteRequestBody`) com os campos `modo_consulta` e `permitir_fallback_asin`. Estendido o tipo `MarketplaceMapping` para comportar os campos de `asin` e `moeda`, e atualizada a query select do banco de dados correspondente.
+3. **Try-Catch de Validação**: Envolvida toda a lógica de tratamento em memória dos helpers em um bloco try-catch local para interceptar e encaminhar falhas de validação de dados como um `AppError` com status `400` de cliente.
+4. **Retorno Mock Enriquecido**: Resposta de sucesso HTTP 200 continua mockada e preservada, incluindo agora no payload de resposta os campos não-sensíveis `modo_consulta`, `identificador_usado` e `payload_mock_sanitizado`.
+
+### 34.2. Resultados das Validações
+* **`deno fmt --check`**: Passou com sucesso nos 3 arquivos.
+* **`deno check`**: Passou com sucesso em todos os arquivos da Edge Function, eliminando quaisquer avisos ou falhas de compilação.
+* **`deno test`**: Passou com sucesso (`15 passed | 0 failed`).
+* **`git status`**: Apenas o arquivo `index.ts` e as documentações sofreram modificações. As migrations continuam 100% intocadas.
+* **Rede/Segredos**: Nenhuma chamada `fetch` ou uso de credenciais AWS/LWA reais foi implementado.
+
+

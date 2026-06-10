@@ -2727,6 +2727,55 @@ return jsonResponse({
 
 Recomenda-se seguir para a **Fase 5.5K-8 — Integrar helpers no index.ts mantendo mock**. Esta opção é a mais segura porque possibilita verificar a compatibilidade estática (tipos TypeScript e imports Deno) e dinâmica (rodando o `serve` local e testando as chamadas HTTP) da Edge Function combinando banco de dados e lógica dos helpers, sem adicionar complexidade de infraestrutura de rede, rate-limiting ou chaves reais de API da Amazon.
 
+---
+
+## 32. Conclusão Física 5.5K-8 - Acoplamento de Helpers no index.ts e Validações Locais
+
+Em 2026-06-10, foi finalizada a integração dos helpers puros TypeScript na Edge Function principal `amazon-fees-quote/index.ts`. O arquivo foi testado e validado localmente no Deno Edge Runtime.
+
+### 32.1. O que foi alterado e integrado
+
+1. **Imports e Reutilização de Helpers**: O arquivo `index.ts` importa agora a lógica pura de normalização, validação e montagem e sanitização dos payloads da Amazon:
+   ```typescript
+   import {
+     normalizarModoConsulta,
+     validarEntradaFeesQuote,
+     montarPayloadFeesSku,
+     montarPayloadFeesAsin,
+     sanitizarPayloadAmazonFees
+   } from './_helpers.ts'
+   ```
+2. **Definições de Tipos**:
+   * O tipo `MarketplaceMapping` e a query de banco de dados do Supabase agora trazem as colunas `asin` e `moeda` necessárias para a consolidação.
+   * O tipo `FeesQuoteRequestBody` passou a aceitar `modo_consulta` e `permitir_fallback_asin` opcionais.
+3. **Fluxo e Preservação de Lógicas de Clientes**:
+   * O fluxo de autenticação (JWT) e autorização (permissão financeira por RPC) permanece intacto e é verificado prioritariamente.
+   * Foi adicionado um bloco try-catch em torno das operações dos helpers para capturar qualquer falha de dados estruturais de validação e convertê-las em um `AppError` com status `400` compatível com a API existente.
+4. **Retorno Mock**:
+   O response HTTP 200 de sucesso mockado retorna os campos originais estipulados e anexa três novos campos de debug não-sensíveis:
+   ```json
+   {
+     "success": true,
+     "status": "mock",
+     "origem": "mock",
+     "marketplace": "amazon",
+     "mapeamento_id": "mapeamento_id_enviado",
+     "aplicado_em_precificacao": false,
+     "mensagem": "Esqueleto validado. Integracao Amazon Product Fees ainda nao ativada.",
+     "modo_consulta": "auto",
+     "identificador_usado": "sku",
+     "payload_mock_sanitizado": { ... }
+   }
+   ```
+
+### 32.2. Resultados Finais do Ambiente Deno
+
+* **`deno fmt --check`**: Todos os 3 arquivos da Edge Function passam com sucesso, respeitando o padrão de estilo estrito do Deno.
+* **`deno check`**: Passou sem nenhum erro de compilação ou aviso de tipagem após estender as tipagens estruturais do request body.
+* **`deno test`**: Preservou todos os 15 testes unitários de helpers verdes.
+* **Segurança e Rede**: Garantido que nenhuma chamada externa `fetch` ou uso de credenciais AWS/LWA foi executado ou integrado nesta etapa.
+
+
 
 
 

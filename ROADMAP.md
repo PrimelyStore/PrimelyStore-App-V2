@@ -1221,6 +1221,32 @@ Garantias de Segurança:
 - Nenhuma migration foi criada ou alterada, e nenhuma chamada externa ou leitura de secrets foi efetuada.
 - O Git status permanece 100% limpo ao início da atividade.
 
+---
+
+## Registro 2026-06-10 - Fase 5.5K-8
+
+Status: [x] Helpers Integrados no index.ts com Sucesso
+
+Objetivo: importar e acoplar os helpers puros na Edge Function `amazon-fees-quote/index.ts`, executando a normalização, consolidação e validação estrutural do payload gerado em memória antes de retornar o JSON mock sob as mesmas garantias de erros de cliente.
+
+Melhorias Aplicadas:
+1. **Extensão de Tipagem**: Mapeados os campos `asin` e `moeda` no tipo `MarketplaceMapping` do `index.ts` e na query de seleção no banco de dados local. Mapeados os campos `modo_consulta` e `permitir_fallback_asin` no tipo `FeesQuoteRequestBody`.
+2. **Consolidação e Validação**: Adicionado bloco lógico de try-catch interno para converter quaisquer falhas de validação de dados em memória disparados pelos helpers puros em um `AppError` com status HTTP `400` de cliente.
+3. **Mapeamento e Sanitização**: Geração do payload da Amazon com `montarPayloadFeesSku` e `montarPayloadFeesAsin` sanitizado de segredos por `sanitizarPayloadAmazonFees`.
+4. **Enriquecimento do Retorno Mock**: O response de sucesso mock inclui agora os campos não-sensíveis `modo_consulta`, `identificador_usado` e `payload_mock_sanitizado`.
+
+Resultados Finais:
+* **`deno fmt --check`**: Passou perfeitamente nos 3 arquivos.
+* **`deno check`**: Passou perfeitamente, sem nenhum aviso de tipagem no `index.ts`.
+* **`deno test`**: Passou perfeitamente com 15 testes de helpers verdes.
+* **`task.md`**: Removido após a conclusão da checklist conforme as regras da fase.
+
+Garantias Cumpridas:
+* O retorno da Edge Function continua mockado e sem tráfego de rede (`fetch`).
+* Não foram manipulados segredos de ambiente ou chaves AWS/LWA reais.
+* Nenhuma migration foi criada ou alterada, mantendo o banco e Git limpos de dados espúrios.
+
+
 
 
 
