@@ -108,6 +108,21 @@ Deno.test("montarPayloadFeesSku - deve fazer encodeURIComponent do SKU no endpoi
   );
 });
 
+Deno.test("montarPayloadFeesSku - deve evitar duplo encoding para SKU especial", () => {
+  const input = {
+    seller_sku: "TESTE SKU/AMZ FEES",
+    marketplace_id: "A2Q3Y263D00KWC",
+    preco_consultado: 99.9,
+    moeda: "BRL",
+    is_amazon_fulfilled: true,
+  };
+  const result = montarPayloadFeesSku(input);
+  assertEquals(
+    result.endpoint_path,
+    "/products/fees/v0/listings/TESTE%20SKU%2FAMZ%20FEES/feesEstimate",
+  );
+});
+
 Deno.test("montarPayloadFeesAsin - deve criar endpoint_path correto", () => {
   const input = {
     asin: "b000teste1",
