@@ -1119,3 +1119,28 @@ Garantias de Seguranca:
 - Nenhuma chamada real foi efetuada e a Edge Function permanece em mock seguro.
 - O Git status permanece focado nos registros de documentacao tecnica.
 
+---
+
+## Registro 2026-06-10 - Fase 5.5K-4
+
+Status: [x] Contrato de Helpers Concluido
+
+Objetivo: planejar o contrato técnico dos helpers puros Deno de request/response para cotação de taxas da Amazon Product Fees, especificando os endpoints lógicos e estruturas sem implementar código.
+
+Resumo dos Helpers Propostos:
+1. **`montarPayloadFeesSku`**: Formata rota `/listings/{SellerSKU}/feesEstimate` com URL encoding estrito.
+2. **`montarPayloadFeesAsin`**: Formata rota `/items/{Asin}/feesEstimate` e valida formato alfanumérico de 10 caracteres.
+3. **`montarPayloadFeesBatch`**: Consolida múltiplos requests de até 20 itens no body para batch.
+4. `normalizarModoConsulta`, `validarEntradaFeesQuote`, `sanitizarPayloadAmazonFees`, e `extrairResumoTaxasAmazon`.
+5. **Isolamento de Segurança**: Os helpers são puramente lógicos e não efetuam chamadas fetch, acesso ao banco de dados, leitura de variáveis de ambiente ou lógicas SigV4/LWA.
+
+Cronograma Ajustado para Próxima Microfase:
+- **5.5K-5**: Definir contrato de erros e normalização da resposta Amazon.
+- **5.5K-6**: Criar helpers puros em arquivo isolado sem fetch e sem secrets.
+- **5.5K-7**: teste real controlado somente após autorização explícita.
+
+Garantias de Seguranca:
+- Nenhuma linha de código foi escrita ou alterada no repositório.
+- Nenhuma chamada real foi efetuada à Amazon e nenhuma credencial real foi exposta.
+
+

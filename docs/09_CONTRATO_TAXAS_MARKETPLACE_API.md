@@ -2143,6 +2143,183 @@ CREATE INDEX IF NOT EXISTS idx_fee_quotes_cache_lookup
 * Não foram feitas escritas, alterações de dados, db push ou deploys.
 * O esqueleto mock da Edge Function continua operando de forma 100% segura e limpa.
 
+---
+
+## 28. Planejamento 5.5K-4 - Helpers Puros para Payloads da Amazon Product Fees
+
+Em 2026-06-10, foi finalizado o planejamento do contrato técnico dos helpers puros a serem criados no Deno para a futura integração da Amazon Product Fees API. A fase é conceitual/documental, sem escrita de código ou chamadas a APIs externas.
+
+### 28.1. Helpers Puros Propostos e Finalidades
+
+Mapeamos sete helpers com atribuições focadas na construção, validação e tratamento das cotações:
+
+1. **`montarPayloadFeesSku`**: Monta o payload de request e o endpoint dinâmico para consulta por `SellerSKU`.
+2. **`montarPayloadFeesAsin`**: Monta o payload de request e o endpoint dinâmico para consulta por `ASIN`.
+3. **`montarPayloadFeesBatch`**: Consolida múltiplos requests em lote (máximo 20 itens) para a API em lote.
+4. **`normalizarModoConsulta`**: Normaliza e infere o modo de consulta (`auto`, `sku` ou `asin`) baseado nos dados de entrada.
+5. **`validarEntradaFeesQuote`**: Valida a integridade e conformidade dos parâmetros obrigatórios antes de bater na API da Amazon.
+6. **`sanitizarPayloadAmazonFees`**: Remove tokens, JWTs, headers sensíveis ou credenciais dos payloads de request/response.
+7. **`extrairResumoTaxasAmazon`**: Normaliza a resposta da Amazon, extraindo as taxas de marketplace, taxas logísticas FBA e consolidando a soma final de custos.
+
+### 28.2. Contrato Técnico do Helper para SellerSKU (`montarPayloadFeesSku`)
+
+* **Parâmetros de Entrada**:
+  - `seller_sku`: `string` (obrigatório)
+  - `marketplace_id`: `string` (obrigatório, e.g., `A2Q3Y263D00KWC` para Brasil)
+  - `preco_consultado`: `number` (obrigatório, deve ser `> 0`)
+  - `moeda`: `string` (padrão: `BRL`)
+  - `is_amazon_fulfilled`: `boolean` (obrigatório, define se é FBA ou FBM)
+* **Retorno Esperado (Saída)**:
+  - `endpoint_path`: `/products/fees/v0/listings/{SellerSKU}/feesEstimate`
+    * *Nota*: O parâmetro `{SellerSKU}` na rota deve obrigatoriamente sofrer URL encoding estrito (`encodeURIComponent`) para evitar erros de quebra de URL em SKUs que possuam caracteres especiais (e.g., espaços, barras `/` ou traços).
+  - `request_body`:
+    ```json
+    {
+      "FeesEstimateRequest": {
+        "MarketplaceId": "marketplace_id_fornecido",
+        "PriceToEstimateFees": {
+          "ListingPrice": {
+            "Amount": preco_consultado_fornecido,
+            "CurrencyCode": "moeda_fornecida"
+          }
+        },
+        "Identifier": "seller_sku_fornecido",
+        "IsAmazonFulfilled": is_amazon_fulfilled_fornecido
+      }
+    }
+    ```
+
+### 28.3. Contrato Técnico do Helper para ASIN (`montarPayloadFeesAsin`)
+
+* **Parâmetros de Entrada**:
+  - `asin`: `string` (obrigatório)
+  - `marketplace_id`: `string` (obrigatório)
+  - `preco_consultado`: `number` (obrigatório, `> 0`)
+  - `moeda`: `string` (padrão: `BRL`)
+  - `is_amazon_fulfilled`: `boolean` (obrigatório)
+* **Retorno Esperado (Saída)**:
+  - `endpoint_path`: `/products/fees/v0/items/{Asin}/feesEstimate`
+    * *Nota*: O parâmetro `{Asin}` deve ser normalizado (uppercase) e submetido a uma validação conservadora como identificador alfanumérico de 10 caracteres. Não bloquear exclusivamente por não iniciar com 'B'; em caso de formato suspeito, retornar warning ou erro de validação controlado conforme regra futura.
+  - `request_body`:
+
+    ```json
+    {
+      "FeesEstimateRequest": {
+        "MarketplaceId": "marketplace_id_fornecido",
+        "PriceToEstimateFees": {
+          "ListingPrice": {
+            "Amount": preco_consultado_fornecido,
+            "CurrencyCode": "moeda_fornecida"
+          }
+        },
+        "Identifier": "asin_fornecido",
+        "IsAmazonFulfilled": is_amazon_fulfilled_fornecido
+      }
+    }
+    ```
+
+### 28.4. Contrato Técnico do Helper para Lote (`montarPayloadFeesBatch`)
+
+* **Parâmetros de Entrada**:
+  - `itens`: `Array` de itens (máximo 20 itens). Cada item contendo:
+    * `identificador`: `string` (SellerSKU ou ASIN)
+    * `tipo_identificador`: `"sku" | "asin"`
+    * `marketplace_id`: `string`
+    * `preco_consultado`: `number`
+    * `moeda`: `string`
+    * `is_amazon_fulfilled`: `boolean`
+* **Retorno Esperado (Saída)**:
+  - `endpoint_path`: `/products/fees/v0/feesEstimate`
+  - `request_body`:
+    ```json
+    [
+      {
+        "FeesEstimateRequest": {
+          "MarketplaceId": "marketplace_id_item_1",
+          "PriceToEstimateFees": {
+            "ListingPrice": {
+              "Amount": preco_consultado_item_1,
+              "CurrencyCode": "moeda_item_1"
+            }
+          },
+          "Identifier": "identificador_item_1",
+          "IsAmazonFulfilled": is_amazon_fulfilled_item_1
+        },
+        "Id": "gerado_automaticamente_item_1"
+      }
+    ]
+    ```
+* **Regras de Validação do Lote**:
+  - Se a lista contiver mais de 20 itens, o helper deverá lançar um erro estruturado de validação imediatamente (rejeitar requisições que excedam o limite estabelecido pela Amazon).
+  - Filtrar ou lançar erro se houver itens estruturalmente inválidos na lista (preço negativo, marketplace id ausente).
+
+### 28.5. Validações Estritas dos Helpers
+
+1. **Marketplace ID**: Deve ser obrigatoriamente preenchido (Brasil: `A2Q3Y263D00KWC`).
+2. **Preço**: Deve ser um número finito estritamente maior que zero (`preco > 0`).
+3. **Moeda**: Deve ser exatamente `BRL` (no piloto da integração nacional).
+4. **IsAmazonFulfilled**: Deve ser um booleano (não-nulo).
+5. **Precedência do Modo Auto**:
+   - Se o modo de consulta for `"auto"`, o helper deve exigir pelo menos um parâmetro válido (`seller_sku` ou `asin`).
+   - Se for modo `"sku"`, o helper exige `seller_sku` obrigatoriamente.
+   - Se for modo `"asin"`, o helper exige `asin` obrigatoriamente.
+6. **URL Encoding**: O `seller_sku` deve ser codificado na montagem do endpoint para evitar problemas com espaços ou caracteres especiais (ex: `TESTE SKU / 123` $\rightarrow$ `TESTE%20SKU%20%2F%20123`).
+7. **Proteção contra Vazamento**: Os payloads construídos pelos helpers não devem conter, nem expor propriedades relacionadas a chaves AWS IAM, chaves LWA ou cabeçalhos de autenticação. Os dados de transporte/autenticação são adicionados exclusivamente no momento do disparo.
+
+### 28.6. Contrato de Retorno Estruturado do Helper de Montagem
+
+A chamada dos helpers de montagem retornará um objeto unificado com a estrutura a seguir:
+
+```typescript
+type HelperPayloadResponse = {
+  tipo_consulta: "listings" | "items" | "batch";
+  endpoint_path: string;                      // URL parcial formatada
+  identificador_usado: "sku" | "asin";        // Identificador ativo
+  seller_sku_usado: string | null;            // SKU usado na cotação
+  asin_usado: string | null;                  // ASIN usado na cotação
+  payload_request_sanitizado: Record<string, unknown>; // Body do request pronto
+  warnings: string[];                         // Alertas não bloqueantes (ex: fallback acionado)
+  erros_validacao: string[];                  // Erros de payload impedindo requisição
+}
+```
+
+### 28.7. Diretrizes de Segurança para Helpers Puros
+
+Para garantir robustez e manutenibilidade, os helpers puros serão construídos de forma isolada do ambiente externo, respeitando as seguintes restrições:
+* **Sem Efeitos Colaterais**: Os helpers não disparam chamadas `fetch` ou de rede.
+* **Isolados do Ambiente**: Não leem o sistema de arquivos ou variáveis de ambiente (`Deno.env.get` está proibido de ser utilizado dentro dos helpers).
+* **Sem Lógica de Assinatura**: Não lidam com credenciais LWA ou geração de cabeçalhos de autenticação AWS SigV4.
+* **Sem Acesso ao Banco**: Não executam consultas ou inserções no Supabase.
+* **Saída Limpa**: Apenas validam, estruturam e devolvem os payloads limpos de cabeçalhos e tokens.
+
+### 28.8. Fluxo Operacional na Edge Function Futura
+
+A integração real seguirá o fluxo abaixo:
+1. **Filtro de Segurança**: A Edge Function recebe a requisição, autentica o usuário via JWT e valida sua permissão financeira no banco local.
+2. **Checagem de Cache**: Consulta se existe cotação válida recente no cache em `marketplace_fee_quotes`. Se sim, reaproveita.
+3. **Trigger do Helper**: Caso o cache não exista ou esteja expirado (ou `force_refresh = true`), a Edge Function aciona o helper para validar e estruturar o payload do request.
+4. **Acoplamento de Segurança (LWA/SigV4)**: A Edge Function consome os secrets de ambiente de forma isolada, obtém o token LWA, assina com SigV4 e anexa esses dados de cabeçalho na requisição.
+5. **Sanitização de Resposta**: O response retornado é higienizado de qualquer secret e gravado localmente para auditoria.
+
+### 28.9. Mitigação de Riscos Mapeados
+
+* **Riscos com SKUs especiais**: Tratado com a obrigatoriedade de URL encoding (`encodeURIComponent`) na montagem do endpoint.
+* **ASIN incorreto ou divergente**: Sanitização de dados de entrada (uppercase, remoção de espaços) e warnings no retorno do payload para alertar sobre fallback ativado.
+* **Cálculo Logístico Incorreto**: A flag `is_amazon_fulfilled` é definida estritamente baseada no mapeamento cadastrado. Em caso de valor nulo no banco, a validação do helper lança erro impeditivo de requisição.
+
+### 28.10. Definição da Próxima Microfase e Justificativa
+
+* **Microfase Recomendada**: `5.5K-5 — Definir contrato de erros e normalização da resposta Amazon`.
+* **Justificativa**: Definir as respostas de erro da Amazon e o contrato de normalização do retorno (incluindo tratamento de falhas HTTP, códigos de erro e normalização das taxas estimadas) é mais seguro e lógico do que criar o arquivo físico de helpers logo de cara. Isso assegura que quando os helpers de request e response forem codificados na Fase 5.5K-6 (conforme o novo cronograma), as duas pontas da chamada da API (entrada e saída) estarão perfeitamente contratadas e especificadas documentalmente.
+
+### 28.11. Garantias de Segurança e Limitação do Escopo
+
+* Esta fase consistiu puramente de planejamento e modelagem conceitual.
+* Nenhuma linha de código foi implementada ou alterada na Edge Function `amazon-fees-quote`.
+* Nenhuma credencial real foi lida ou salva em arquivos do repositório.
+* Nenhuma chamada real foi efetuada a serviços da Amazon, LWA ou AWS SigV4.
+
+
 
 
 

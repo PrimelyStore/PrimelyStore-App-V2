@@ -1405,6 +1405,41 @@ Desenhou-se uma proposta conceitual de DDL (sem implementação real) para evolu
 * Nenhum SQL de escrita ou comando destrutivo (INSERT, UPDATE, DELETE, TRUNCATE, DROP) foi executado.
 * Nenhuma credencial foi lida, salva ou exposta, e o Git status permanece focado exclusivamente nos registros de documentação técnica.
 
+---
+
+## 30. Fase 5.5K-4 - Preparar contrato de helpers puros para payload SellerSKU/ASIN da Amazon Product Fees
+
+Em 2026-06-10, foi finalizado o planejamento do contrato técnico dos helpers puros no Deno responsáveis por montar e validar os payloads da Amazon Product Fees API. A atividade foi puramente documental e de análise, sem código físico implementado.
+
+### 30.1. Contrato e Atribuições dos Helpers
+
+1. **Helpers Concebidos**:
+   - `montarPayloadFeesSku`: Formata a rota `/listings/{SellerSKU}/feesEstimate` com URL encoding estrito e monta o request body.
+   - `montarPayloadFeesAsin`: Valida o ASIN (alfanumérico de 10 caracteres) e monta a rota `/items/{Asin}/feesEstimate` e o request body.
+   - `montarPayloadFeesBatch`: Une múltiplos requests (limite de 20 itens) para o endpoint de lote.
+   - `normalizarModoConsulta`, `validarEntradaFeesQuote`, `sanitizarPayloadAmazonFees` e `extrairResumoTaxasAmazon`.
+2. **Validações e Restrições de Entrada**:
+   - Exigência estrita de `marketplace_id` (Brasil: `A2Q3Y263D00KWC`), `preco_consultado > 0`, moeda `BRL` e `is_amazon_fulfilled` (booleano).
+   - URL encoding obrigatório (`encodeURIComponent`) para evitar quebras por caracteres especiais em SKUs de vendedores.
+   - Proibição estrita de injeção de tokens LWA ou cabeçalhos de segurança AWS SigV4 no nível dos helpers puros.
+3. **Isolamento e Segurança (Helpers Puros)**:
+   - Os helpers não disparam requisições `fetch` (rede).
+   - Não realizam leitura de segredos ou variáveis de ambiente (`Deno.env.get` está bloqueado).
+   - Não acessam o banco de dados.
+   - Apenas transformam dados, validam campos e retornam payloads sanitizados de segredos.
+
+### 30.2. Justificativa da Próxima Microfase
+
+* **Microfase Proposta**: `5.5K-5 — Definir contrato de erros e normalização da resposta Amazon`.
+* **Justificativa**: É mais seguro e metodologicamente correto mapear todas as respostas de sucesso, warnings e possíveis erros HTTP/dados da Amazon SP-API antes de escrever qualquer código. Isso fecha as duas pontas do contrato (payload de request formatado e payload de response esperado) antes de iniciar a codificação física na Fase 5.5K-6.
+
+### 30.3. Garantias de Governança
+
+* Nenhuma credencial foi exposta, gravada ou lida.
+* Nenhuma chamada real foi efetuada a servidores externos da Amazon.
+* O esqueleto mock da Edge Function `amazon-fees-quote` permanece idêntico e preservado.
+
+
 
 
 
