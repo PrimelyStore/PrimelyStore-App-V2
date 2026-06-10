@@ -2591,6 +2591,143 @@ O arquivo [_helpers.test.ts](file:///d:/Programacao/PrimelyStore/primely-store-a
 * Não houve qualquer chamada real de rede (fetch) ou leitura de credenciais/secrets do sistema.
 * Não houve interações com banco local ou remoto (nenhuma migration criada ou modificada).
 
+---
+
+## 31. Planejamento de Integração 5.5K-7 - Acoplamento de Helpers no index.ts mantendo o Mock Seguro
+
+Em 2026-06-10, foi finalizado o planejamento da integração física dos helpers criados na Edge Function `amazon-fees-quote/index.ts`. Este planejamento visa detalhar as etapas de fusão de dados e as garantias de comportamento mock.
+
+### 31.1. Ordem Futura de Processamento da Edge Function
+
+Para manter a conformidade com as regras de autenticação e permissões antes de qualquer processamento de dados, a Edge Function seguirá o fluxo a seguir:
+
+```mermaid
+graph TD
+    A[Request HTTP POST] --> B{CORS / OPTIONS?}
+    B -- Sim --> C[Retornar headers CORS 200]
+    B -- Não --> D{Método POST?}
+    D -- Não --> E[Retornar HTTP 405]
+    D -- Sim --> F[Validar JWT Token auth.getUser]
+    F -- Falha --> G[Retornar HTTP 401]
+    F -- Sucesso --> H[Validar Permissão Financeira RPC]
+    H -- Falha --> I[Retornar HTTP 403]
+    H -- Sucesso --> J[Ler e Validar JSON Body mapeamento_id]
+    J -- Falha --> K[Retornar HTTP 400]
+    J -- Sucesso --> L[Carregar Mapeamento do DB]
+    L -- Falha/Inexistente --> M[Retornar HTTP 404]
+    L -- Sucesso --> N[Validar Mapeamento no DB status]
+    N -- Falha/Inativo --> O[Retornar HTTP 400]
+    N -- Sucesso --> P[Consolidar Entrada com Mapeamento]
+    P --> Q[Executar validarEntradaFeesQuote helper]
+    Q -- Falha/Campos Sensíveis --> R[Retornar HTTP 400]
+    Q -- Sucesso --> S[Resolver Rota e Gerar Payload de Request]
+    S --> T[Executar montarPayloadFeesSku / Asin helper]
+    T --> U[Sanitizar Payload via helper]
+    U --> V[Retornar Response Mock HTTP 200]
+```
+
+### 31.2. Integração Detalhada dos Helpers na Prática (Pseudocódigo)
+
+Conceitualmente, o handler do `index.ts` será alterado no futuro da seguinte forma:
+
+```typescript
+// 1. Importar os helpers no início do index.ts (Fase 5.5K-8)
+import {
+  normalizarModoConsulta,
+  validarEntradaFeesQuote,
+  montarPayloadFeesSku,
+  montarPayloadFeesAsin,
+  sanitizarPayloadAmazonFees
+} from "./_helpers.ts";
+
+// 2. No handler Deno.serve:
+// Após validarAuth, lerJsonBody e carregarMapeamento:
+const modoConsulta = normalizarModoConsulta(body.modo_consulta);
+
+const entradaConsolidada = {
+  mapeamento_id: mapeamento.id,
+  marketplace_id: mapeamento.marketplace_id,
+  preco_consultado: body.preco_consultado,
+  moeda: mapeamento.moeda || "BRL",
+  is_amazon_fulfilled: mapeamento.is_amazon_fulfilled,
+  seller_sku: mapeamento.seller_sku,
+  asin: mapeamento.asin,
+  modo_consulta: modoConsulta,
+  permitir_fallback_asin: body.permitir_fallback_asin !== false
+};
+
+// Validar dados consolidados utilizando o helper puro
+const entradaValidada = validarEntradaFeesQuote(entradaConsolidada);
+
+// Montar o payload apropriado em memória
+let resultadoPayload;
+if (entradaValidada.modo_consulta === "sku") {
+  resultadoPayload = montarPayloadFeesSku({
+    seller_sku: entradaValidada.seller_sku!,
+    marketplace_id: entradaValidada.marketplace_id,
+    preco_consultado: entradaValidada.preco_consultado,
+    moeda: entradaValidada.moeda!,
+    is_amazon_fulfilled: entradaValidada.is_amazon_fulfilled
+  });
+} else if (entradaValidada.modo_consulta === "asin") {
+  resultadoPayload = montarPayloadFeesAsin({
+    asin: entradaValidada.asin!,
+    marketplace_id: entradaValidada.marketplace_id,
+    preco_consultado: entradaValidada.preco_consultado,
+    moeda: entradaValidada.moeda!,
+    is_amazon_fulfilled: entradaValidada.is_amazon_fulfilled
+  });
+} else {
+  // auto: prioriza sku se preenchido
+  if (entradaValidada.seller_sku) {
+    resultadoPayload = montarPayloadFeesSku({
+      seller_sku: entradaValidada.seller_sku,
+      marketplace_id: entradaValidada.marketplace_id,
+      preco_consultado: entradaValidada.preco_consultado,
+      moeda: entradaValidada.moeda!,
+      is_amazon_fulfilled: entradaValidada.is_amazon_fulfilled
+    });
+  } else {
+    resultadoPayload = montarPayloadFeesAsin({
+      asin: entradaValidada.asin!,
+      marketplace_id: entradaValidada.marketplace_id,
+      preco_consultado: entradaValidada.preco_consultado,
+      moeda: entradaValidada.moeda!,
+      is_amazon_fulfilled: entradaValidada.is_amazon_fulfilled
+    });
+  }
+}
+
+// Sanitizar o payload por motivos de segurança preventiva
+const payloadSanitizado = sanitizarPayloadAmazonFees(resultadoPayload);
+
+// LOG sanitizado para fins de depuração
+// console.log("Payload gerado com sucesso:", payloadSanitizado.endpoint_path);
+
+// Retornar o mock original preservando o HTTP 200
+return jsonResponse({
+  success: true,
+  status: "mock",
+  origem: "mock",
+  marketplace: "amazon",
+  mapeamento_id: body.mapeamento_id,
+  aplicado_em_precificacao: false,
+  mensagem: "Esqueleto validado. Integracao Amazon Product Fees ainda nao ativada.",
+  debug_payload_gerado: payloadSanitizado // útil para testes locais na Fase 5.5K-8
+});
+```
+
+### 31.3. Contrato de Preservação e Mitigação de Riscos
+
+1. **Garantias de Mock**: Nenhuma chamada `fetch` real, geração de LWA ou cabeçalho de assinatura AWS SigV4 será disparado. Os secrets não serão consumidos ou expostos.
+2. **Compatibilidade de Erros**: O roteamento de erros (401 sem header, 401 token inválido, 403 sem permissão financeira, 400 body inválido, 404 mapeamento não encontrado e 400 mapeamento inativo) continuará funcionando com os mesmos códigos HTTP e lógicas atuais do `index.ts`.
+3. **Validação do Mapeamento no DB**: O mapeamento é validado no banco através de políticas RLS ativas, garantindo que o usuário logado só consiga consultar mapeamentos pertencentes ao seu contexto autorizado.
+
+### 31.4. Estratégia de Transição Recomendada
+
+Recomenda-se seguir para a **Fase 5.5K-8 — Integrar helpers no index.ts mantendo mock**. Esta opção é a mais segura porque possibilita verificar a compatibilidade estática (tipos TypeScript e imports Deno) e dinâmica (rodando o `serve` local e testando as chamadas HTTP) da Edge Function combinando banco de dados e lógica dos helpers, sem adicionar complexidade de infraestrutura de rede, rate-limiting ou chaves reais de API da Amazon.
+
+
 
 
 

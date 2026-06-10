@@ -1194,7 +1194,33 @@ Garantias de Seguranca:
 - O Git status acusa os novos arquivos de helpers isolados.
 
 Plano de Microfases Futuras:
-- **5.5K-7**: teste real controlado somente após autorização explícita.
+- **5.5K-8**: Integrar helpers no index.ts mantendo mock.
+- **5.5K-9**: Teste real controlado somente após autorização explícita.
+
+---
+
+## Registro 2026-06-10 - Fase 5.5K-7
+
+Status: [x] Planejamento de Integração dos Helpers Concluído
+
+Objetivo: planejar e documentar como os helpers puros TypeScript (`_helpers.ts`) serão integrados na Edge Function `amazon-fees-quote/index.ts` mantendo a segurança e o comportamento mock atual intacto, preparando as bases de testes e fluxos para acoplamentos futuros.
+
+Análise e Fluxo de Integração Planejado:
+1. **Preservação do Fluxo Crítico**: A integração dos helpers no `index.ts` deve manter a ordem estrita de segurança e autenticação (CORS -> Verificação de Método -> Validação de Bearer JWT -> Validação de Permissão Financeira no Banco -> Carga do Mapeamento Marketplace do Banco).
+2. **Consolidação e Validação de Entrada**: O body da requisição (`mapeamento_id`, `preco_consultado`, etc.) será combinado com os parâmetros do mapeamento consultado (`seller_sku`, `asin`, `marketplace_id`, `is_amazon_fulfilled`, `moeda` com fallback `BRL`) em uma estrutura única `EntradaFeesQuote` e validado via `validarEntradaFeesQuote(...)`.
+3. **Resolução de Rota e Identificador**: Com a entrada validada e o modo de consulta normalizado (`normalizarModoConsulta(...)`), a Edge Function acionará as funções de montagem do payload (`montarPayloadFeesSku` ou `montarPayloadFeesAsin`), gerando e sanitizando o request body em memória com `sanitizarPayloadAmazonFees(...)`.
+4. **Preservação do Mock Seguro**: Mesmo gerando os payloads em memória, a Edge Function continuará retornando a resposta mock estruturada com HTTP 200 de sucesso, **sem fazer nenhuma chamada HTTP externa (fetch)**, sem ler secrets AWS/LWA e sem atualizar o banco nesta etapa.
+5. **Mitigação de Riscos**: Evita-se a inversão de validações (nunca validar o body ou mapeamento antes de validar o JWT/Autorização), previne-se o vazamento de chaves ou mensagens brutas e assegura-se que a compatibilidade com todos os testes mock de erros existentes (400, 401, 403, 404) seja 100% mantida.
+
+Estratégia Recomendada para a Próxima Fase:
+- **Próxima Fase (5.5K-8)**: Integrar de fato os helpers no `index.ts` mantendo o comportamento mock seguro e validar via `deno check` e testes locais de chamadas. Esta é a opção mais segura por permitir verificar a integração estática e dinâmica da lógica sem expor o sistema à rede ou credenciais reais.
+
+Garantias de Segurança:
+- O arquivo principal da Edge Function `index.ts` não foi modificado.
+- Nenhuma alteração foi feita nos helpers ou testes criados.
+- Nenhuma migration foi criada ou alterada, e nenhuma chamada externa ou leitura de secrets foi efetuada.
+- O Git status permanece 100% limpo ao início da atividade.
+
 
 
 

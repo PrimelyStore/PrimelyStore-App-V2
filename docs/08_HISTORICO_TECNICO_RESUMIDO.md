@@ -1502,3 +1502,34 @@ Em 2026-06-10, foi concluída a implementação e testes unitários locais dos h
 * Nenhuma chave de segurança real, segredo ou token foi exposto nos arquivos.
 * Nenhuma requisição externa ou chamada à API Amazon/LWA/SigV4 foi feita (rede desabilitada/não utilizada nos testes).
 * O Git status registra apenas a alteração documental e os novos arquivos de helpers isolados.
+
+---
+
+## 33. Fase 5.5K-7 - Planejar integração dos helpers no index.ts sem alterar comportamento
+
+Em 2026-06-10, foi concluído o planejamento conceitual e documental para integrar os helpers puros na Edge Function principal `amazon-fees-quote/index.ts` mantendo a segurança de autenticação/autorização e garantindo que o comportamento mock atual continue operando sem quebras.
+
+### 33.1. Ordem Futura de Execução Segura
+1. **CORS / OPTIONS**: Responder com os headers CORS apropriados e permitir requisições de origem cruzada de forma segura.
+2. **Validação de Método**: Restringir o tráfego exclusivamente para o método `POST`.
+3. **Autenticação JWT (Supabase Auth)**: Validar o token de autorização `Bearer` extraído dos cabeçalhos.
+4. **Autorização Financeira (RPC)**: Confirmar no banco de dados local com o client do usuário se ele possui a permissão financeira exigida para cotar tarifas.
+5. **Carga do Mapeamento do Produto (DB)**: Buscar o registro ativo em `produto_canal_marketplace_mapeamento` de forma segura.
+6. **Consolidação de Entrada**: Mesclar o request body (`mapeamento_id`, `preco_consultado`, `atualizar_precificacao`, `force_refresh`) com os metadados do mapeamento (`seller_sku`, `asin`, `marketplace_id`, `is_amazon_fulfilled`, `moeda` com fallback `BRL`) e submeter ao helper `validarEntradaFeesQuote(...)`.
+7. **Montagem de Payload**: Dependendo do modo de consulta resolvido (`modo_consulta = auto | sku | asin`), gerar o body formatado utilizando `montarPayloadFeesSku(...)` ou `montarPayloadFeesAsin(...)`.
+8. **Sanitização de Payloads**: Chamar `sanitizarPayloadAmazonFees(...)` sobre o payload gerado antes de qualquer processamento adicional ou logs.
+9. **Retorno Mock**: Continuar retornando a resposta de sucesso HTTP 200 mockada de forma segura, **sem efetuar nenhuma chamada externa HTTP (fetch)**, sem chaves LWA/SigV4 reais e sem alterar tabelas locais de histórico ou cache nesta etapa de integração.
+
+### 33.2. Contrato de Preservação e Testes Futuros
+A integração física futura deve ser validada contra todos os cenários de erros controlados para garantir que não ocorra regressão de comportamento:
+* Erro `401` para requisições sem Authorization ou com token inválido.
+* Erro `403` para usuários sem acesso financeiro.
+* Erro `400` para body inválido ou mapeamento inativo/incompleto.
+* Erro `404` para mapeamento inexistente.
+* Sucesso `200` mock para mapeamento válido ativo.
+
+### 33.3. Riscos Mitigados no Planejamento
+* **Inversão de Validação**: Garantir que validações locais do body e consultas ao banco do mapeamento só ocorram após validação de token do usuário e permissão financeira.
+* **Vazamento de Segredos**: Logs limpos de credenciais e uso obrigatório do sanitizador recursivo.
+* **Quebra de Mock**: Preservação da porta de saída simulada e ausência completa de chamadas `fetch` à Amazon.
+
