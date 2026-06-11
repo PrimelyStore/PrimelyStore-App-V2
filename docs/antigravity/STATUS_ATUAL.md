@@ -1,23 +1,22 @@
 # Status Atual - Projeto Primely Store V3
 
 **Data de Atualizacao**: 2026-06-11
-**Fase Atual**: Fase 5.5L-4Z - Planejamento LWA e AWS SigV4 da Amazon SP-API (Checkpoint Final)
-**Status da Fase**: Concluido (Commit 1220f77 enviado com sucesso ao GitHub na branch planning/amazon-lwa-sigv4)
+**Fase Atual**: Fase 5.5L-5A - Planejamento dos helpers LWA e AWS SigV4 em Deno
+**Status da Fase**: Concluido (Planejamento tecnico dos helpers criptograficos finalizado com sucesso)
 
 ---
 
 ## 1. Estado do Git (Coletado localmente)
 
 ### 1.1. Alteracoes Consolidadas
-O planejamento documental de LWA/SigV4 foi commitado no commit '1220f77 docs: planeja LWA e SigV4 da Amazon SP-API' na branch 'planning/amazon-lwa-sigv4' e enviado ao GitHub.
+Todos os checkpoints de fases anteriores foram devidamente commitados e enviados ao GitHub. A branch ativa e `planning/amazon-lwa-sigv4`.
 
 ### 1.2. Workspace de Producao e Controle
-- **Codigo de Producao**: O workspace de producao (codigo-fonte, Edge Functions e frontend) esta 100% limpo e livre de qualquer alteracao.
-- **Documentos de Controle**: O workspace local possui alteracoes ativas e pendentes estritamente locais nos arquivos da pasta `docs/antigravity/` (STATUS_ATUAL, HISTORICO_EXECUCOES, PROXIMO_COMANDO, RESPOSTA_ANTIGRAVITY e RESPOSTA_CODEX) para registrar o checkpoint e orientar os proximos passos.
+- **Codigo de Producao**: O codigo de producao (codigo-fonte, Edge Functions e frontend) esta 100% limpo e livre de qualquer alteracao.
+- **Documentos de Controle**: O workspace local possui alteracoes ativas e pendentes estritamente documentais e de controle nos arquivos da pasta `docs/antigravity/` (STATUS_ATUAL, HISTORICO_EXECUCOES, PROXIMO_COMANDO, RESPOSTA_ANTIGRAVITY) e o novo arquivo criado `docs/11_PLANO_HELPERS_LWA_SIGV4_DENO.md`.
 
 ### 1.3. Pasta de Scripts e Fluxo Operacional
-- A pasta `scripts/` contem o arquivo `codex-responder-antigravity.ps1`.
-- A pasta `scripts/` contem o script de resposta e e mantida localmente para o fluxo de comunicacao entre o Antigravity e o Codex.
+- A pasta `scripts/` contem o script de resposta `codex-responder-antigravity.ps1` e e mantida localmente para o fluxo de comunicacao entre o Antigravity e o Codex.
 
 ---
 
@@ -28,14 +27,14 @@ O planejamento documental de LWA/SigV4 foi commitado no commit '1220f77 docs: pl
  M docs/antigravity/HISTORICO_EXECUCOES.md
  M docs/antigravity/PROXIMO_COMANDO.md
  M docs/antigravity/RESPOSTA_ANTIGRAVITY.md
- M docs/antigravity/RESPOSTA_CODEX.md
  M docs/antigravity/STATUS_ATUAL.md
+?? docs/11_PLANO_HELPERS_LWA_SIGV4_DENO.md
 ```
 
 ### 2.2. git diff --stat -- .
 - O aviso de LF/CRLF do git diff e apenas um aviso de final de linha do Git no Windows, nao representando alteracao de codigo de producao nem falha de seguranca.
 - O comando de validacao local executado pelo Antigravity nesta etapa foi:
-  `git diff --stat -- docs/antigravity`
+  `git diff --stat -- docs/`
   O qual retornou apenas mudancas documentais locais na pasta do modulo.
 
 ---
@@ -63,12 +62,13 @@ O planejamento documental de LWA/SigV4 foi commitado no commit '1220f77 docs: pl
 ---
 
 ## 6. Rollback Documental
-- `git checkout AGENTS.md ROADMAP.md` e exclusao da pasta `docs/antigravity/`.
+- Remocao do arquivo `docs/11_PLANO_HELPERS_LWA_SIGV4_DENO.md` e descarte das alteracoes locais nos documentos de controle `docs/antigravity/` via git checkout.
 
 ---
 
 ## 7. Proxima Etapa Recomendada
-- Aguardar confirmacao humana do usuario sobre o proximo passo:
-  1. Seguir para a codificacao/implementacao segura dos helpers de LWA e SigV4 da Amazon SP-API, sem chaves reais; ou
-  2. Iniciar o planejamento documental de taxas e custos do Mercado Livre; ou
-  3. Outra etapa indicada pelo usuario.
+- Aguardar confirmacao humana do usuario sobre qual das seguintes etapas seguir:
+  1. Seguir para o planejamento documental de taxas e custos do Mercado Livre (ML); ou
+  2. Seguir para a codificacao e implementacao segura de helpers Deno mockados em local; ou
+  3. Seguir para a revisao documental ou commit das alteracoes locais de controle; ou
+  4. Outra etapa indicada pelo usuario.

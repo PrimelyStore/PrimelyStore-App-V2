@@ -4,6 +4,26 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
 
 ---
 
+## [2026-06-11] Fase 5.5L-5A - Planejamento dos helpers LWA e AWS SigV4 em Deno
+
+* **Objetivo**: Planejar tecnicamente como serao criados os helpers seguros de autenticacao Login With Amazon (LWA) e assinatura AWS SigV4 utilizando a API nativa Web Crypto do Deno.
+* **Arquivos Criados/Alterados**:
+  - `docs/11_PLANO_HELPERS_LWA_SIGV4_DENO.md` (novo arquivo planejado criado)
+  - `docs/antigravity/STATUS_ATUAL.md` (atualizado)
+  - `docs/antigravity/HISTORICO_EXECUCOES.md` (atualizado)
+  - `docs/antigravity/PROXIMO_COMANDO.md` (atualizado)
+  - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (atualizado)
+* **Resumo da Etapa**:
+  - Detalhado o uso da Web Crypto API nativa no Deno (`crypto.subtle`) para derivar as chaves de assinatura usando HMAC-SHA256, eliminando a dependecia de dependencias AWS SDK externas.
+  - Planejada a estrutura dos arquivos helpers `_helpers_lwa.ts` e `_helpers_sigv4.ts`.
+  - Mapeado o fluxo seguro completo (validacao -> obtencao de token -> assinatura -> requisicao -> sanitizacao de logs).
+  - Catalogados apenas os nomes das chaves de ambiente necessarias.
+  - Estruturados testes unitarios futuros de validacao criptografica e sanitizacao com dados mockados.
+* **Garantias de Seguranca**:
+  - Sem codigo operacional, sem commits locais, sem push remoto, sem deploy, sem chamadas de API real, sem leitura de secrets, sem SQL destrutivo e sem alteracao de frontend.
+
+---
+
 ## [2026-06-11] Fase 5.5L-4Z - Conclusao e push do checkpoint de planejamento Amazon LWA e AWS SigV4
 
 * **Objetivo**: Registrar a conclusao do checkpoint documental da branch `planning/amazon-lwa-sigv4` enviada ao GitHub pelo usuario, normalizando a documentacao de controle.
