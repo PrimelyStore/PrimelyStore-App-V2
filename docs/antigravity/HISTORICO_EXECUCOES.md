@@ -4,6 +4,47 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
 
 ---
 
+## [2026-06-11] Fase 5.5L-5C - Implementacao local e mockada dos helpers LWA/SigV4 em Deno
+
+* **Objetivo**: Implementar localmente em Deno, sem uso de rede ou credenciais reais, os helpers seguros para autenticacao LWA e geracao de assinaturas AWS SigV4 via Web Crypto API (`crypto.subtle`).
+* **Arquivos Criados/Alterados**:
+  - `supabase/functions/amazon-fees-quote/_helpers_lwa.ts` (criado)
+  - `supabase/functions/amazon-fees-quote/_helpers_sigv4.ts` (criado)
+  - `supabase/functions/amazon-fees-quote/_helpers_lwa.test.ts` (criado)
+  - `supabase/functions/amazon-fees-quote/_helpers_sigv4.test.ts` (criado)
+  - `docs/11_PLANO_HELPERS_LWA_SIGV4_DENO.md` (atualizado)
+  - `docs/antigravity/STATUS_ATUAL.md` (atualizado)
+  - `docs/antigravity/HISTORICO_EXECUCOES.md` (atualizado)
+  - `docs/antigravity/PROXIMO_COMANDO.md` (atualizado)
+  - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (atualizado)
+* **Resumo da Etapa**:
+  - Implementado helper LWA com codificacao `application/x-www-form-urlencoded` de parametros e sanitizacao ativa de mensagens de erro para nao vazar credenciais nos logs.
+  - Implementado helper SigV4 utilizando a API nativa Web Crypto (`crypto.subtle.digest` e `crypto.subtle.sign` HMAC-SHA256) em cadeia de derivacao, com normalizacao canonica de URIs, Query String e Headers.
+  - Criados 12 testes unitarios executados 100% offline (sem `--allow-net` e sem ler secrets reais), cobrindo parser LWA, sanitizador de logs, hashes SHA-256 e geracao deterministica do Authorization Header da AWS com data fixa.
+  - Todos os testes unitarios foram executados e passaram com 100% de sucesso.
+* **Garantias de Seguranca**:
+  - Sem chaves reais, sem acesso ao `.env.local` ou chaves de configuracao, sem chamadas HTTP reais e sem acoplamento dos helpers no arquivo principal de producao `index.ts`.
+
+---
+
+## [2026-06-11] Fase 5.5L-5B - Conclusao e push do planejamento dos helpers LWA e AWS SigV4 em Deno
+
+* **Objetivo**: Registrar a conclusao do checkpoint final da Fase 5.5L-5A com o commit e push da branch executados pelo usuario.
+* **Arquivos Alterados**:
+  - `docs/antigravity/STATUS_ATUAL.md` (atualizado)
+  - `docs/antigravity/HISTORICO_EXECUCOES.md` (atualizado)
+  - `docs/antigravity/PROXIMO_COMANDO.md` (atualizado)
+  - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (atualizado)
+* **Resumo da Etapa**:
+  - O usuario concluio o commit e o push da branch `planning/amazon-lwa-sigv4` contendo o planejamento dos helpers LWA/SigV4 em Deno.
+  - O commit enviado foi `58dc00c` com a mensagem `docs: planeja helpers LWA SigV4 em Deno`.
+  - O repositorio local esta totalmente limpo antes das edicoes locais dos arquivos de controle.
+  - Atualizados os documentos de status para finalizar esta fase.
+* **Garantias de Seguranca**:
+  - Sem novos commits automaticos, sem push automatico, sem deploy, sem chamadas de API real, sem leitura de secrets, sem SQL destrutivo e sem alteracao de frontend ou backend.
+
+---
+
 ## [2026-06-11] Fase 5.5L-5A - Planejamento dos helpers LWA e AWS SigV4 em Deno
 
 * **Objetivo**: Planejar tecnicamente como serao criados os helpers seguros de autenticacao Login With Amazon (LWA) e assinatura AWS SigV4 utilizando a API nativa Web Crypto do Deno.
@@ -44,7 +85,7 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
 
 ## [2026-06-11] Fase 5.5L-4AA - Auditoria e organizacao dos arquivos pendentes
 
-* **Objetivo**: Auditar o estado atual do Git apos a revisao documental LWA/SigV4, classificar os arquivos pendentes em grupos de interesse e recomendar a acao a ser tomada para cada um.
+* **Objetivo**: Auditar o estado atual do Git apos a revisao documental LWA/SigV4, classificar os arquivos pendentes in de interesse e recomendar a acao a ser tomada para cada um.
 * **Arquivos Auditados**:
   - Documento de Planejamento: `docs/10_PLANEJAMENTO_LWA_SIGV4_AMAZON.md` (untracked, pronto)
   - Contrato de Taxas: `docs/09_CONTRATO_TAXAS_MARKETPLACE_API.md` (revertido para 100% integro, sem diff)
@@ -66,7 +107,7 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
 
 ## [2026-06-11] Fase 5.5L-4Z - Revisao e aprovacao do planejamento LWA e AWS SigV4
 
-* **Objetivo**: Revisar a documentacao de planejamento tecnico de LWA e AWS SigV4 em `docs/10_PLANEJAMENTO_LWA_SIGV4_AMAZON.md` e confirmar sua aderencia e seguranca, alem de restaurar e decodificar arquivos corrompidos durante a transicao.
+* **Objetivo**: Revisar a documentacao de planejamento tecnico de LWA e AWS SigV4 em `docs/10_PLANEJAMENTO_LWA_SIGV4_AMAZON.md` e confirmar sua aderence e seguranca, alem de restaurar e decodificar arquivos corrompidos durante a transicao.
 * **Arquivos Criados/Restaurados**:
   - `docs/10_PLANEJAMENTO_LWA_SIGV4_AMAZON.md` (restaurado de corrupcao local e verificado)
 * **Arquivos Alterados/Revertidos**:
@@ -100,7 +141,7 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
   - Mapeada a logica de geracao de assinaturas AWS SigV4 usando APIs nativas de criptografia (Web Crypto API) no Deno.
   - Listadas as variaveis de ambiente de segredos necessarias no Supabase Vault.
   - Mapeados os riscos de vazamento de credenciais e as respectivas mitigacoes.
-  - Definidos criterios de aceite e estrategia de rollback.
+  - Definidos criterios de aceite e strategy de rollback.
 * **Garantias de Seguranca**:
   - Sem codigo operacional, sem commits locais, sem push remoto, sem deploy, sem chamadas de API real, sem leitura de secrets, sem SQL destrutivo e sem alteracao de frontend.
 
@@ -170,7 +211,7 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
   - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md`
 * **Resumo da Etapa**:
   - Criado o arquivo TASKS.md registrando as tarefas de controle, o andamento das subfases documentais e a decisao de manter a pasta scripts/.
-  - Criado o arquivo ACCEPTANCE_CRITERIA.md definindo as regras gerais de aceite e politicas de seguranca para mudancas futuras no projeto.
+  - Criado o arquivo ACCEPTANCE_CRITERIA.md definindo as regras gerais de aceite e politicas de seguranca para mudancas futures no projeto.
   - Atualizados os arquivos de controle para refletir a nova situacao documental e preparar o proximo comando.
 * **Garantias de Seguranca**:
   - Sem commit, sem deploy, sem chamadas de API real, sem leitura de secrets, sem SQL destrutivo e sem alteracao de codigo-fonte.

@@ -124,3 +124,21 @@ Os testes unitarios futuros serao escritos em `_helpers.test.ts` e rodarao local
 
 ## 9. Rollback Documental
 - Remocao do arquivo `docs/11_PLANO_HELPERS_LWA_SIGV4_DENO.md` e git checkout nos arquivos de controle da pasta `docs/antigravity/`.
+
+---
+
+## 10. Resultados da Implementacao Local (Fase 5.5L-5C)
+Em 2026-06-11, a implementacao mockada e isolada dos helpers LWA e AWS SigV4 no Deno foi concluida com sucesso absoluto.
+
+### 10.1. Arquivos Criados
+- `supabase/functions/amazon-fees-quote/_helpers_lwa.ts`: Implementacao de autenticacao LWA e sanitizacao de erros.
+- `supabase/functions/amazon-fees-quote/_helpers_sigv4.ts`: Implementacao de hashes SHA-256 e assinaturas AWS SigV4 baseadas em `crypto.subtle`.
+- `supabase/functions/amazon-fees-quote/_helpers_lwa.test.ts`: Testes unitarios do fluxo LWA (5 testes passando).
+- `supabase/functions/amazon-fees-quote/_helpers_sigv4.test.ts`: Testes unitarios do fluxo SigV4 (7 testes passando).
+
+### 10.2. Resumo de Testes Executados
+Todos os 12 testes unitarios foram executados sem permissao de rede (`--allow-net` desativado) e sem variaveis de ambiente, garantindo isolamento total do ambiente de producao:
+- `deno fmt --check`: OK (codigo formatado).
+- `deno check`: OK (tipo TypeScript validado).
+- `deno test`: OK (12 testes passando em 104ms).
+

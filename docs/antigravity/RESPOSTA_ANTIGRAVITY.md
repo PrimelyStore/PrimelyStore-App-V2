@@ -1,57 +1,55 @@
-# Resposta Antigravity - Fase 5.5L-5A (Preparacao de Commit)
+# Resposta Antigravity - Fase 5.5L-5C (Helpers Criados e Testados)
 
 ## 1. Resultado da Busca Antes da Correcao
 
 ### 1.1. Ocorrencias de interrogacoes consecutivas antes
-- Zero ocorrencias. Todos os arquivos iniciaram a rodada sem marcas de interrogacoes consecutivas.
+- Zero ocorrencias. Todos os arquivos de controle estavam sem marcas de interrogacoes.
 
 ### 1.2. Caracteres Nao-ASCII antes
 - Zero ocorrencias.
 
 ---
 
-## 2. Preparacao do Commit
-Os arquivos pendentes foram devidamente auditados, classificados e preparados para o stage local:
+## 2. Relatorio de Implementacao e Validacao
+A implementacao mockada e isolada dos helpers LWA e AWS SigV4 em Deno foi concluida com 100% de sucesso.
 
-### 2.1. Arquivos Staged (Aprovados para Commit)
-- `docs/11_PLANO_HELPERS_LWA_SIGV4_DENO.md` (untracked, pronto para commit)
-- `docs/antigravity/STATUS_ATUAL.md` (modificado)
-- `docs/antigravity/HISTORICO_EXECUCOES.md` (modificado)
-- `docs/antigravity/PROXIMO_COMANDO.md` (modificado)
-- `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (este relatorio, modificado)
+### 2.1. Arquivos Criados
+- `supabase/functions/amazon-fees-quote/_helpers_lwa.ts`
+- `supabase/functions/amazon-fees-quote/_helpers_sigv4.ts`
+- `supabase/functions/amazon-fees-quote/_helpers_lwa.test.ts`
+- `supabase/functions/amazon-fees-quote/_helpers_sigv4.test.ts`
 
-### 2.2. Arquivos Nao Staged / Inalterados
-- Nenhum arquivo fora do stage.
-
-### 2.3. Arquivos Ignorados / Restaurados
-- `docs/antigravity/RESPOSTA_CODEX.md` (restaurado localmente via `git restore` para evitar sujeira de controle dinamico no commit)
-
----
-
-## 3. Mensagem de Commit Sugerida
-`docs: planeja helpers LWA SigV4 em Deno`
+### 2.2. Resumo de Validacao
+- **deno fmt --check**: OK (todos os arquivos estao formatados).
+- **deno check**: OK (verificacao de tipos TypeScript passou com sucesso).
+- **deno test** (sem permissao de rede): OK (12 testes unitarios executados e todos passaram em 104ms).
+  - 5 testes para a logica LWA (parsing de JSON, tratamento de HTTP 400 da Amazon e sanitizacao de credenciais no erro).
+  - 7 testes para a logica SigV4 (calculo SHA-256 de string, encoding AWS, canonical query, canonical headers e assinatura deterministica SigV4 com data fixa batendo com o padrao).
 
 ---
 
-## 4. Confirmacoes de Seguranca
-- Nao houve alteracoes em arquivos de codigo-fonte de producao, Edge Functions ou frontend.
-- Nao houve execucao de `git commit` ou `git push` pelo Antigravity.
-- Nao houve deploy.
-- Nao foram feitas chamadas de API reais (Amazon, Mercado Livre, Keepa, Olist/Tiny).
-- Nao foram lidos or expostos secrets reais, JWTs ou dados do `.env.local`.
-- Nao foi executado nenhum SQL destrutivo ou aplicacao de migrations.
+## 3. Confirmacoes de Seguranca
+- Sem chaves reais e sem chaves configuradas em arquivos ou logs.
+- Sem leitura de secrets reais ou do `.env.local`.
+- Sem uso de `fetch` de rede externa e sem permissao de rede (`--allow-net` desativado nos testes).
+- Sem deploy para a nuvem.
+- Sem migrations ou SQL de escrita.
+- Sem acoplamento ou importacao dos helpers no arquivo principal de execucao `index.ts`.
 
 ---
 
-## 5. Resultado da Busca Depois da Correcao
+## 4. Resultado da Busca Depois da Correcao
 
-### 5.1. Ocorrencias de interrogacoes consecutivas depois
+### 4.1. Ocorrencias de interrogacoes consecutivas depois
 - Zero ocorrencias.
 
-### 5.2. Caracteres Nao-ASCII depois
-- Zero ocorrencias. Todos os arquivos estao em ASCII simples de 7 bits, sem acentos e sem cedilhas.
+### 4.2. Caracteres Nao-ASCII depois
+- Zero ocorrencias. Todos os arquivos permanecem em ASCII simples de 7 bits sem acentos.
 
 ---
 
-## 6. Proxima Acao Recomendada
-- Aguardar confirmacao humana do usuario para a execucao fisica do commit local.
+## 5. Proxima Decisao Humana Recomendada
+- Aguardar confirmacao do usuario sobre qual proxima etapa seguir:
+  1. Iniciar o planejamento documental de taxas e custos do Mercado Livre (ML), sem chaves reais; ou
+  2. Preparar o commit local e stage de checkpoint da Fase 5.5L-5C; ou
+  3. Outra etapa indicada pelo usuario.
