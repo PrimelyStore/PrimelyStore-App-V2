@@ -1,29 +1,24 @@
 # Status Atual - Projeto Primely Store V3
 
 **Data de Atualizacao**: 2026-06-11
-**Fase Atual**: Fase 5.5L-4Z - Preparacao segura do commit de checkpoint
-**Status da Fase**: Concluido (Arquivos staged e prontos para commit local)
+**Fase Atual**: Fase 5.5L-4AA - Auditoria e organizacao dos arquivos pendentes
+**Status da Fase**: Concluido (Auditoria e classificacao do Git executadas com sucesso)
 
 ---
 
 ## 1. Estado do Git (Coletado localmente)
 
-### 1.1. Alteracoes Preexistentes (Modificadas antes desta etapa)
-Estes arquivos de codigo-fonte foram modificados em fases anteriores e permanecem inalterados e pendentes de commit:
-- `supabase/functions/amazon-fees-quote/index.ts`
-- `supabase/functions/amazon-fees-quote/_helpers.ts`
-- `supabase/functions/amazon-fees-quote/_helpers.test.ts`
-- `docs/08_HISTORICO_TECNICO_RESUMIDO.md`
-- `docs/09_CONTRATO_TAXAS_MARKETPLACE_API.md`
+### 1.1. Alteracoes Consolidadas
+Todos os arquivos pendentes de fases anteriores foram commitados com sucesso no commit 'a69c274 docs: adiciona governanca e fluxo Antigravity Codex' na branch 'checkpoint/primely-v3-antigravity-02-06'.
 
-### 1.2. Arquivos Novos Criados/Alterados nesta Etapa (Pasta docs/antigravity/ e Raiz)
-Estes arquivos foram criados ou atualizados no repositorio em ASCII simples:
-- `TASKS.md` (criado na raiz do projeto)
-- `ACCEPTANCE_CRITERIA.md` (criado na raiz do projeto)
+### 1.2. Arquivos Novos Criados/Alterados nesta Etapa (Branch planning/amazon-lwa-sigv4)
+Estes arquivos de controle e planejamento estao ativos no repositorio em ASCII simples:
+- `docs/10_PLANEJAMENTO_LWA_SIGV4_AMAZON.md` (untracked, pronto para commit)
 - `docs/antigravity/PROXIMO_COMANDO.md` (atualizado)
-- `docs/antigravity/STATUS_ATUAL.md` (atualizado)
+- `docs/antigravity/STATUS_ATUAL.md` (este relatorio)
 - `docs/antigravity/HISTORICO_EXECUCOES.md` (atualizado)
 - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (atualizado)
+- `docs/antigravity/RESPOSTA_CODEX.md` (dinamico, atualizado pelo script)
 
 ### 1.3. Pasta de Scripts e Fluxo Operacional
 - A pasta `scripts/` contem o arquivo `codex-responder-antigravity.ps1`.
@@ -35,28 +30,18 @@ Estes arquivos foram criados ou atualizados no repositorio em ASCII simples:
 
 ### 2.1. git status --short
 ```
-A  ACCEPTANCE_CRITERIA.md
-M  AGENTS.md
-M  ROADMAP.md
-A  TASKS.md
-M  docs/08_HISTORICO_TECNICO_RESUMIDO.md
-M  docs/09_CONTRATO_TAXAS_MARKETPLACE_API.md
-A  docs/antigravity/CODEX_CONTROLADOR.md
-A  docs/antigravity/HISTORICO_EXECUCOES.md
-A  docs/antigravity/PROXIMO_COMANDO.md
-A  docs/antigravity/RESPOSTA_ANTIGRAVITY.md
-A  docs/antigravity/RESPOSTA_CODEX.md
-A  docs/antigravity/STATUS_ATUAL.md
-A  scripts/codex-responder-antigravity.ps1
-M  supabase/functions/amazon-fees-quote/_helpers.test.ts
-M  supabase/functions/amazon-fees-quote/_helpers.ts
-M  supabase/functions/amazon-fees-quote/index.ts
+ M docs/antigravity/HISTORICO_EXECUCOES.md
+ M docs/antigravity/PROXIMO_COMANDO.md
+ M docs/antigravity/RESPOSTA_ANTIGRAVITY.md
+ M docs/antigravity/RESPOSTA_CODEX.md
+ M docs/antigravity/STATUS_ATUAL.md
+?? docs/10_PLANEJAMENTO_LWA_SIGV4_AMAZON.md
 ```
 
 ### 2.2. git diff --stat -- .
-- O comando 'git diff --stat' e 'git diff' globais nao foram confirmados pelo coletor atual. Isso limita a analise automatizada do Codex para mudancas fora da pasta documental.
+- O comando 'git diff --stat' global nao foi confirmado pelo coletor atual por causa de avisos de LF/CRLF.
 - O comando de validacao local executado pelo Antigravity nesta etapa foi:
-  `git diff --stat -- AGENTS.md ROADMAP.md docs/antigravity`
+  `git diff --stat -- docs/antigravity`
   O qual retornou apenas mudancas documentais locais na pasta do modulo.
 
 ---
@@ -90,7 +75,6 @@ M  supabase/functions/amazon-fees-quote/index.ts
 
 ## 7. Proxima Etapa Recomendada
 - Aguardar confirmacao humana do usuario sobre o proximo passo:
-  1. Aprovar o commit de checkpoint manualmente; ou
-  2. Revisar algum arquivo especifico antes do commit; ou
-  3. Seguir para o planejamento documental de LWA e assinatura SigV4 da Amazon SP-API; ou
-  4. Seguir para o planejamento documental de taxas e custos do Mercado Livre.
+  1. Seguir para a codificacao/implementacao segura dos helpers de LWA e SigV4 da Amazon SP-API, sem chaves reais; ou
+  2. Iniciar o planejamento documental de taxas e custos do Mercado Livre; ou
+  3. Outra etapa indicada pelo usuario.

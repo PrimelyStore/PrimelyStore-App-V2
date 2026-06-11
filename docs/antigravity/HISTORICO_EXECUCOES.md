@@ -4,6 +4,70 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
 
 ---
 
+## [2026-06-11] Fase 5.5L-4AA - Auditoria e organizacao dos arquivos pendentes
+
+* **Objetivo**: Auditar o estado atual do Git apos a revisao documental LWA/SigV4, classificar os arquivos pendentes em grupos de interesse e recomendar a acao a ser tomada para cada um.
+* **Arquivos Auditados**:
+  - Documento de Planejamento: `docs/10_PLANEJAMENTO_LWA_SIGV4_AMAZON.md` (untracked, pronto)
+  - Contrato de Taxas: `docs/09_CONTRATO_TAXAS_MARKETPLACE_API.md` (revertido para 100% integro, sem diff)
+  - Documentos de Controle: `docs/antigravity/` (STATUS_ATUAL, HISTORICO_EXECUCOES, PROXIMO_COMANDO, RESPOSTA_ANTIGRAVITY)
+  - Canal de Comunicacao Codex: `docs/antigravity/RESPOSTA_CODEX.md` (dinamico)
+* **Arquivos Alterados**:
+  - `docs/antigravity/STATUS_ATUAL.md`
+  - `docs/antigravity/HISTORICO_EXECUCOES.md`
+  - `docs/antigravity/PROXIMO_COMANDO.md`
+  - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md`
+* **Resumo da Etapa**:
+  - Verificado o status do Git e classificados os arquivos pendentes em grupos.
+  - Atribuidas recomendacoes: `docs/10_PLANEJAMENTO_LWA_SIGV4_AMAZON.md` e arquivos de controle devem ser commitados na branch local de planejamento; `RESPOSTA_CODEX.md` deve ser mantido no workspace para o fluxo local mas nao deve ser versionado em producao futuramente.
+  - Atestada a integridade do contrato de taxas.
+* **Garantias de Seguranca**:
+  - Sem codigo operacional, sem commits locais, sem push remoto, sem deploy, sem chamadas de API real, sem leitura de secrets, sem SQL destrutivo e sem alteracao de frontend.
+
+---
+
+## [2026-06-11] Fase 5.5L-4Z - Revisao e aprovacao do planejamento LWA e AWS SigV4
+
+* **Objetivo**: Revisar a documentacao de planejamento tecnico de LWA e AWS SigV4 em `docs/10_PLANEJAMENTO_LWA_SIGV4_AMAZON.md` e confirmar sua aderencia e seguranca, alem de restaurar e decodificar arquivos corrompidos durante a transicao.
+* **Arquivos Criados/Restaurados**:
+  - `docs/10_PLANEJAMENTO_LWA_SIGV4_AMAZON.md` (restaurado de corrupcao local e verificado)
+* **Arquivos Alterados/Revertidos**:
+  - `docs/09_CONTRATO_TAXAS_MARKETPLACE_API.md` (revertido para estado integro do checkpoint)
+  - `docs/antigravity/STATUS_ATUAL.md`
+  - `docs/antigravity/HISTORICO_EXECUCOES.md`
+  - `docs/antigravity/PROXIMO_COMANDO.md`
+  - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md`
+* **Resumo da Etapa**:
+  - Revertidas modificacoes e corrupcoes locais no contrato de taxas de API `docs/09_CONTRATO_TAXAS_MARKETPLACE_API.md`.
+  - Executado script PowerShell para decodificar e limpar o arquivo `docs/10_PLANEJAMENTO_LWA_SIGV4_AMAZON.md`, que havia sido corrompido com a interpolacao de caracteres indesejados. O arquivo foi re-salvo em formato ASCII simples de 7 bits sem acentos.
+  - Atestada a aderencia tecnica e operacional da documentacao de planejamento: todas as diretrizes de seguranca (sem expor tokens no frontend, sem segredos reais no codigo) e de governanca (Primely Store nao e ERP) estao devidamente cobertas.
+* **Garantias de Seguranca**:
+  - Sem codigo operacional, sem commits locais, sem push remoto, sem deploy, sem chamadas de API real, sem leitura de secrets, sem SQL destrutivo e sem alteracao de frontend.
+
+---
+
+## [2026-06-11] Fase 5.5L-4Y - Planejamento documental de LWA e assinatura AWS SigV4
+
+* **Objetivo**: Elaborar o planejamento tecnico e documental de seguranca para suportar a futura autenticacao Login With Amazon (LWA) e a geracao de assinaturas AWS SigV4 na Edge Function `amazon-fees-quote`, sem implementacao fisica de codigo.
+* **Arquivos Criados**:
+  - `docs/10_PLANEJAMENTO_LWA_SIGV4_AMAZON.md` (plano conceitual completo)
+* **Arquivos Alterados**:
+  - `docs/09_CONTRATO_TAXAS_MARKETPLACE_API.md`
+  - `docs/antigravity/STATUS_ATUAL.md`
+  - `docs/antigravity/HISTORICO_EXECUCOES.md`
+  - `docs/antigravity/PROXIMO_COMANDO.md`
+  - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md`
+* **Resumo da Etapa**:
+  - Mapeado o fluxo LWA de obtencao de access token temporario via refresh token persistente.
+  - Mapeada a logica de geracao de assinaturas AWS SigV4 usando APIs nativas de criptografia (Web Crypto API) no Deno.
+  - Listadas as variaveis de ambiente de segredos necessarias no Supabase Vault.
+  - Mapeados os riscos de vazamento de credenciais e as respectivas mitigacoes.
+  - Definidos criterios de aceite e estrategia de rollback.
+* **Garantias de Seguranca**:
+  - Sem codigo operacional, sem commits locais, sem push remoto, sem deploy, sem chamadas de API real, sem leitura de secrets, sem SQL destrutivo e sem alteracao de frontend.
+
+---
+
 ## [2026-06-11] Fase 5.5L-4Z - Preparacao segura do commit de checkpoint
 
 * **Objetivo**: Preparar o stage de commit local (`git add`) contendo todos os arquivos aprovados para o checkpoint da Fase 5.5L-4, sem realizar commit ou push.
