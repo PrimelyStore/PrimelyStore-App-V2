@@ -2890,6 +2890,32 @@ CREATE INDEX IF NOT EXISTS idx_fee_quotes_cache_lookup
 ### 34.6. Próxima Microfase Recomendada
 Recomenda-se avançar para a **Fase 5.5L-2 — Criar migration de metadados do cache (Fase A)**. Esta é a opção mais segura porque isola e garante a evolução estrutural e as constraints do banco de dados local (incluindo o índice de lookup) antes de começarmos a mexer no código de leitura e escrita na Edge Function. Isso evita erros de tipagem no runtime Deno e divergências entre banco e código.
 
+---
+
+## 35. Implementação 5.5L-3 - Leitura do cache válido
+
+Em 2026-06-11, a Edge Function `amazon-fees-quote` passou a consultar o cache
+válido antes de manter o fluxo mock.
+
+Regras implementadas:
+
+- consulta somente após autenticação, autorização financeira, carga do
+  mapeamento e validação dos helpers;
+- `force_refresh = false` permite lookup;
+- `force_refresh = true` ignora lookup;
+- correspondência por mapeamento, preço, moeda, FBA/FBM, modo e identificador;
+- somente `status = sucesso` e `valido_ate` futuro;
+- retorno mais recente por `valido_ate DESC`;
+- erro de leitura retorna mensagem sanitizada;
+- cache ausente mantém o mock sem chamar a Amazon;
+- nenhuma escrita em `marketplace_fee_quotes` ou `produtos_precificacao`.
+
+Dependência de deploy:
+
+```txt
+A migration 20260610000100_amazon_fees_cache_metadata.sql deve estar aplicada
+no ambiente antes do deploy desta versão da Edge Function.
+```
 
 
 

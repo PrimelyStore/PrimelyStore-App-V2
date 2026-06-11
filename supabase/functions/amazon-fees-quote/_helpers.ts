@@ -58,6 +58,46 @@ export type ResumoTaxasAmazonFees = {
   erros_validacao: string[];
 };
 
+export type CotacaoCacheAmazonFees = {
+  id: string;
+  mapeamento_id: string;
+  taxa_marketplace_calculada: number | string;
+  taxa_logistica_calculada: number | string;
+  custo_total_calculado: number | string;
+  modo_consulta: string;
+  identificador_usado: "sku" | "asin";
+  seller_sku_usado: string | null;
+  asin_usado: string | null;
+  moeda: string;
+  is_amazon_fulfilled: boolean;
+  warnings: unknown;
+  valido_ate: string;
+  aplicado_em_precificacao: boolean;
+};
+
+export type RespostaCacheAmazonFees = {
+  success: true;
+  status: "cache";
+  origem: "cache";
+  marketplace: "amazon";
+  fee_quote_id: string;
+  mapeamento_id: string;
+  modo_consulta: string;
+  identificador_usado: "sku" | "asin";
+  seller_sku_usado: string | null;
+  asin_usado: string | null;
+  moeda: string;
+  is_amazon_fulfilled: boolean;
+  taxas: {
+    marketplace: number;
+    logistica: number;
+    total: number;
+  };
+  warnings: unknown[];
+  valido_ate: string;
+  aplicado_em_precificacao: boolean;
+};
+
 /**
  * Normaliza o modo de consulta vindo no payload da requisição.
  */
@@ -381,6 +421,38 @@ export function sanitizarPayloadAmazonFees<T>(payload: T): T {
   }
 
   return cloneAndSanitize(payload) as T;
+}
+
+/**
+ * Converte uma linha valida do cache no contrato publico da Edge Function.
+ */
+export function montarRespostaCacheAmazonFees(
+  cotacao: CotacaoCacheAmazonFees,
+): RespostaCacheAmazonFees {
+  const warnings = Array.isArray(cotacao.warnings) ? cotacao.warnings : [];
+
+  return {
+    success: true,
+    status: "cache",
+    origem: "cache",
+    marketplace: "amazon",
+    fee_quote_id: cotacao.id,
+    mapeamento_id: cotacao.mapeamento_id,
+    modo_consulta: cotacao.modo_consulta,
+    identificador_usado: cotacao.identificador_usado,
+    seller_sku_usado: cotacao.seller_sku_usado,
+    asin_usado: cotacao.asin_usado,
+    moeda: cotacao.moeda,
+    is_amazon_fulfilled: cotacao.is_amazon_fulfilled,
+    taxas: {
+      marketplace: Number(cotacao.taxa_marketplace_calculada),
+      logistica: Number(cotacao.taxa_logistica_calculada),
+      total: Number(cotacao.custo_total_calculado),
+    },
+    warnings,
+    valido_ate: cotacao.valido_ate,
+    aplicado_em_precificacao: cotacao.aplicado_em_precificacao,
+  };
 }
 
 /**

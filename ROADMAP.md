@@ -1,65 +1,65 @@
-# ROADMAP — PRIMELY STORE V3
+# ROADMAP - PRIMELY STORE V3
 
 ## Status
 
 - [ ] Pendente
 - [~] Em progresso
-- [x] Concluído
+- [x] Concluido
 - [!] Bloqueado
 - [L] Legado / manter sem evoluir por enquanto
 
 ---
 
-## Módulo 1 — Auditoria e Governança
+## Modulo 1 - Auditoria e Governanca
 
 Status: [~] Em progresso  
 Prioridade: Alta  
-Objetivo: garantir que o projeto siga o conceito de painel gerencial e não volte a virar ERP.
+Objetivo: garantir que o projeto siga o conceito de painel gerencial e nao volte a virar ERP.
 
 Etapas:
 
-- [x] 1.1 Verificar `git status` — limpo, checkpoint feito
-- [x] 1.2 Validar `.gitignore` — protege .env.local ✅
-- [~] 1.3 Validar `.env.local` e `.env.example` — divergência de variável corrigida com fallback
-- [x] 1.4 Validar `AGENTS.md` — completo ✅
-- [x] 1.5 Validar Skills — 6 skills presentes e corretas ✅
-- [x] 1.6 Validar MCP em modo somente leitura — read_only=true ✅
-- [x] 1.7 Classificar módulos atuais — auditoria completa realizada
-- [~] 1.8 Corrigir variável VITE_SUPABASE_PUBLISHABLE_KEY → VITE_SUPABASE_ANON_KEY — fallback aplicado
-- [x] 1.9 Ocultar telas legado do menu (Compras, Fornecedores, Lotes, Movimentações)
-- [x] 1.10 Reorganizar menu do AppLayout em seções (Gerencial, Integrações, Análises)
-- [ ] 1.12 Verificar dashboardService não depende de tabelas legadas — diagnóstico feito, pendente ação
+- [x] 1.1 Verificar `git status` - limpo, checkpoint feito
+- [x] 1.2 Validar `.gitignore` - protege .env.local
+- [~] 1.3 Validar `.env.local` e `.env.example` - divergencia de variavel corrigida com fallback
+- [x] 1.4 Validar `AGENTS.md` - completo
+- [x] 1.5 Validar Skills - 6 skills presentes e corretas
+- [x] 1.6 Validar MCP em modo somente leitura - read_only=true
+- [x] 1.7 Classificar modulos atuais - auditoria completa realizada
+- [~] 1.8 Corrigir variavel VITE_SUPABASE_PUBLISHABLE_KEY -> VITE_SUPABASE_ANON_KEY - fallback aplicado
+- [x] 1.9 Ocultar telas legado do menu (Compras, Fornecedores, Lotes, Movimentacoes)
+- [x] 1.10 Reorganizar menu do AppLayout em secoes (Gerencial, Integracoes, Analises)
+- [ ] 1.12 Verificar dashboardService nao depende de tabelas legadas - diagnostico feito, pendente acao
 
-Critério de conclusão:
+Criterio de conclusao:
 
-- Antigravity configurado com regras, skills e documentação.
+- Antigravity configurado com regras, skills e documentacao.
 - Nenhum segredo versionado.
 - ROADMAP revisado.
 
 ---
 
-## Módulo 2 — Saúde das Integrações
+## Modulo 2 - Saude das Integracoes
 
-Status: [x] Concluído  
+Status: [x] Concluido  
 Prioridade: Alta  
-Objetivo: mostrar se os dados do sistema estão confiáveis.
+Objetivo: mostrar se os dados do sistema estao confiaveis.
 
 Etapas:
 
 - [x] 2.1 Mapear Edge Functions existentes
-- [x] 2.2 Mapear logs de sincronização
-- [x] 2.3 Criar tela de status das integrações
-- [x] 2.4 Mostrar última sincronização
+- [x] 2.2 Mapear logs de sincronizacao
+- [x] 2.3 Criar tela de status das integracoes
+- [x] 2.4 Mostrar ultima sincronizacao
 - [x] 2.5 Mostrar erros recentes
 - [x] 2.6 Mostrar contagem de produtos/estoque/pedidos/notas
 
 ---
 
-## Módulo 3 — Dashboard Gerencial
+## Modulo 3 - Dashboard Gerencial
 
-Status: [x] Concluído  
+Status: [x] Concluido  
 Prioridade: Alta
-Objetivo: criar visão executiva baseada em snapshots, views e dados consolidados.
+Objetivo: criar visao executiva baseada em snapshots, views e dados consolidados.
 
 Etapas:
 
@@ -68,43 +68,43 @@ Etapas:
 - [x] 3.3 Definir filtros;
 - [x] 3.4 Criar/ajustar services;
 - [x] 3.5 Criar layout responsivo;
-- [x] 3.6 Criar gráficos principais;
-- [x] 3.7 Validar números com consultas diretas.
+- [x] 3.6 Criar graficos principais;
+- [x] 3.7 Validar numeros com consultas diretas.
 
 ---
 
-## Módulo 4 — Estoque Consolidado
+## Modulo 4 - Estoque Consolidado
 
 Status: [~] Em progresso  
 Prioridade: Alta  
-Objetivo: consolidar estoque por SKU de forma analítica e gerencial.
+Objetivo: consolidar estoque por SKU de forma analitica e gerencial.
 
 Etapas:
 
-- [x] 4.1 Preparação segura do `estoqueService.ts` com tipos e consolidação reativa V4
-- [x] 4.2 Reestruturação da tela `Estoque.tsx` (3 abas, KPIs, divergências e alertas gerenciais)
-- [ ] 4.3 Mercado Livre Full, quando as integrações e snapshots estiverem disponíveis
+- [x] 4.1 Preparacao segura do `estoqueService.ts` com tipos e consolidacao reativa V4
+- [x] 4.2 Reestruturacao da tela `Estoque.tsx` (3 abas, KPIs, divergencias e alertas gerenciais)
+- [ ] 4.3 Mercado Livre Full, quando as integracoes e snapshots estiverem disponiveis
 
 ---
 
-## Módulo 5 — Custos e Margem Estimada
+## Modulo 5 - Custos e Margem Estimada
 
 Status: [~] Em progresso  
 Prioridade: Alta  
-Objetivo: gerenciar e simular custos e comissões por canal, estimando lucro e margem gerencial.
+Objetivo: gerenciar e simular custos e comissoes por canal, estimando lucro e margem gerencial.
 
 Etapas:
 
-- [x] 5.1 Preparação segura do `precificacaoService.ts` em modo leitura e simulação
-- [x] 5.2 Desenvolvimento da página `CustosMargem.tsx` (3 abas, simulador e parâmetros de custos)
-- [x] 5.3A Registro de rota oficial e inclusão do link "Custos & Margens" no menu lateral
+- [x] 5.1 Preparacao segura do `precificacaoService.ts` em modo leitura e simulacao
+- [x] 5.2 Desenvolvimento da pagina `CustosMargem.tsx` (3 abas, simulador e parametros de custos)
+- [x] 5.3A Registro de rota oficial e inclusao do link "Custos & Margens" no menu lateral
 - [x] 5.3B-2 Auditoria e replanejamento de Custos por Canal
 - [x] 5.3C-1 Migration de Schema 1 (Matrizes e Cubagem)
 - [x] 5.3C-2 Planejamento da Carga Inicial de Dados/Seed
-- [ ] 5.3C-3 Criação da Migration de Seed SQL
-- [ ] 5.3C-4 Migration de Schema 2 (Precificação e Cotações)
+- [ ] 5.3C-3 Criacao da Migration de Seed SQL
+- [ ] 5.3C-4 Migration de Schema 2 (Precificacao e Cotacoes)
 - [ ] 5.3D Edge Functions de Tarifas
-- [ ] 5.3E Visualização e Gravação de Custos por Canal com Overrides
+- [ ] 5.3E Visualizacao e Gravacao de Custos por Canal com Overrides
 - [x] 5.4F Tela de Mapeamento Marketplace em Custos & Margens
 - [x] 5.5A Planejamento da primeira Edge Function Amazon Product Fees em modo unitario/controlado
 - [x] 5.5B Planejamento dos secrets e variaveis da Edge Function Amazon
@@ -119,92 +119,92 @@ Etapas:
 
 ---
 
-## Módulo 6 — Vendas Analíticas
+## Modulo 6 - Vendas Analiticas
 
 Status: [ ] Pendente  
-Prioridade: Média  
-Objetivo: analisar vendas por período, produto, canal e logística.
+Prioridade: Media  
+Objetivo: analisar vendas por periodo, produto, canal e logistica.
 
 Etapas:
 
 - [ ] 6.1 Mapear snapshots de pedidos
-- [ ] 6.2 Definir receita bruta/líquida
+- [ ] 6.2 Definir receita bruta/liquida
 - [ ] 6.3 Criar filtros
-- [ ] 6.4 Criar tabela analítica
+- [ ] 6.4 Criar tabela analitica
 - [ ] 6.5 Criar comparativos
 
 ---
 
-## Módulo 7 — Curva ABC Inteligente
+## Modulo 7 - Curva ABC Inteligente
 
 Status: [ ] Pendente  
 Prioridade: Alta  
-Objetivo: implementar análise estratégica de produtos.
+Objetivo: implementar analise estrategica de produtos.
 
 Etapas:
 
-- [ ] 7.1 Auditar dados disponíveis
+- [ ] 7.1 Auditar dados disponiveis
 - [ ] 7.2 Criar view/RPC de base
 - [ ] 7.3 ABC por faturamento
 - [ ] 7.4 ABC por lucro
 - [ ] 7.5 ABC por volume
-- [ ] 7.6 Matriz estratégica
+- [ ] 7.6 Matriz estrategica
 - [ ] 7.7 Alertas
-- [ ] 7.8 Recomendações de ação
+- [ ] 7.8 Recomendacoes de acao
 - [ ] 7.9 Tela responsiva
-- [ ] 7.10 Exportação
+- [ ] 7.10 Exportacao
 
 ---
 
-## Módulo 8 — Conciliações
+## Modulo 8 - Conciliacoes
 
 Status: [ ] Pendente  
-Prioridade: Média  
-Objetivo: encontrar divergências entre sistemas.
+Prioridade: Media  
+Objetivo: encontrar divergencias entre sistemas.
 
 Etapas:
 
 - [ ] 8.1 Olist x Amazon FBA
 - [ ] 8.2 Olist x Mercado Livre Full
-- [ ] 8.3 Produtos sem vínculo
+- [ ] 8.3 Produtos sem vinculo
 - [ ] 8.4 Estoque divergente
 - [ ] 8.5 Alertas
 
 ---
 
-## Módulo 9 — Keepa e Mineração
+## Modulo 9 - Keepa e Mineracao
 
 Status: [ ] Pendente  
-Prioridade: Média  
-Objetivo: trazer inteligência de mercado.
+Prioridade: Media  
+Objetivo: trazer inteligencia de mercado.
 
 Etapas:
 
-- [ ] 9.1 Definir ASINs elegíveis
+- [ ] 9.1 Definir ASINs elegiveis
 - [ ] 9.2 Definir snapshots Keepa
 - [ ] 9.3 Controlar tokens/rate limit
 - [ ] 9.4 Criar alertas de oportunidade
-- [ ] 9.5 Criar tela de mineração
+- [ ] 9.5 Criar tela de mineracao
 
 ---
 
-## Módulo 10 — n8n + Telegram
+## Modulo 10 - n8n + Telegram
 
 Status: [ ] Pendente  
-Prioridade: Média  
+Prioridade: Media  
 Objetivo: alertas e consultas gerenciais.
 
 Etapas:
 
-- [ ] 10.1 Relatório diário
-- [ ] 10.2 Relatório semanal
+- [ ] 10.1 Relatorio diario
+- [ ] 10.2 Relatorio semanal
 - [ ] 10.3 Alertas de ruptura
 - [ ] 10.4 Alertas de margem
 - [ ] 10.5 Perguntas via Telegram
 
 ---
 
-## Módulo 11 — Legado
+## Modulo 11 - Legado
 
 Status: [ ] Pendente  
 Prioridade: Baixa  
@@ -212,10 +212,10 @@ Objetivo: decidir o que manter, adaptar, ocultar ou remover.
 
 Etapas:
 
-- [ ] 11.1 Auditar módulos antigos
-- [ ] 11.2 Marcar telas como legado quando necessário
-- [ ] 11.3 Ocultar rotas que confundem o usuário
-- [ ] 11.4 Remover apenas com confirmação
+- [ ] 11.1 Auditar modulos antigos
+- [ ] 11.2 Marcar telas como legado quando necessario
+- [ ] 11.3 Ocultar rotas que confundem o usuario
+- [ ] 11.4 Remover somente com confirmacao
 
 ---
 
@@ -687,7 +687,7 @@ Helpers planejados:
 - `errorResponse`;
 - `validarUuid`;
 - `parseBooleanDefault`;
-- `sanitizarPayloadAmazon`;
+- `sanitizarPayloadAmazonFees`;
 - `sanitizarErro`;
 - `calcularCacheValido`;
 - `buscarQuoteRecente`;
@@ -908,7 +908,7 @@ Cuidados:
 - nao usar Amazon secrets;
 - nao configurar secrets Amazon nesta etapa;
 - nao rodar deploy;
-- nao registrar Authorization/JWT em logs.
+- nao registrar Authorization/JWT in logs.
 
 Matriz esperada:
 
@@ -943,7 +943,7 @@ Objetivo: automatizar o teste autenticado local da Edge Function `amazon-fees-qu
 
 Resultado do Teste Autenticado Local:
 - Usuario ficticio `teste-financeiro-local@primely.local` criado/atualizado com sucesso no Auth local.
-- Perfil financeiro correspondente inserido em `public.usuarios_perfis` com papel `financeiro` e status `ativo` diretamente via SQL/Docker.
+- Perfil financeiro correspondente inserido in `public.usuarios_perfis` com papel `financeiro` e status `ativo` diretamente via SQL/Docker.
 - Login e obtencao do JWT em memoria concluidos com sucesso.
 - Endpoint `/auth/v1/user` respondeu com `HTTP 200`.
 - Edge Function `amazon-fees-quote` executada com sucesso com `--no-verify-jwt` no Deno Edge Runtime local para contornar incompatibilidade na validacao automatica do gateway local (que tentava verificar chaves ES256 como HMAC).
@@ -1051,14 +1051,13 @@ Detalhes do Planejamento de Transicao:
 6. **Observacao Tecnica de Integracao (ASIN x SellerSKU)**:
    - A Product Fees API possui operacoes por ASIN, por SellerSKU e tambem operacao em lote. Como o Primely Store armazena seller_sku e pode armazenar ASIN no mapeamento Amazon, a Fase 5.5K-2 devera definir a estrategia oficial: usar ASIN, usar SellerSKU ou aplicar fallback controlado entre ambos. Nenhuma decisao de implementacao real foi tomada nesta fase.
 
-
 Plano de Microfases Futuras:
-- **5.5K-2**: Definir contrato técnico ASIN x SellerSKU x operação em lote para Amazon Product Fees.
+- **5.5K-2**: Definir contrato tecnico ASIN x SellerSKU x operacao em lote para Amazon Product Fees.
 - **5.5K-3**: revisar schema de `marketplace_fee_quotes` para suportar modo_consulta/identificador usado/cache.
 - **5.5K-4**: preparar helpers puros para montar payload SellerSKU/ASIN sem chamar Amazon.
-- **5.5K-5**: preparar contrato de erros e normalização da resposta da Amazon.
+- **5.5K-5**: preparar contrato de erros e normalizacao da resposta da Amazon.
 - **5.5K-6**: planejar LWA/SigV4 isolados.
-- **5.5K-7**: teste real controlado somente após autorização explícita.
+- **5.5K-7**: teste real controlado somente apos autorizacao explicita.
 
 ---
 
@@ -1090,9 +1089,9 @@ Estrategia Oficial de Consulta e Decisao:
 Ajuste do Plano de Microfases:
 - **5.5K-3**: revisar schema de `marketplace_fee_quotes` para suportar modo_consulta/identificador usado/cache.
 - **5.5K-4**: preparar helpers puros para montar payload SellerSKU/ASIN sem chamar Amazon.
-- **5.5K-5**: preparar contrato de erros e normalização da resposta da Amazon.
+- **5.5K-5**: preparar contrato de erros e normalizacao da resposta da Amazon.
 - **5.5K-6**: planejar LWA/SigV4 isolados.
-- **5.5K-7**: teste real controlado somente após autorização explícita.
+- **5.5K-7**: teste real controlado somente apos autorizacao explicita.
 
 Garantias de Seguranca:
 - O planejamento foi executado de forma puramente teorica e documental.
@@ -1113,7 +1112,6 @@ Resultados da Auditoria:
 3. **Riscos e Performance**: Funcionamento como historico/log de cotacoes acumulado cronologicamente, necessitando de indice normal de lookup com ordenacao de expiracao, sem impor restricao rigida de unicidade.
 4. **Proposta DDL**: Desenho conceitual de DDL para estender a tabela com as colunas ausentes e criar um indice composto de lookup ordenado.
 
-
 Garantias de Seguranca:
 - Nenhuma migration fisica foi criada ou enviada ao banco de dados.
 - Nenhuma chamada real foi efetuada e a Edge Function permanece em mock seguro.
@@ -1125,23 +1123,23 @@ Garantias de Seguranca:
 
 Status: [x] Contrato de Helpers Concluido
 
-Objetivo: planejar o contrato técnico dos helpers puros Deno de request/response para cotação de taxas da Amazon Product Fees, especificando os endpoints lógicos e estruturas sem implementar código.
+Objetivo: planejar o contrato tecnico dos helpers puros Deno de request/response para cotacao de taxas da Amazon Product Fees, especificando os endpoints logicos e estruturas sem implementar codigo.
 
 Resumo dos Helpers Propostos:
 1. **`montarPayloadFeesSku`**: Formata rota `/listings/{SellerSKU}/feesEstimate` com URL encoding estrito.
-2. **`montarPayloadFeesAsin`**: Formata rota `/items/{Asin}/feesEstimate` e valida formato alfanumérico de 10 caracteres.
-3. **`montarPayloadFeesBatch`**: Consolida múltiplos requests de até 20 itens no body para batch.
+2. **`montarPayloadFeesAsin`**: Formata rota `/items/{Asin}/feesEstimate` e valida formato alfanumerico de 10 caracteres.
+3. **`montarPayloadFeesBatch`**: Consolida multiplos requests de ate 20 itens no body para batch.
 4. `normalizarModoConsulta`, `validarEntradaFeesQuote`, `sanitizarPayloadAmazonFees`, e `extrairResumoTaxasAmazon`.
-5. **Isolamento de Segurança**: Os helpers são puramente lógicos e não efetuam chamadas fetch, acesso ao banco de dados, leitura de variáveis de ambiente ou lógicas SigV4/LWA.
+5. **Isolamento de Seguranca**: Os helpers sao puramente logicos e nao efetuam chamadas fetch, acesso ao banco de dados, leitura de variaveis de ambiente ou logicas SigV4/LWA.
 
-Cronograma Ajustado para Próxima Microfase:
-- **5.5K-5**: Definir contrato de erros e normalização da resposta Amazon.
+Cronograma Ajustado para Proxima Microfase:
+- **5.5K-5**: Definir contrato de erros e normalizacao da resposta Amazon.
 - **5.5K-6**: Criar helpers puros em arquivo isolado sem fetch e sem secrets.
-- **5.5K-7**: teste real controlado somente após autorização explícita.
+- **5.5K-7**: teste real controlado somente apos autorizacao explicita.
 
 Garantias de Seguranca:
-- Nenhuma linha de código foi escrita ou alterada no repositório.
-- Nenhuma chamada real foi efetuada à Amazon e nenhuma credencial real foi exposta.
+- Nenhuma linha de codigo foi escrita ou alterada no repositorio.
+- Nenhuma chamada real foi efetuada a Amazon e nenhuma credencial real foi exposta.
 
 ---
 
@@ -1149,21 +1147,21 @@ Garantias de Seguranca:
 
 Status: [x] Contrato de Erros e Normalizacao Concluido
 
-Objetivo: planejar e estruturar conceitualmente as regras de tratamento de erros, alertas e normalização do retorno (request/response) da futura integração com a Amazon Product Fees API.
+Objetivo: planejar e estruturar conceitualmente as regras de tratamento de erros, alertas e normalizacao do retorno (request/response) da futura integracao com a Amazon Product Fees API.
 
 Definicoes de Erro e Normalizacao:
-1. **Response Padronizado**: JSON unificado mapeando status do cache, detalhes de taxas estruturados (marketplace, logística e totais) e objeto de erro com código, mensagem sanitizada e categoria.
-2. **Fallback no Modo Auto**: Teste inicial via SKU com fallback para ASIN se falhar por SKU inexistente. Preservação da mensagem de erro do SKU no warning `fallback_sku_para_asin` para fins de auditoria de cadastro.
-3. **Tratamento de Erros e Cache**: Validações locais, erros LWA/SigV4 isolados e expiração de cache lógica (5 minutos para erros temporários/rate limit e 24 horas para erros de cadastro).
-4. **Logs Sanitizados**: Proibição estrita de vazar Authorization, tokens LWA ou segredos AWS IAM no console.
+1. **Response Padronizado**: JSON unificado mapeando status do cache, detalhes de taxas estruturados (marketplace, logistica e totais) e objeto de erro com codigo, mensagem sanitizada e categoria.
+2. **Fallback no Modo Auto**: Teste inicial via SKU com fallback para ASIN se falhar por SKU inexistente. Preservacao da mensagem de erro do SKU no warning `fallback_sku_para_asin` para fins de auditoria de cadastro.
+3. **Tratamento de Erros e Cache**: Validacoes locais, erros LWA/SigV4 isolados e expiracao de cache logica (5 minutos para erros temporarios/rate limit e 24 horas para erros de cadastro).
+4. **Logs Sanitizados**: Proibicao estrita de vazar Authorization, tokens LWA ou secrets AWS IAM no console.
 
 Ajuste de Cronograma de Microfases:
 - **5.5K-6**: Criar helpers puros em arquivo isolado sem fetch e sem secrets.
-- **5.5K-7**: teste real controlado somente após autorização explícita.
+- **5.5K-7**: teste real controlado somente apos autorizacao explicita.
 
 Garantias de Seguranca:
-- Atividade puramente documental, sem códigos físicos ou migrations alterados/criados.
-- O Git status permanece focado nos registros de documentação técnica.
+- Atividade puramente documental, sem codigos fisicos ou migrations alterados/criados.
+- O Git status permanece focado nos registros de documentacao tecnica.
 
 ---
 
@@ -1171,55 +1169,55 @@ Garantias de Seguranca:
 
 Status: [x] Helpers Puros Concluidos e Testados
 
-Objetivo: criar helpers puros no Deno para a Edge Function `amazon-fees-quote`, contendo tipagens TypeScript e testes unitários locais, sem rede, sem secrets e sem interações de banco.
+Objetivo: criar helpers puros no Deno para a Edge Function `amazon-fees-quote`, contendo tipagens TypeScript e testes unitarios locais, sem rede, sem secrets e sem interacoes de banco.
 
 Helpers Implementados em `_helpers.ts`:
-1. **`normalizarModoConsulta`**: Normalização robusta do modo para `"auto" | "sku" | "asin"`.
-2. **`validarEntradaFeesQuote`**: Validações de UUID, preço maior que zero, moeda `BRL`, flag de logística FBA/FBM e prevenção ativa contra injeção de cabeçalhos de autenticação/tokens.
-3. **`montarPayloadFeesSku`**: Monta o endpoint `/listings/{SellerSKU}/feesEstimate` aplicando URL encoding estrito ao SKU e constrói o body.
-4. **`montarPayloadFeesAsin`**: Monta o endpoint `/items/{Asin}/feesEstimate` com ASIN em uppercase e validação conservadora de 10 caracteres alfanuméricos.
-5. **`montarPayloadFeesBatch`**: Agrupa cotações em lote de até 20 itens no padrão esperado pela API Amazon.
-6. **`sanitizarPayloadAmazonFees`**: Filtra chaves sensíveis (Authorization, passwords, tokens) recursivamente no payload.
+1. **`normalizarModoConsulta`**: Normalizacao robusta do modo para `"auto" | "sku" | "asin"`.
+2. **`validarEntradaFeesQuote`**: Validacoes de UUID, preco maior que zero, moeda `BRL`, flag de logistica FBA/FBM e prevencao ativa contra injecao de cabecalhos de autenticacao/tokens.
+3. **`montarPayloadFeesSku`**: Monta o endpoint `/listings/{SellerSKU}/feesEstimate` aplicando URL encoding estrito ao SKU e constroi o body.
+4. **`montarPayloadFeesAsin`**: Monta o endpoint `/items/{Asin}/feesEstimate` com ASIN em uppercase e validacao conservadora de 10 caracteres alfanumericos.
+5. **`montarPayloadFeesBatch`**: Agrupa cotacoes em lote de ate 20 itens no padrao esperado pela API Amazon.
+6. **`sanitizarPayloadAmazonFees`**: Filtra chaves sensiveis (Authorization, passwords, tokens) recursivamente no payload.
 7. **`extrairResumoTaxasAmazon`**: Normaliza a resposta da Amazon, extraindo as taxas estimadas e consolidando os custos em camelCase.
 
 Testes Unitarios (`_helpers.test.ts`):
-- 15 testes unitários criados e validados contra todas as funções de montagem, validação e sanitização.
-- Executado via `deno test` local com resultado: `15 passed | 0 failed (32ms)`.
-- Validação estrita de SKU com caracteres especiais saindo codificado, ASIN de 10 caracteres sem prefixo B obrigatório, e remoção de tokens.
+- 16 testes unitarios criados e validados contra todas as funcoes de montagem, validacao e sanitizacao.
+- Executado via `deno test` local com resultado: `16 passed | 0 failed (32ms)`.
+- Validacao estrita de SKU com caracteres especiais saindo codificado, ASIN de 10 caracteres sem prefixo B obrigatorio, e remocao de tokens.
 
 Garantias de Seguranca:
-- O arquivo principal da Edge Function `index.ts` não foi alterado nem importou os helpers.
+- O arquivo principal da Edge Function `index.ts` nao foi alterado nem importou os helpers.
 - Nenhuma migration foi criada ou alterada, e nenhuma escrita no banco local ou remoto foi feita.
-- Nenhuma chamada à rede externa (LWA/SigV4/Amazon) foi efetuada.
+- Nenhuma chamada a rede externa (LWA/SigV4/Amazon) foi efetuada.
 - O Git status acusa os novos arquivos de helpers isolados.
 
 Plano de Microfases Futuras:
 - **5.5K-8**: Integrar helpers no index.ts mantendo mock.
-- **5.5K-9**: Teste real controlado somente após autorização explícita.
+- **5.5K-9**: Teste real controlado somente apos autorizacao explicita.
 
 ---
 
 ## Registro 2026-06-10 - Fase 5.5K-7
 
-Status: [x] Planejamento de Integração dos Helpers Concluído
+Status: [x] Planejamento de Integracao dos Helpers Concluido
 
-Objetivo: planejar e documentar como os helpers puros TypeScript (`_helpers.ts`) serão integrados na Edge Function `amazon-fees-quote/index.ts` mantendo a segurança e o comportamento mock atual intacto, preparando as bases de testes e fluxos para acoplamentos futuros.
+Objetivo: planejar e documentar como os helpers puros TypeScript (`_helpers.ts`) serao integrados na Edge Function `amazon-fees-quote/index.ts` mantendo a seguranca e o comportamento mock atual intacto, preparando as bases de testes e fluxos para acoplamentos futuros.
 
-Análise e Fluxo de Integração Planejado:
-1. **Preservação do Fluxo Crítico**: A integração dos helpers no `index.ts` deve manter a ordem estrita de segurança e autenticação (CORS -> Verificação de Método -> Validação de Bearer JWT -> Validação de Permissão Financeira no Banco -> Carga do Mapeamento Marketplace do Banco).
-2. **Consolidação e Validação de Entrada**: O body da requisição (`mapeamento_id`, `preco_consultado`, etc.) será combinado com os parâmetros do mapeamento consultado (`seller_sku`, `asin`, `marketplace_id`, `is_amazon_fulfilled`, `moeda` com fallback `BRL`) em uma estrutura única `EntradaFeesQuote` e validado via `validarEntradaFeesQuote(...)`.
-3. **Resolução de Rota e Identificador**: Com a entrada validada e o modo de consulta normalizado (`normalizarModoConsulta(...)`), a Edge Function acionará as funções de montagem do payload (`montarPayloadFeesSku` ou `montarPayloadFeesAsin`), gerando e sanitizando o request body em memória com `sanitizarPayloadAmazonFees(...)`.
-4. **Preservação do Mock Seguro**: Mesmo gerando os payloads em memória, a Edge Function continuará retornando a resposta mock estruturada com HTTP 200 de sucesso, **sem fazer nenhuma chamada HTTP externa (fetch)**, sem ler secrets AWS/LWA e sem atualizar o banco nesta etapa.
-5. **Mitigação de Riscos**: Evita-se a inversão de validações (nunca validar o body ou mapeamento antes de validar o JWT/Autorização), previne-se o vazamento de chaves ou mensagens brutas e assegura-se que a compatibilidade com todos os testes mock de erros existentes (400, 401, 403, 404) seja 100% mantida.
+Analise e Fluxo de Integracao Planejado:
+1. **Preservacao do Fluxo Critico**: A integracao dos helpers no `index.ts` deve manter a ordem estrita de seguranca e autenticacao (CORS -> Verificacao de Metodo -> Validacao de Bearer JWT -> Validacao de Permissao Financeira no Banco -> Carga do Mapeamento Marketplace do Banco).
+2. **Consolidacao e Validacao de Entrada**: O body da requisicao (`mapeamento_id`, `preco_consultado`, etc.) sera combinado com os parametros do mapeamento consultado (`seller_sku`, `asin`, `marketplace_id`, `is_amazon_fulfilled`, `moeda` com fallback `BRL`) em uma estrutura unica `EntradaFeesQuote` e validado via `validarEntradaFeesQuote(...)`.
+3. **Resolucao de Rota e Identificador**: Com a entrada validada e o modo de consulta normalizado (`normalizarModoConsulta(...)`), a Edge Function acionara as funcoes de montagem do payload (`montarPayloadFeesSku` ou `montarPayloadFeesAsin`), gerando e sanitizando o request body em memoria com `sanitizarPayloadAmazonFees(...)`.
+4. **Preservacao do Mock Seguro**: Mesmo gerando os payloads em memoria, a Edge Function continuara retornando a resposta mock estruturada com HTTP 200 de sucesso, **sem fazer nenhuma chamada HTTP externa (fetch)**, sem ler secrets AWS/LWA e sem atualizar o banco nesta etapa.
+5. **Mitigacao de Riscos**: Evita-se a inversao de validacoes (nunca validar o body ou mapeamento antes de validar o JWT/Autorizacao), previne-se o vazamento de chaves ou mensagens brutas e assegura-se que a compatibilidade com todos os testes mock de erros existentes (400, 401, 403, 404) seja 100% mantida.
 
-Estratégia Recomendada para a Próxima Fase:
-- **Próxima Fase (5.5K-8)**: Integrar de fato os helpers no `index.ts` mantendo o comportamento mock seguro e validar via `deno check` e testes locais de chamadas. Esta é a opção mais segura por permitir verificar a integração estática e dinâmica da lógica sem expor o sistema à rede ou credenciais reais.
+Estrategia Recomendada para a Proxima Fase:
+- **Proxima Fase (5.5K-8)**: Integrar de fato os helpers no `index.ts` mantendo o comportamento mock seguro e validar via `deno check` e testes locais de chamadas. Esta e a opcao mais segura por permitir verificar a integracao estatica e dinamica da logica sem expor o sistema a rede ou credenciais reais.
 
-Garantias de Segurança:
-- O arquivo principal da Edge Function `index.ts` não foi modificado.
-- Nenhuma alteração foi feita nos helpers ou testes criados.
+Garantias de Seguranca:
+- O arquivo principal da Edge Function `index.ts` nao foi modificado.
+- Nenhuma alteracao foi feita nos helpers ou testes criados.
 - Nenhuma migration foi criada ou alterada, e nenhuma chamada externa ou leitura de secrets foi efetuada.
-- O Git status permanece 100% limpo ao início da atividade.
+- O Git status permanece 100% limpo ao inicio da atividade.
 
 ---
 
@@ -1227,82 +1225,74 @@ Garantias de Segurança:
 
 Status: [x] Helpers Integrados no index.ts com Sucesso
 
-Objetivo: importar e acoplar os helpers puros na Edge Function `amazon-fees-quote/index.ts`, executando a normalização, consolidação e validação estrutural do payload gerado em memória antes de retornar o JSON mock sob as mesmas garantias de erros de cliente.
+Objetivo: importar e acoplar os helpers puros na Edge Function `amazon-fees-quote/index.ts`, executando a normalizacao, consolidacao e validacao estrutural do payload gerado em memoria antes de retornar o JSON mock sob as mesmas garantias de erros de cliente.
 
 Melhorias Aplicadas:
-1. **Extensão de Tipagem**: Mapeados os campos `asin` e `moeda` no tipo `MarketplaceMapping` do `index.ts` e na query de seleção no banco de dados local. Mapeados os campos `modo_consulta` e `permitir_fallback_asin` no tipo `FeesQuoteRequestBody`.
-2. **Consolidação e Validação**: Adicionado bloco lógico de try-catch interno para converter quaisquer falhas de validação de dados em memória disparados pelos helpers puros em um `AppError` com status HTTP `400` de cliente.
-3. **Mapeamento e Sanitização**: Geração do payload da Amazon com `montarPayloadFeesSku` e `montarPayloadFeesAsin` sanitizado de segredos por `sanitizarPayloadAmazonFees`.
-4. **Enriquecimento do Retorno Mock**: O response de sucesso mock inclui agora os campos não-sensíveis `modo_consulta`, `identificador_usado` e `payload_mock_sanitizado`.
+1. **Extensao de Tipagem**: Mapeados os campos `asin` e `moeda` no tipo `MarketplaceMapping` do `index.ts` e na query de selecao no banco de dados local. Mapeados os campos `modo_consulta` e `permitir_fallback_asin` no tipo `FeesQuoteRequestBody`.
+2. **Consolidacao e Validacao**: Adicionado bloco logico de try-catch interno para converter quaisquer falhas de validacao de dados em memoria disparados pelos helpers puros em um `AppError` com status HTTP `400` de cliente.
+3. **Mapeamento e Sanitizacao**: Geracao do payload da Amazon com `montarPayloadFeesSku` e `montarPayloadFeesAsin` sanitizado de segredos por `sanitizarPayloadAmazonFees`.
+4. **Enriquecimento do Retorno Mock**: O response de sucesso mock inclui agora os campos nao-sensiveis `modo_consulta`, `identificador_usado` e `payload_mock_sanitizado`.
 
 Resultados Finais:
 * **`deno fmt --check`**: Passou perfeitamente nos 3 arquivos.
 * **`deno check`**: Passou perfeitamente, sem nenhum aviso de tipagem no `index.ts`.
-* **`deno test`**: Passou perfeitamente com 15 testes de helpers verdes.
-* **`task.md`**: Removido após a conclusão da checklist conforme as regras da fase.
+* **`deno test`**: Passou perfeitamente com 16 testes de helpers verdes.
+* **`task.md`**: Removido apos a conclusao da checklist conforme as regras da fase.
 
 Garantias Cumpridas:
-* O retorno da Edge Function continua mockado e sem tráfego de rede (`fetch`).
-* Não foram manipulados segredos de ambiente ou chaves AWS/LWA reais.
-* Nenhuma migration foi criada ou alterada, mantendo o banco e Git limpos de dados espúrios.
+* O retorno da Edge Function continua mockado e sem trafego de rede (`fetch`).
+* Nao foram manipulados segredos de ambiente ou chaves AWS/LWA reais.
+* Nenhuma migration foi criada ou alterada, mantendo o banco e Git limpos de dados espurios.
 
 ---
 
 ## Registro 2026-06-10 - Fase 5.5K-9 / 5.5K-9A / 5.5K-9B
 
-Status: [x] Testes Locais e Documentação Concluídos com Sucesso
+Status: [x] Testes Locais e Documentacao Concluidos com Sucesso
 
-Objetivo: testar localmente a Edge Function `amazon-fees-quote` integrada aos helpers, auditar o URL encoding de SKU especial, e documentar oficialmente os resultados das validações sem rede e sem chaves privadas.
+Objetivo: testar localmente a Edge Function `amazon-fees-quote` integrada aos helpers, auditar o URL encoding de SKU especial, e documentar oficialmente os resultados das validacoes sem rede e sem chaves privadas.
 
-Cenários de Teste Local e Validações:
-1. **OPTIONS**: Retornou `HTTP 200` CORS pré-verificado.
-2. **GET (Método inválido)**: Retornou `HTTP 405` com mensagem sanitizada do mock.
+Cenarios de Teste Local e Validacoes:
+1. **OPTIONS**: Retornou `HTTP 200` CORS pre-verificado.
+2. **GET (Metodo invalido)**: Retornou `HTTP 405` com mensagem sanitizada do mock.
 3. **POST sem Auth**: Retornou `HTTP 401` com erro controlado de Authorization ausente.
-4. **POST com Bearer inválido**: Retornou `HTTP 401` de usuário não autenticado pelo Supabase Auth local.
+4. **POST com Bearer invalido**: Retornou `HTTP 401` de usuario nao autenticado pelo Supabase Auth local.
 5. **Mapeamento inexistente**: Retornou `HTTP 404` com erro controlado.
-6. **Mapeamento Amazon FBA válido**: Retornou `HTTP 200` com os campos mock e os dados de debug enriquecidos (`modo_consulta`, `identificador_usado`, `payload_mock_sanitizado` limpo).
-7. **SKU com caractere especial**: Executado com SKU `"TESTE SKU/AMZ FEES"`. O endpoint path lógico do helper é formatado com codificação de URL simples (`TESTE%20SKU%2FAMZ%20FEES`), sem ocorrência de duplo encoding.
+6. **Mapeamento Amazon FBA valido**: Retornou `HTTP 200` com os campos mock e os dados de debug enriquecidos (`modo_consulta`, `identificador_usado`, `payload_mock_sanitizado` limpo).
+7. **SKU com caractere especial**: Executado com SKU `"TESTE SKU/AMZ FEES"`. O endpoint path logico do helper e formatado com codificacao de URL simples (`TESTE%20SKU%2FAMZ%20FEES`), sem ocorrencia de duplo encoding.
 8. **ASIN sem iniciar com B**: Executado com ASIN `"1234567890"` e aceito sem bloqueios, emitindo o warning apropriado de formato suspeito.
-9. **FBM/DBA**: Executado com `is_amazon_fulfilled = false` e aceito como booleano válido.
+9. **FBM/DBA**: Executado com `is_amazon_fulfilled = false` e aceito como booleano valido.
 
-Resultados de Auditoria e Prevenção de Segredos:
-* **Duplo Encoding**: Investigado e comprovado que o helper `montarPayloadFeesSku` realiza a codificação simples. Adicionado teste unitário extra no `_helpers.test.ts` cobrindo o SKU `"TESTE SKU/AMZ FEES"`.
-* **Sanitização de Payloads**: O `payload_mock_sanitizado` não contém metadados de autenticação, JWT, tokens LWA, secrets AWS IAM ou connection strings.
-* **Limpeza Local**: Todas as entidades temporárias inseridas locais (perfil, produto, canal, mapeamento e usuário auth) foram purgadas do banco local após o término dos testes de integração.
-* **Ferramentas Deno**: `deno fmt --check`, `deno check` e `deno test` (agora com 16 testes unitários) passaram com sucesso absoluto.
+Resultados de Auditoria e Prevencao de Segredos:
+* **Duplo Encoding**: Investigado e comprovado que o helper `montarPayloadFeesSku` realiza a codificacao simples. Adicionado teste unitario extra no `_helpers.test.ts` cobrindo o SKU `"TESTE SKU/AMZ FEES"`.
+* **Sanitizacao de Payloads**: O `payload_mock_sanitizado` nao contem metadados de autenticacao, JWT, tokens LWA, secrets AWS IAM ou connection strings.
+* **Limpeza Local**: Todas as entidades temporarias inseridas locais (perfil, produto, canal, mapeamento e usuario auth) foram purgadas do banco local apos o termino dos testes de integracao.
+* **Ferramentas Deno**: `deno fmt --check`, `deno check` e `deno test` (agora com 16 testes unitarios) passaram com sucesso absoluto.
 
 Garantias Cumpridas:
-* A Edge Function continua mockada e segura, não devendo ser considerada integração real com a Amazon.
+* A Edge Function continua mockada e segura, nao devendo ser considerada integracao real com a Amazon.
 * Nenhuma chamada de rede `fetch` foi efetuada, nenhum secret lido e nenhuma migration de banco alterada.
 
 ---
 
 ## Registro 2026-06-10 - Fase 5.5L-1
 
-Status: [x] Planejamento e Auditoria de Cache de Cotações Concluídos
+Status: [x] Planejamento e Auditoria de Cache de Cotacoes Concluidos
 
-Objetivo: Planejar, sem implementar código, o comportamento do cache real para a futura integração Amazon Product Fees utilizando a tabela `public.marketplace_fee_quotes`, avaliando a necessidade de evolução do schema do banco.
+Objetivo: Planejar, sem implementar codigo, o comportamento do cache real para a futura integracao Amazon Product Fees utilizando a tabela `public.marketplace_fee_quotes`, avaliando a necessidade de evolucao do schema do banco.
 
 Resultados de Auditoria e Planejamento:
-1. **Diferenças de Schema (Gaps)**: A tabela atual `marketplace_fee_quotes` carece de metadados críticos para lookup seguro do cache, como `modo_consulta`, `identificador_usado`, `seller_sku_usado`, `asin_usado`, `moeda`, `is_amazon_fulfilled`, `payload_request_sanitizado`, `erro_codigo`, `warnings`, `valido_ate` e `criado_por`.
-2. **Estratégia de Cache**: A Edge Function consultará a cotação válida mais recente no banco ordenando por `valido_ate DESC`, com a cláusula `valido_ate > now()`. O cache é persistido como histórico/log no estilo audit-log, permitindo rastrear o comportamento ao longo do tempo.
-3. **Regra de Force Refresh**: A flag `force_refresh = true` forçará a ignorar o cache e consultar a API da Amazon, enquanto `force_refresh = false` retornará a cotação válida, marcando `origem = "cache"`.
+1. **Diferencas de Schema (Gaps)**: A tabela atual `marketplace_fee_quotes` carece de metadados criticos para lookup seguro do cache, como `modo_consulta`, `identificador_usado`, `seller_sku_usado`, `asin_usado`, `moeda`, `is_amazon_fulfilled`, `payload_request_sanitizado`, `erro_codigo`, `warnings`, `valido_ate` e `criado_por`.
+2. **Estrategia de Cache**: A Edge Function consultara a cotacao valida mais recente no banco ordenando por `valido_ate DESC`, com a clausula `valido_ate > now()`. O cache e persistido como historico/log no estilo audit-log, permitindo rastrear o comportamento ao longo do tempo.
+3. **Regra de Force Refresh**: A flag `force_refresh = true` forcara a ignorar o cache e consultar a API da Amazon, enquanto `force_refresh = false` retornara a cotacao valida, marcando `origem = "cache"`.
 4. **Tratamento de Validades**:
    * Sucesso da Amazon: validade de acordo com as horas do mapeamento (default 24h).
-   * Erros temporários (timeout, 5xx, 429 rate limits): expiração curta (5 a 15 minutos) para permitir recuperação sem travar consultas legítimas.
-   * Erros de cadastro/negócio (404 SKU não encontrado): expiração longa (24h) para evitar requisições redundantes na API.
-5. **Índice de Lookup**: Definido o índice de cache conceitual `idx_fee_quotes_cache_lookup` composto por `mapeamento_id`, `preco_consultado`, `moeda`, `is_amazon_fulfilled`, `modo_consulta`, `identificador_usado`, `status` e `valido_ate DESC`. O uso de UNIQUE INDEX parcial no tempo foi descartado devido ao comportamento de histórico/log da tabela.
-6. **Evolução de Precificação**: Diferenciamos cache de persistência operacional. A atualização na tabela `produtos_precificacao` só ocorrerá se o usuário possuir acesso financeiro de escrita, se `atualizar_precificacao = true`, se o retorno for sucesso de API válido e se `manual_override = false`.
-7. **Próxima Fase Recomendada**: `5.5L-2 — Criar migration de metadados do cache (Fase A)`. Esta opção é a mais segura e metodológica porque prepara a estrutura do banco local com os tipos e validações corretas antes de qualquer implementação de leitura/escrita na Edge Function.
+   * Erros temporarios (timeout, 5xx, 429 rate limits): expiracao curta (5 a 15 minutos) para permitir recuperacao sem travar consultas legitimas.
+   * Erros de cadastro/negocio (404 SKU nao encontrado): expiracao longa (24h) para evitar requisicoes redundantes na API.
+5. **Indice de Lookup**: Definido o indice de cache conceitual `idx_fee_quotes_cache_lookup` composto por `mapeamento_id`, `preco_consultado`, `moeda`, `is_amazon_fulfilled`, `modo_consulta`, `identificador_usado`, `status` e `valido_ate DESC`. O uso de UNIQUE INDEX parcial no tempo foi descartado devido ao comportamento de historico/log da tabela.
+6. **Evolucao de Precificacao**: Diferenciamos cache de persistencia operacional. A atualizacao na tabela `produtos_precificacao` so ocorrera se o usuario possuir acesso financeiro de escrita, se `atualizar_precificacao = true`, se o retorno for sucesso de API valido e se `manual_override = false`.
+7. **Proxima Fase Recomendada**: `5.5L-2 - Criar migration de metadados do cache (Fase A)`. Esta opcao e a mais segura e metodologica porque prepara a estrutura do banco local com os tipos e validacoes corretas antes de qualquer implementacao de leitura/escrita na Edge Function.
 
 Garantias Cumpridas:
-* Esta fase foi puramente conceitual, de análise e de documentação.
+* Esta fase foi puramente conceitual, de analise e de documentacao.
 * Nenhuma migration foi criada ou alterada, nenhuma Edge Function foi modificada, e nenhum comando de rede (`fetch`) ou SQL de escrita foi efetuado.
-
-
-
-
-
-
-
-

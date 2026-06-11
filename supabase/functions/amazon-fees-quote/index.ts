@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import {
   montarPayloadFeesAsin,
   montarPayloadFeesSku,
+  montarRespostaCacheAmazonFees,
   normalizarModoConsulta,
   sanitizarPayloadAmazonFees,
   validarEntradaFeesQuote,
@@ -50,6 +51,23 @@ type MarketplaceMapping = {
   status: string;
   manual_override: boolean;
   moeda?: string | null;
+};
+
+type CachedFeeQuote = {
+  id: string;
+  mapeamento_id: string;
+  taxa_marketplace_calculada: number | string;
+  taxa_logistica_calculada: number | string;
+  custo_total_calculado: number | string;
+  modo_consulta: string;
+  identificador_usado: "sku" | "asin";
+  seller_sku_usado: string | null;
+  asin_usado: string | null;
+  moeda: string;
+  is_amazon_fulfilled: boolean;
+  warnings: unknown;
+  valido_ate: string;
+  aplicado_em_precificacao: boolean;
 };
 
 class AppError extends Error {
@@ -263,6 +281,41 @@ function validarMapeamentoAmazon(mapeamento: MarketplaceMapping) {
   }
 }
 
+async function buscarCotacaoCacheValida(
+  userClient: AppSupabaseClient,
+  entrada: {
+    mapeamento_id: string;
+    preco_consultado: number;
+    moeda: string;
+    is_amazon_fulfilled: boolean;
+    modo_consulta: string;
+    identificador_usado: "sku" | "asin";
+  },
+) {
+  const { data, error } = await userClient
+    .from("marketplace_fee_quotes")
+    .select(
+      "id, mapeamento_id, taxa_marketplace_calculada, taxa_logistica_calculada, custo_total_calculado, modo_consulta, identificador_usado, seller_sku_usado, asin_usado, moeda, is_amazon_fulfilled, warnings, valido_ate, aplicado_em_precificacao",
+    )
+    .eq("mapeamento_id", entrada.mapeamento_id)
+    .eq("preco_consultado", entrada.preco_consultado)
+    .eq("moeda", entrada.moeda)
+    .eq("is_amazon_fulfilled", entrada.is_amazon_fulfilled)
+    .eq("modo_consulta", entrada.modo_consulta)
+    .eq("identificador_usado", entrada.identificador_usado)
+    .eq("status", "sucesso")
+    .gt("valido_ate", new Date().toISOString())
+    .order("valido_ate", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new AppError("Nao foi possivel consultar o cache de taxas.", 500);
+  }
+
+  return data as CachedFeeQuote | null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -357,6 +410,21 @@ Deno.serve(async (req) => {
     }
 
     const payloadSanitizado = sanitizarPayloadAmazonFees(resultadoPayload);
+
+    if (!body.force_refresh) {
+      const cotacaoCache = await buscarCotacaoCacheValida(auth.userClient, {
+        mapeamento_id: body.mapeamento_id,
+        preco_consultado: entradaValidada.preco_consultado,
+        moeda: entradaValidada.moeda!,
+        is_amazon_fulfilled: entradaValidada.is_amazon_fulfilled,
+        modo_consulta: entradaValidada.modo_consulta!,
+        identificador_usado: payloadSanitizado.identificador_usado,
+      });
+
+      if (cotacaoCache) {
+        return jsonResponse(montarRespostaCacheAmazonFees(cotacaoCache));
+      }
+    }
 
     return jsonResponse({
       success: true,

@@ -1623,6 +1623,36 @@ Desenhou-se a proposta de nome para a futura migração de evolução: `202606xx
 - **Persistência em Precificação**: A atualização no cache da tabela `produtos_precificacao` só ocorrerá se o perfil do usuário permitir escrita, `atualizar_precificacao = true`, o retorno da Amazon for um sucesso real e a flag `manual_override` no mapeamento estiver desativada (`false`).
 - **Próxima Etapa**: Recomendou-se iniciar pela criação da migration de schema (`5.5L-2 — Criar migration de metadados do cache (Fase A)`), garantindo a robustez do banco local antes de plugar as leituras/escritas.
 
+---
+
+## 37. Fase 5.5L-3 - Leitura segura do cache na Edge Function
+
+Em 2026-06-11, foi implementada a leitura read-only de cotações válidas em
+`marketplace_fee_quotes` na Edge Function `amazon-fees-quote`.
+
+### Alterações
+
+- lookup pela chave `mapeamento_id`, preço, moeda, modalidade logística,
+  modo de consulta e identificador usado;
+- exigência de `status = sucesso` e `valido_ate > now()`;
+- `force_refresh = true` ignora o cache;
+- resposta normalizada com `status = cache` e `origem = cache`;
+- ausência de cache preserva o retorno mock existente;
+- nenhum `fetch` Amazon, INSERT, UPDATE ou alteração em
+  `produtos_precificacao`.
+
+### Validação e rollback
+
+- testes unitários cobrem a normalização de números PostgreSQL e warnings;
+- `deno check` valida a Edge Function;
+- rollback: remover `buscarCotacaoCacheValida`, o helper
+  `montarRespostaCacheAmazonFees` e seu teste.
+
+### Próxima etapa
+
+Validar a migration `20260610000100_amazon_fees_cache_metadata.sql` em ambiente
+local/dev antes de qualquer deploy. A aplicação da migration continua exigindo
+confirmação explícita.
 
 
 

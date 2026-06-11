@@ -7,6 +7,7 @@ import {
   montarPayloadFeesAsin,
   montarPayloadFeesBatch,
   montarPayloadFeesSku,
+  montarRespostaCacheAmazonFees,
   normalizarModoConsulta,
   sanitizarPayloadAmazonFees,
   validarEntradaFeesQuote,
@@ -183,6 +184,32 @@ Deno.test("sanitizarPayloadAmazonFees - deve remover propriedades sensiveis", ()
   assertEquals(sanitizado.client_secret, "[REDACTED_SENSITIVE_FIELD]");
   assertEquals(sanitizado.subPayload.password, "[REDACTED_SENSITIVE_FIELD]");
   assertEquals(sanitizado.subPayload.normal, "campo_normal");
+});
+
+Deno.test("montarRespostaCacheAmazonFees - deve normalizar numericos e warnings", () => {
+  const result = montarRespostaCacheAmazonFees({
+    id: "8f18cf50-42c5-46df-bbc7-38f6816e1737",
+    mapeamento_id: "c826c03d-57a7-4eab-a833-7eac07eae29d",
+    taxa_marketplace_calculada: "18.50",
+    taxa_logistica_calculada: 12,
+    custo_total_calculado: "30.50",
+    modo_consulta: "auto",
+    identificador_usado: "sku",
+    seller_sku_usado: "SKU-CACHE-1",
+    asin_usado: null,
+    moeda: "BRL",
+    is_amazon_fulfilled: true,
+    warnings: null,
+    valido_ate: "2026-06-12T12:00:00.000Z",
+    aplicado_em_precificacao: false,
+  });
+
+  assertEquals(result.status, "cache");
+  assertEquals(result.origem, "cache");
+  assertEquals(result.taxas.marketplace, 18.5);
+  assertEquals(result.taxas.logistica, 12);
+  assertEquals(result.taxas.total, 30.5);
+  assertEquals(result.warnings, []);
 });
 
 Deno.test("extrairResumoTaxasAmazon - deve normalizar taxas de sucesso", () => {
