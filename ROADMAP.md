@@ -1275,6 +1275,31 @@ Garantias Cumpridas:
 * A Edge Function continua mockada e segura, não devendo ser considerada integração real com a Amazon.
 * Nenhuma chamada de rede `fetch` foi efetuada, nenhum secret lido e nenhuma migration de banco alterada.
 
+---
+
+## Registro 2026-06-10 - Fase 5.5L-1
+
+Status: [x] Planejamento e Auditoria de Cache de Cotações Concluídos
+
+Objetivo: Planejar, sem implementar código, o comportamento do cache real para a futura integração Amazon Product Fees utilizando a tabela `public.marketplace_fee_quotes`, avaliando a necessidade de evolução do schema do banco.
+
+Resultados de Auditoria e Planejamento:
+1. **Diferenças de Schema (Gaps)**: A tabela atual `marketplace_fee_quotes` carece de metadados críticos para lookup seguro do cache, como `modo_consulta`, `identificador_usado`, `seller_sku_usado`, `asin_usado`, `moeda`, `is_amazon_fulfilled`, `payload_request_sanitizado`, `erro_codigo`, `warnings`, `valido_ate` e `criado_por`.
+2. **Estratégia de Cache**: A Edge Function consultará a cotação válida mais recente no banco ordenando por `valido_ate DESC`, com a cláusula `valido_ate > now()`. O cache é persistido como histórico/log no estilo audit-log, permitindo rastrear o comportamento ao longo do tempo.
+3. **Regra de Force Refresh**: A flag `force_refresh = true` forçará a ignorar o cache e consultar a API da Amazon, enquanto `force_refresh = false` retornará a cotação válida, marcando `origem = "cache"`.
+4. **Tratamento de Validades**:
+   * Sucesso da Amazon: validade de acordo com as horas do mapeamento (default 24h).
+   * Erros temporários (timeout, 5xx, 429 rate limits): expiração curta (5 a 15 minutos) para permitir recuperação sem travar consultas legítimas.
+   * Erros de cadastro/negócio (404 SKU não encontrado): expiração longa (24h) para evitar requisições redundantes na API.
+5. **Índice de Lookup**: Definido o índice de cache conceitual `idx_fee_quotes_cache_lookup` composto por `mapeamento_id`, `preco_consultado`, `moeda`, `is_amazon_fulfilled`, `modo_consulta`, `identificador_usado`, `status` e `valido_ate DESC`. O uso de UNIQUE INDEX parcial no tempo foi descartado devido ao comportamento de histórico/log da tabela.
+6. **Evolução de Precificação**: Diferenciamos cache de persistência operacional. A atualização na tabela `produtos_precificacao` só ocorrerá se o usuário possuir acesso financeiro de escrita, se `atualizar_precificacao = true`, se o retorno for sucesso de API válido e se `manual_override = false`.
+7. **Próxima Fase Recomendada**: `5.5L-2 — Criar migration de metadados do cache (Fase A)`. Esta opção é a mais segura e metodológica porque prepara a estrutura do banco local com os tipos e validações corretas antes de qualquer implementação de leitura/escrita na Edge Function.
+
+Garantias Cumpridas:
+* Esta fase foi puramente conceitual, de análise e de documentação.
+* Nenhuma migration foi criada ou alterada, nenhuma Edge Function foi modificada, e nenhum comando de rede (`fetch`) ou SQL de escrita foi efetuado.
+
+
 
 
 

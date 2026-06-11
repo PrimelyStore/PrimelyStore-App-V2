@@ -1583,5 +1583,46 @@ Em 2026-06-10, foram executados e documentados os testes locais da Edge Function
 - **Limpeza Operacional**: Nenhuma gravação foi efetuada em `marketplace_fee_quotes` e nenhuma alteração foi gravada em `produtos_precificacao` no banco local, mantendo a integridade dos dados históricos reais. Todos os registros inseridos de forma transitória foram completamente purgados do ambiente local.
 - **Governança**: Nenhum deploy para produção, `supabase db push` ou `migration repair` foi realizado. A Edge Function segue estritamente segura para mock.
 
+---
+
+## 36. Fase 5.5L-1 - Planejamento de Cache de Cotações Real em marketplace_fee_quotes
+
+Em 2026-06-10, foi concluído o planejamento conceitual de implementação de cache para a futura integração real com a Amazon Product Fees API, avaliando o schema atual do banco local e mapeando a evolução estrutural necessária.
+
+### 36.1. Identificação de Gaps de Schema
+Auditorias de metadados da tabela `public.marketplace_fee_quotes` revelaram a ausência de colunas necessárias para gerenciar um cache preciso de tarifas. Mapeou-se a necessidade de introduzir as seguintes propriedades:
+- `modo_consulta` (text)
+- `identificador_usado` (text)
+- `seller_sku_usado` (text)
+- `asin_usado` (text)
+- `moeda` (text)
+- `is_amazon_fulfilled` (boolean)
+- `payload_request_sanitizado` (jsonb)
+- `erro_codigo` (text)
+- `warnings` (jsonb)
+- `valido_ate` (timestamp with time zone)
+- `criado_por` (uuid)
+
+Desenhou-se a proposta de nome para a futura migração de evolução: `202606xxxxxx_amazon_fees_cache_quote_metadata.sql`.
+
+### 36.2. Estratégia de Lookup e Force Refresh
+- **Busca por Validade**: O cache será verificado na Edge Function consultando a cotação correspondente mais recente com a cláusula `valido_ate > now()`. Caso exista, retornará o payload marcando `origem = "cache"`.
+- **Force Refresh**:
+  * Se `force_refresh = false` (padrão): Busca prioritária no cache válido para evitar rate limit de rede.
+  * Se `force_refresh = true`: A consulta ao cache é ignorada e prepara-se a chamada direta à API da Amazon. Essa ação será protegida no futuro por controles de rate limit ou restrita a perfis administrativos/financeiros.
+- **Índice de Cache**: Recomendou-se a criação do índice conceitual composto `idx_fee_quotes_cache_lookup` contendo os parâmetros de unicidade (`mapeamento_id`, `preco_consultado`, `moeda`, `is_amazon_fulfilled`, `modo_consulta`, `identificador_usado`, `status`, `valido_ate DESC`). Não deve ser usado UNIQUE INDEX parcial em tempo, mantendo o histórico de logs da tabela de cotações íntegro.
+
+### 36.3. Políticas de Expiração (Validade)
+- **Sucesso Real (Amazon)**: Conforme cadastrado em `validade_cache_horas` no mapeamento (default 24h).
+- **Erros Temporários (Rede/HTTP 5xx/Rate Limit 429)**: Expiração curta (5 a 15 minutos) para não travar a aplicação em problemas pontuais.
+- **Erros de Cadastro (SKU Não Encontrado)**: Expiração longa (24h) para evitar loops de chamadas redundantes em itens inexistentes.
+- **Erros de Sistema (LWA/SigV4/Auth)**: Não cachear como erro de produto; gerar alerta do sistema e logs sanitizados.
+
+### 36.4. Escrita e Relação com Precificação
+- **Escrita de Cotação**: Gravada na tabela de log histórico `marketplace_fee_quotes` após retornos válidos de API da Amazon, cenários de fallback (gerando warnings) ou erros persistíveis, sempre com payloads sanitizados de tokens e cabeçalhos de autenticação.
+- **Persistência em Precificação**: A atualização no cache da tabela `produtos_precificacao` só ocorrerá se o perfil do usuário permitir escrita, `atualizar_precificacao = true`, o retorno da Amazon for um sucesso real e a flag `manual_override` no mapeamento estiver desativada (`false`).
+- **Próxima Etapa**: Recomendou-se iniciar pela criação da migration de schema (`5.5L-2 — Criar migration de metadados do cache (Fase A)`), garantindo a robustez do banco local antes de plugar as leituras/escritas.
+
+
 
 

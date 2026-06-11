@@ -2811,6 +2811,86 @@ Adicionado teste unitário estrito no arquivo `_helpers.test.ts` para verificar 
 * **Integridade**: A Edge Function permanece em estado mock seguro, não realizando chamadas HTTP reais (`fetch`) de rede para a Amazon e não salvando dados de cotações em `marketplace_fee_quotes` nem atualizando `produtos_precificacao`.
 * **Governança**: Nenhum deploy, push ou reparo de migração foi disparado, preservando o repositório em modo estrito de documentação.
 
+---
+
+## 34. Planejamento 5.5L-1 - Arquitetura de Cache Real em marketplace_fee_quotes
+
+Em 2026-06-10, foi finalizado o planejamento conceitual de infraestrutura e comportamento para o cache de cotações de tarifas de marketplace (Amazon Product Fees API), mapeando os gaps de colunas e regras de controle temporal de cache.
+
+### 34.1. Auditoria Física e Gaps da Tabela
+A tabela `public.marketplace_fee_quotes` possui a estrutura básica de histórico de cotações, mas carece de metadados fundamentais para gerenciar chaves de lookup do cache com precisão. Identificou-se a ausência de 11 colunas no schema atual:
+
+| Coluna Necessária | Tipo de Dados | Finalidade |
+|---|---|---|
+| `modo_consulta` | text | Armazena o modo resolvido: `"auto"`, `"sku"` ou `"asin"`. |
+| `identificador_usado` | text | Define qual identificador realizou a consulta (`"sku"` ou `"asin"`). |
+| `seller_sku_usado` | text | Registra o SKU exato enviado para a API. |
+| `asin_usado` | text | Registra o ASIN exato enviado para a API. |
+| `moeda` | text | Moeda de 3 caracteres (ex: `"BRL"`). |
+| `is_amazon_fulfilled` | boolean | Fator divisor chave para segmentar cotações FBA de FBM. |
+| `payload_request_sanitizado` | jsonb | Request body formatado enviado à Amazon, sanitizado de segredos. |
+| `erro_codigo` | text | Código resumido de falha (ex: `"ListingNotFound"`, `"RateLimitExceeded"`). |
+| `warnings` | jsonb | Array de avisos estruturados capturados na resposta. |
+| `valido_ate` | timestamptz | Data e hora limite para validade do cache. |
+| `criado_por` | uuid | ID do usuário financeiro que disparou a cotação. |
+
+Propõe-se a criação de uma migration futura de atualização: `202606xxxxxx_amazon_fees_cache_quote_metadata.sql`.
+
+### 34.2. Estratégia de Lookup do Cache
+A Edge Function consultará a tabela `marketplace_fee_quotes` antes de efetuar qualquer chamada externa para a API da Amazon. O cache será considerado válido se respeitar a seguinte correspondência lógica:
+```sql
+SELECT id, taxa_marketplace_calculada, taxa_logistica_calculada, custo_total_calculado, status, warnings
+FROM public.marketplace_fee_quotes
+WHERE mapeamento_id = :mapeamento_id
+  AND preco_consultado = :preco_consultado
+  AND moeda = :moeda
+  AND is_amazon_fulfilled = :is_amazon_fulfilled
+  AND modo_consulta = :modo_consulta
+  AND identificador_usado = :identificador_usado
+  AND status = 'sucesso'
+  AND valido_ate > now()
+ORDER BY valido_ate DESC
+LIMIT 1;
+```
+A busca prioriza a cotação válida mais recente. Por se tratar de uma tabela histórica (estilo audit log/histórico cronológico), não haverá UNIQUE INDEX composto que impeça inserções repetidas, garantindo a rastreabilidade completa das tentativas e consultas ao longo do tempo. O índice de lookup recomendado será:
+```sql
+CREATE INDEX IF NOT EXISTS idx_fee_quotes_cache_lookup
+    ON public.marketplace_fee_quotes (
+        mapeamento_id,
+        preco_consultado,
+        moeda,
+        is_amazon_fulfilled,
+        modo_consulta,
+        identificador_usado,
+        status,
+        valido_ate DESC
+    );
+```
+
+### 34.3. Regras de Expiração (Tempo de Vida do Cache)
+- **Sucesso Real (Amazon)**: Herdado do campo `validade_cache_horas` do mapeamento (default 24 horas).
+- **Erros Temporários (Timeout / HTTP 5xx)**: Validade curta (5 a 15 minutos) para permitir que novas chamadas tentem restabelecer o serviço caso a API se recupere.
+- **Erros de Quota (HTTP 429 Rate Limit)**: Validade curta e bloqueio temporário (5 a 15 minutos) para evitar requisições redundantes sob concorrência e proteger a cota da conta.
+- **Erros de Cadastro (SKU Não Encontrado / HTTP 404)**: Validade longa (24 horas) para impedir que produtos com cadastro inconsistente na Amazon fiquem batendo repetidamente na API. Essa restrição pode ser ignorada no frontend através de um refresh manual do gestor.
+- **Falhas de Credenciais (LWA / SigV4)**: Não cachear como falha de produto. Esses são erros operacionais globais do app, que devem emitir alertas técnicos e logs sanitizados imediatamente.
+
+### 34.4. Controle de Force Refresh
+- **`force_refresh = false` (Default)**: O sistema busca cotações válidas no cache. Se houver, a resposta é entregue instantaneamente marcando `origem = "cache"`, sem custos de quota ou rede.
+- **`force_refresh = true`**: O sistema ignora qualquer cache válido e obriga uma nova consulta direta à API da Amazon (gravando o resultado como nova cotação histórica).
+- **Proteção contra Abusos**: O acionamento manual de Force Refresh deve ser restrito a usuários com perfis autorizados de escrita financeira/admin, e futuramente poderá implementar travas de rate-limiting baseadas em IP/usuário para evitar esgotamento pós-limite da API.
+
+### 34.5. Separação de Cache e Precificação
+- **Histórico**: A tabela `marketplace_fee_quotes` é puramente gerencial e serve como log histórico cronológico de cotações. Ela nunca é modificada via UPDATE (registros são imutáveis).
+- **Aplicação Operacional**: O cache atual de comissões de produtos para visualização em dashboards e simuladores de margem reside na tabela `produtos_precificacao`.
+- **Regras de Atualização em `produtos_precificacao`**:
+  * A escrita na tabela de precificação só será disparada se a resposta da Amazon/cache de cotação for de status `sucesso`.
+  * Exige que o request envie `atualizar_precificacao = true` e o usuário tenha privilégios de escrita financeira.
+  * A flag `manual_override` do mapeamento correspondente deve ser `false` (se `manual_override = true`, a cotação é gravada em `marketplace_fee_quotes` com `aplicado_em_precificacao = false`, mas o cache de precificação é protegido e mantido intacto).
+
+### 34.6. Próxima Microfase Recomendada
+Recomenda-se avançar para a **Fase 5.5L-2 — Criar migration de metadados do cache (Fase A)**. Esta é a opção mais segura porque isola e garante a evolução estrutural e as constraints do banco de dados local (incluindo o índice de lookup) antes de começarmos a mexer no código de leitura e escrita na Edge Function. Isso evita erros de tipagem no runtime Deno e divergências entre banco e código.
+
+
 
 
 
