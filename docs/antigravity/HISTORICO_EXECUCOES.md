@@ -4,6 +4,30 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
 
 ---
 
+## [2026-06-12] Fase 5.5L-6D - Edge Function mockada mercado-livre-fees-quote
+
+* **Objetivo**: Implementar e testar localmente em Deno o handler HTTP principal `index.ts` e seus testes integrados `index.test.ts` de forma offline, sem deploy e sem chamadas externas.
+* **Arquivos Criados/Alterados**:
+  - `supabase/functions/mercado-livre-fees-quote/index.ts` (criado)
+  - `supabase/functions/mercado-livre-fees-quote/index.test.ts` (criado)
+  - `docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md` (atualizado)
+  - `docs/antigravity/STATUS_ATUAL.md` (atualizado)
+  - `docs/antigravity/HISTORICO_EXECUCOES.md` (atualizado)
+  - `docs/antigravity/PROXIMO_COMANDO.md` (atualizado)
+  - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (atualizado)
+* **Resumo da Etapa**:
+  - Criada a Edge Function mockada `index.ts` exportando a funcao `handleMercadoLivreFeesQuote(req: Request, checkAuth?: Function)` suportando CORS (OPTIONS), Bearer token mockado via injecao nos testes, validacao e sanitizacao de payloads dinamicos e orquestracao dos helpers locais de taxas e frete. O handler le com seguranca do Deno.env a variavel `PRIMELY_INTERNAL_FUNCTION_TOKEN` em producao.
+  - Criados 13 testes integrados de simulacao HTTP em memoria em `index.test.ts`, cobrindo OPTIONS CORS, 401 Unauthorized, 400 Bad Request por JSON ou schema invalidos, 200 OK com comissoes, fretes dinamicos por peso/reputacao e break-even, alem de sanitizacao de payloads, verificacao de warnings e resposta 500 sem vazamento tecnico de logs.
+  - Executada a formatacao, checagem de tipos e testes locais Deno com 100% de sucesso (33 testes passando localmente).
+* **Garantias de Seguranca**:
+  - Sem uso de rede, sem credenciais expostas nos testes ou logs, sem deploy, sem migrations e sem acesso a APIs reais.
+  - O CORS utiliza origem wildcard "*" apenas no mock local para facilitar testes, estando proibido para producao.
+* **Rollback da Fase**:
+  - Exclusao de `supabase/functions/mercado-livre-fees-quote/index.ts` e `index.test.ts`.
+  - Execucao de `git checkout` para reverter alteracoes em `ROADMAP.md`, `TASKS.md`, `docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md` e na pasta `docs/antigravity/`.
+
+---
+
 ## [2026-06-12] Fase 5.5L-6B/C - Implementacao local e mockada de helpers de taxas e logistica do Mercado Livre em Deno
 
 * **Objetivo**: Criar e validar localmente em Deno, sem uso de rede ou credenciais reais, os helpers seguros para calculo de taxas, comissoes e fretes do Mercado Livre, alem do calculo de margem e preco minimo recomendado (Break-even).

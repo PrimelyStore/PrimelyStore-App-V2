@@ -1314,3 +1314,21 @@ Resultados de Auditoria e Implementacao:
 Garantias Cumpridas:
 * Sem chaves reais, sem acesso ao `.env.local`, sem chamadas HTTP reais de rede.
 * Sem acoplamento na Edge Function principal de producao `index.ts`.
+
+---
+
+## Registro 2026-06-12 - Fase 5.5L-6D
+
+Status: [x] Edge Function Mockada do Mercado Livre em Deno Concluida
+
+Objetivo: Implementar e validar o handler principal `index.ts` e testes HTTP integrados em `index.test.ts` de forma estritamente local/offline e sem deploy.
+
+Resultados de Auditoria e Implementacao:
+1. **Handler principal (index.ts)**: Criado o endpoint mockado suportando requisicoes OPTIONS (CORS), POST com autenticacao Bearer local restrita a `Bearer mock-valid-token`, validacao e sanitizacao de payloads e orquestracao dos helpers locais de taxas e frete.
+2. **Testes de integracao (index.test.ts)**: Implementados 13 testes integrados na memoria HTTP cobrindo cors, erros 401, erros 400 por JSON malformado/schema invalido e respostas 200 de simulacao de sucesso com calculos corretos e warnings.
+3. **Validacoes locais**: Formatado com `deno fmt`, checado com `deno check` e testado com 100% de sucesso (33 testes passando).
+
+Garantias Cumpridas:
+* Nenhuma conexao real com APIs externas ou banco de dados.
+* O token `mock-valid-token` e usado apenas para simulacoes e testes offline, sem validacao real de credenciais ou JWT.
+* Sem deploy para o Supabase, sem migrations e sem chaves reais no codigo.

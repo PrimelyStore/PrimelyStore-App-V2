@@ -98,13 +98,19 @@ Nenhum valor real e inserido aqui ou no repositorio. As chaves necessarias no Su
 
 ---
 
-## 10. Rollback Documental
-- Exclusao do arquivo `docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md` e git checkout dos arquivos de controle alterados na pasta `docs/antigravity/`.
+## 10. Rollback da Fase e Funcionalidade
+- Exclusao dos arquivos da Edge Function `supabase/functions/mercado-livre-fees-quote/index.ts` e `index.test.ts` criados nesta fase.
+- Execucao de `git checkout` para reverter as alteracoes nos arquivos de controle (`ROADMAP.md`, `TASKS.md`, `docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md` e a pasta `docs/antigravity/`).
 
 ---
 
 ## 11. Implementacao Realizada (2026-06-12)
-Os helpers mockados e testes locais offline Deno foram implementados com sucesso na branch `feature/mercado-livre-taxas-mockadas`:
-- Helpers criados: `_helpers_ml_fees.ts` e `_helpers_ml_shipping.ts`.
-- Testes criados: `_helpers_ml_fees.test.ts` e `_helpers_ml_shipping.test.ts`.
-- Total de testes passando com sucesso: 20 testes unitarios (100% offline, sem rede e sem secrets).
+Os helpers mockados, a Edge Function e testes locais offline Deno foram implementados com sucesso:
+- Fase 5.5L-6B/C (Helpers e Testes Offline):
+  - Helpers criados: `_helpers_ml_fees.ts` e `_helpers_ml_shipping.ts`.
+  - Testes criados: `_helpers_ml_fees.test.ts` e `_helpers_ml_shipping.test.ts`.
+- Fase 5.5L-6D (Edge Function mockada):
+  - Criada a Edge Function mockada com handler testavel: `index.ts`.
+  - Testes de integracao HTTP offline criados: `index.test.ts`.
+- Total de testes passando com sucesso: 33 testes (20 unitarios dos helpers e 13 de integracao HTTP do handler) 100% offline, sem rede, sem secrets e sem deploy.
+- Nota de Seguranca: O CORS utiliza origem wildcard "*" apenas no mock local para facilitar testes, estando proibido para producao.
