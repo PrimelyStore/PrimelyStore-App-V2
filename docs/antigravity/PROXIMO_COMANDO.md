@@ -2,24 +2,24 @@
 
 ## Contexto identificado
 
-A Fase 5.5L-5C de implementacao local mockada dos helpers LWA e AWS SigV4 em Deno foi concluida com sucesso absoluto.
-- Os 4 arquivos (`_helpers_lwa.ts`, `_helpers_sigv4.ts`, `_helpers_lwa.test.ts`, `_helpers_sigv4.test.ts`) foram criados na pasta da Edge Function.
-- Os 12 testes unitarios locais no Deno passaram com sucesso absoluto sem necessidade de rede.
-- Os arquivos nao foram acoplados no index.ts principal e nao ha chaves reais.
+A Fase 5.5L-6A de planejamento documental de taxas e custos logisticos do Mercado Livre foi concluida com sucesso.
+- O arquivo docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md foi criado em ASCII simples de 7 bits sem acentos.
+- O status do Git contem as alteracoes locais nos documentos de controle na pasta docs/antigravity/.
+- Nenhuma chamada real de rede foi efetuada e nenhum secret foi lido.
 
 ## Objetivo da proxima etapa
 
 A proxima etapa dependera da escolha humana do usuario entre as seguintes opcoes:
-1. Iniciar o planejamento documental de taxas e custos do Mercado Livre (ML), sem chaves reais e sem chamadas reais; ou
-2. Preparar o commit local e stage de checkpoint da Fase 5.5L-5C; ou
+1. Iniciar a implementacao segura de testes locais e mockados de taxas do Mercado Livre em Deno, sem rede e sem secrets reais; ou
+2. Preparar a auditoria pre-commit e stage da Fase 5.5L-6A, sem executar commit ou push; ou
 3. Outra etapa indicada pelo usuario.
 
 ## Comando para enviar ao Antigravity
 
 ```txt
 Aguarde a escolha e confirmacao humana do usuario sobre qual das seguintes etapas seguir:
-1. Iniciar o planejamento documental de taxas e custos do Mercado Livre (ML); ou
-2. Preparar o commit local e stage de checkpoint da Fase 5.5L-5C; ou
+1. Iniciar a implementacao segura de testes locais e mockados de taxas do Mercado Livre em Deno; ou
+2. Preparar a auditoria pre-commit e stage da Fase 5.5L-6A; ou
 3. Outra etapa indicada pelo usuario.
 ```
 

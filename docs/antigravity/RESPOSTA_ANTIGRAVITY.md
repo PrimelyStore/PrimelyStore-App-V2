@@ -1,55 +1,62 @@
-# Resposta Antigravity - Fase 5.5L-5C (Helpers Criados e Testados)
+# Resposta Antigravity - Fase 5.5L-6A (Correcao Documental ML)
 
 ## 1. Resultado da Busca Antes da Correcao
 
 ### 1.1. Ocorrencias de interrogacoes consecutivas antes
-- Zero ocorrencias. Todos os arquivos de controle estavam sem marcas de interrogacoes.
+- Foi detectada uma ocorrencia da palavra "seguranca" com acento no historico que corrompeu para o termo com marcador de texto quebrado.
 
 ### 1.2. Caracteres Nao-ASCII antes
-- Zero ocorrencias.
+- Uma ocorrencia ("segurança" no historico) contendo cedilha e til.
 
 ---
 
-## 2. Relatorio de Implementacao e Validacao
-A implementacao mockada e isolada dos helpers LWA e AWS SigV4 em Deno foi concluida com 100% de sucesso.
-
-### 2.1. Arquivos Criados
-- `supabase/functions/amazon-fees-quote/_helpers_lwa.ts`
-- `supabase/functions/amazon-fees-quote/_helpers_sigv4.ts`
-- `supabase/functions/amazon-fees-quote/_helpers_lwa.test.ts`
-- `supabase/functions/amazon-fees-quote/_helpers_sigv4.test.ts`
-
-### 2.2. Resumo de Validacao
-- **deno fmt --check**: OK (todos os arquivos estao formatados).
-- **deno check**: OK (verificacao de tipos TypeScript passou com sucesso).
-- **deno test** (sem permissao de rede): OK (12 testes unitarios executados e todos passaram em 104ms).
-  - 5 testes para a logica LWA (parsing de JSON, tratamento de HTTP 400 da Amazon e sanitizacao de credenciais no erro).
-  - 7 testes para a logica SigV4 (calculo SHA-256 de string, encoding AWS, canonical query, canonical headers e assinatura deterministica SigV4 com data fixa batendo com o padrao).
+## 2. Correcoes Efetuadas
+- Corrigido no arquivo `docs/antigravity/HISTORICO_EXECUCOES.md` o termo corrompido contendo o marcador de texto quebrado para `seguranca`.
+- Removido qualquer resquicio de acentuacao ou caractere especial nao-ASCII em todos os arquivos alterados ou criados.
 
 ---
 
-## 3. Confirmacoes de Seguranca
-- Sem chaves reais e sem chaves configuradas em arquivos ou logs.
-- Sem leitura de secrets reais ou do `.env.local`.
-- Sem uso de `fetch` de rede externa e sem permissao de rede (`--allow-net` desativado nos testes).
+## 3. Relatorio de Planejamento Documental (Mercado Livre)
+O planejamento documental de taxas, comissoes e custos logisticos do Mercado Livre foi concluido com sucesso.
+
+### 3.1. Arquivos Criados ou Alterados
+- `docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md` (criado, contendo todo o detalhamento conceitual)
+- `docs/antigravity/STATUS_ATUAL.md` (atualizado)
+- `docs/antigravity/HISTORICO_EXECUCOES.md` (atualizado com a correcao de texto)
+- `docs/antigravity/PROXIMO_COMANDO.md` (atualizado)
+- `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (este relatorio, atualizado)
+
+### 3.2. Resumo do Mapeamento ML
+- **Comissao ML**: Diferenciada de acordo com `listing_type_id` (Classico e Premium) e do `category_id` da categoria de anuncio.
+- **Tarifa Fixa**: Adicao de R$ 6,00 para itens abaixo de R$ 79,00.
+- **Custos Logisticos**: Modalidades Full (co-participacao no frete gratis e taxas de armazenagem), Flex (repasses locais) e Envios (tabelas baseadas em peso e reputacao do vendedor).
+- **Indicadores Gerenciais**: Lucratividade, margem liquida, ROI e calculo conceitual do Preco Minimo Recomendado para break-even.
+
+---
+
+## 4. Confirmacoes de Seguranca
+- Sem codigo de producao criado ou modificado.
 - Sem deploy para a nuvem.
-- Sem migrations ou SQL de escrita.
-- Sem acoplamento ou importacao dos helpers no arquivo principal de execucao `index.ts`.
+- Sem migrations ou alteracoes em bancos.
+- Sem chamadas de API real (Mercado Livre ou Amazon).
+- Sem leitura de segredos reais.
+- Sem acoplamento de helpers ao `index.ts`.
+- Nenhum commit ou stage foi realizado pelo assistente.
 
 ---
 
-## 4. Resultado da Busca Depois da Correcao
+## 5. Resultado da Busca Depois da Correcao
 
-### 4.1. Ocorrencias de interrogacoes consecutivas depois
-- Zero ocorrencias.
+### 5.1. Ocorrencias de interrogacoes consecutivas depois
+- Zero ocorrencias. Todos os arquivos de controle estao sem marcas de interrogacoes.
 
-### 4.2. Caracteres Nao-ASCII depois
-- Zero ocorrencias. Todos os arquivos permanecem em ASCII simples de 7 bits sem acentos.
+### 5.2. Caracteres Nao-ASCII depois
+- Zero ocorrencias. Todos os arquivos criados e modificados permanecem em ASCII simples de 7 bits sem acentos.
 
 ---
 
-## 5. Proxima Decisao Humana Recomendada
-- Aguardar confirmacao do usuario sobre qual proxima etapa seguir:
-  1. Iniciar o planejamento documental de taxas e custos do Mercado Livre (ML), sem chaves reais; ou
-  2. Preparar o commit local e stage de checkpoint da Fase 5.5L-5C; ou
+## 6. Proxima Decisao Humana Recomendada
+- Aguardar confirmacao do usuario sobre o proximo passo:
+  1. Iniciar a implementacao segura de testes locais e mockados de taxas do Mercado Livre em Deno; ou
+  2. Preparar a auditoria pre-commit e stage da Fase 5.5L-6A; ou
   3. Outra etapa indicada pelo usuario.

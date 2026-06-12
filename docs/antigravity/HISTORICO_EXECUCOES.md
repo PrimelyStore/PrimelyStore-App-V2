@@ -4,6 +4,26 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
 
 ---
 
+## [2026-06-11] Fase 5.5L-6A - Planejamento documental de taxas e custos logisticos do Mercado Livre
+
+* **Objetivo**: Criar o planejamento documental de taxas, comissoes e custos logisticos (Full, Flex e Envios) para futura integracao do Mercado Livre no modulo de precificacao e margens, sem chamadas externas e sem secrets.
+* **Arquivos Criados/Alterados**:
+  - `docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md` (criado)
+  - `docs/antigravity/STATUS_ATUAL.md` (atualizado)
+  - `docs/antigravity/HISTORICO_EXECUCOES.md` (atualizado)
+  - `docs/antigravity/PROXIMO_COMANDO.md` (atualizado)
+  - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (atualizado)
+* **Resumo da Etapa**:
+  - Mapeadas as taxas de comissao (Classico e Premium) e tarifas fixas aplicadas a itens abaixo de R$ 79,00.
+  - Mapeados os custos logisticos para as modalidades Full (co-participacao no frete e armazenagem), Flex (repasses locais) e Envios normais (tabela baseada em peso e reputacao do vendedor).
+  - Definidas as equacoes de lucratividade, margem, ROI e a logica de estimativa de preco minimo recomendado para break-even.
+  - Catalogadas as variaveis de ambiente futuras (apenas nomes) e os riscos de seguranca (vazamento de tokens expiraveis nos logs) e de negocio (divergencia de pesos reais faturados nas agencias).
+  - Todas as informacoes foram estruturadas em ASCII simples sem acentos e sem dados reais.
+* **Garantias de Seguranca**:
+  - Sem codigo operacional, sem commits automaticos, sem push, sem deploy, sem API real, sem secrets reais, sem SQL destrutivo e sem acoplamento.
+
+---
+
 ## [2026-06-11] Fase 5.5L-5C - Implementacao local e mockada dos helpers LWA/SigV4 em Deno
 
 * **Objetivo**: Implementar localmente em Deno, sem uso de rede ou credenciais reais, os helpers seguros para autenticacao LWA e geracao de assinaturas AWS SigV4 via Web Crypto API (`crypto.subtle`).
@@ -169,7 +189,7 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
 * **Resumo da Etapa**:
   - Executados `git status` e `git diff` para inspecao final.
   - Adicionados os 16 arquivos do checkpoint ao stage via `git add`.
-  - Verificado o stage com `git diff --cached` para garantir isolamento e ausencia de secrets ou arquivos indesejados.
+  - Verificado o stage com `git diff --cached --name-only` para garantir isolamento e ausencia de secrets ou arquivos indesejados.
 * **Garantias de Seguranca**:
   - Sem commit local, sem push remoto, sem deploy, sem chamadas de API real, sem leitura de secrets, sem SQL destrutivo e sem alteracao de codigo-fonte.
 
