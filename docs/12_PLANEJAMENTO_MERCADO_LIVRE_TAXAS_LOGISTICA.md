@@ -100,3 +100,11 @@ Nenhum valor real e inserido aqui ou no repositorio. As chaves necessarias no Su
 
 ## 10. Rollback Documental
 - Exclusao do arquivo `docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md` e git checkout dos arquivos de controle alterados na pasta `docs/antigravity/`.
+
+---
+
+## 11. Implementacao Realizada (2026-06-12)
+Os helpers mockados e testes locais offline Deno foram implementados com sucesso na branch `feature/mercado-livre-taxas-mockadas`:
+- Helpers criados: `_helpers_ml_fees.ts` e `_helpers_ml_shipping.ts`.
+- Testes criados: `_helpers_ml_fees.test.ts` e `_helpers_ml_shipping.test.ts`.
+- Total de testes passando com sucesso: 20 testes unitarios (100% offline, sem rede e sem secrets).

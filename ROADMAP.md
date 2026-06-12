@@ -1296,3 +1296,21 @@ Resultados de Auditoria e Planejamento:
 Garantias Cumpridas:
 * Esta fase foi puramente conceitual, de analise e de documentacao.
 * Nenhuma migration foi criada ou alterada, nenhuma Edge Function foi modificada, e nenhum comando de rede (`fetch`) ou SQL de escrita foi efetuado.
+
+---
+
+## Registro 2026-06-12 - Fase 5.5L-6B/C
+
+Status: [x] Helpers e Testes Offline do Mercado Livre em Deno Concluidos
+
+Objetivo: Criar e validar localmente em Deno, sem uso de rede ou credenciais reais, os helpers seguros para calculo de taxas, comissoes e fretes do Mercado Livre, alem do calculo de margem e preco minimo recomendado (Break-even), tratando a descontinuidade matematica de R$ 79,00.
+
+Resultados de Auditoria e Implementacao:
+1. **Helper de Taxas ML**: Implementados metodos de validacao estrita do payload (rejeitando NaN, Infinity e custos negativos), calculo de comissao classica/premium e tarifa fixa ficticia (para precos < R$ 79,00).
+2. **Preco Minimo Recomendado**: Resolvida programaticamente a descontinuidade matematica de Break-even onde o frete gratis se torna obrigatorio, cobrindo o ponto de equilibrio exato em R$ 79,00 e situacoes de prejuizo no limite.
+3. **Helper Logistico ML**: Implementada matriz ficticia de pesos/valores e descontos de reputacao do vendedor para simulacoes locais, alem de sanitizacao automatica de credenciais nos logs.
+4. **Validacoes e Testes**: Criados 20 testes unitarios Deno offline (100% de sucesso).
+
+Garantias Cumpridas:
+* Sem chaves reais, sem acesso ao `.env.local`, sem chamadas HTTP reais de rede.
+* Sem acoplamento na Edge Function principal de producao `index.ts`.

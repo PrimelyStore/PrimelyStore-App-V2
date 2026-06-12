@@ -4,6 +4,31 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
 
 ---
 
+## [2026-06-12] Fase 5.5L-6B/C - Implementacao local e mockada de helpers de taxas e logistica do Mercado Livre em Deno
+
+* **Objetivo**: Criar e validar localmente em Deno, sem uso de rede ou credenciais reais, os helpers seguros para calculo de taxas, comissoes e fretes do Mercado Livre, alem do calculo de margem e preco minimo recomendado (Break-even).
+* **Arquivos Criados/Alterados**:
+  - `supabase/functions/mercado-livre-fees-quote/_helpers_ml_fees.ts` (criado)
+  - `supabase/functions/mercado-livre-fees-quote/_helpers_ml_fees.test.ts` (criado)
+  - `supabase/functions/mercado-livre-fees-quote/_helpers_ml_shipping.ts` (criado)
+  - `supabase/functions/mercado-livre-fees-quote/_helpers_ml_shipping.test.ts` (criado)
+  - `docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md` (atualizado)
+  - `docs/antigravity/STATUS_ATUAL.md` (atualizado)
+  - `docs/antigravity/HISTORICO_EXECUCOES.md` (atualizado)
+  - `docs/antigravity/PROXIMO_COMANDO.md` (atualizado)
+  - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (atualizado)
+  - `TASKS.md` (atualizado)
+  - `ROADMAP.md` (atualizado)
+* **Resumo da Etapa**:
+  - Implementado helper de taxas do Mercado Livre (`_helpers_ml_fees.ts`) calculando comissoes ficticias e tarifa fixa ficticia (para precos < R$ 79,00) com validacoes numericas rigorosas rejeitando NaN, Infinity e valores negativos, alem do tratamento explicito de valores opcionais ausentes.
+  - Resolvida programaticamente a descontinuidade matematica de preco minimo recomendado (Break-even) para que o lucro seja zero na faixa de transicao de R$ 79,00, inclusive cobrindo cenarios onde nenhuma das faixas e inicialmente valida.
+  - Implementado helper logistico (`_helpers_ml_shipping.ts`) calculando frete com base em faixas de peso e descontos de reputacao do vendedor com fixtures ficticias de teste, alem de mascaramento de chaves sensiveis nos logs do sistema.
+  - Criados e executados 20 testes unitarios offline (sem `--allow-net` e sem secrets, utilizando cache local de Deno), os quais passaram com 100% de sucesso.
+* **Garantias de Seguranca**:
+  - Sem chaves reais expostas, sem chamadas HTTP externas reais, sem alteracao do frontend React ou da Edge Function de producao `index.ts` e sem migrations.
+
+---
+
 ## [2026-06-11] Fase 5.5L-6A - Planejamento documental de taxas e custos logisticos do Mercado Livre
 
 * **Objetivo**: Criar o planejamento documental de taxas, comissoes e custos logisticos (Full, Flex e Envios) para futura integracao do Mercado Livre no modulo de precificacao e margens, sem chamadas externas e sem secrets.
