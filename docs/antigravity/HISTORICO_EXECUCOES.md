@@ -4,6 +4,32 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
 
 ---
 
+## [2026-06-12] Fase 5.5L-6E - Planejamento da integracao frontend/simulador
+
+* **Objetivo**: Planejar de forma documental a integracao da aba de simulador de precificacao com a Edge Function local do Mercado Livre, identificando a arquitetura de autenticacao segura, a natureza mockada da aliquota tributaria de 4% (sujeita a validacao fiscal humana) e o bloqueio de chamadas reais do React ate a validacao de sessoes.
+* **Arquivos Criados/Alterados**:
+  - `docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md` (atualizado)
+  - `ROADMAP.md` (atualizado)
+  - `TASKS.md` (atualizado)
+  - `docs/antigravity/STATUS_ATUAL.md` (atualizado)
+  - `docs/antigravity/HISTORICO_EXECUCOES.md` (atualizado)
+  - `docs/antigravity/PROXIMO_COMANDO.md` (atualizado)
+  - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (atualizado)
+  - `docs/antigravity/RESPOSTA_CODEX.md` (atualizado/dinamico)
+* **Resumo da Etapa**:
+  - Mapeados todos os requisitos da futura integracao da interface `CustosMargem.tsx` e do service `precificacaoService.ts` com a Edge Function local.
+  - Estabelecido o bloqueio de chamadas HTTP locais diretas do React usando tokens internos/mockados.
+  - Definida a separacao entre testes em memoria, fetch mockado no frontend e futura chamada HTTP local real dependente de contrato seguro.
+  - Planejada a exibicao de comissoes, tarifas fixas, fretes com desconto de reputacao e break-even (preco minimo) com warnings, com a aliquota de 4% explicitamente identificada como valor mockado/configuravel que exige validacao fiscal humana.
+  - Planejado o banner de aviso visual obrigatorio na interface.
+* **Garantias de Seguranca**:
+  - Etapa estritamente documental. Sem codigo operacional, sem chamadas externas, secrets reais, deploy, migrations ou SQL.
+* **Rollback da Fase**:
+  - Nenhuma restauracao ou git checkout nos arquivos de controle modificados nesta fase (`ROADMAP.md`, `TASKS.md`, `docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md` e a pasta `docs/antigravity/`) pode ocorrer sem confirmacao humana previa e explicita do usuario.
+
+
+---
+
 ## [2026-06-12] Fase 5.5L-6D - Edge Function mockada mercado-livre-fees-quote
 
 * **Objetivo**: Implementar e testar localmente em Deno o handler HTTP principal `index.ts` e seus testes integrados `index.test.ts` de forma offline, sem deploy e sem chamadas externas.

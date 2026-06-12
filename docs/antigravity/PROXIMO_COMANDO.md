@@ -2,20 +2,21 @@
 
 ## Contexto identificado
 
-A Fase 5.5L-6D de implementacao da Edge Function mockada mercado-livre-fees-quote em Deno foi concluida localmente:
-- Handler index.ts criado com orquestracao, CORS, validacao mockada Bearer token e sanitizacao de payloads.
-- Testes integrados index.test.ts criados cobrindo os cenarios obrigatorios de OPTIONS, 401, 400 e 200 com calculos corretos e warnings.
-- Executados 33 testes locais/offline no Deno com 100% de sucesso.
-- Todos os documentos de controle, TASKS.md e ROADMAP.md foram devidamente consolidados e atualizados.
+A Fase 5.5L-6E de planejamento documental para a integracao do simulador frontend com a Edge Function mockada do Mercado Livre foi concluida localmente:
+- Detalhados os arquivos a serem futuramente alterados (`CustosMargem.tsx` e `precificacaoService.ts`).
+- Definidos os inputs de simulacao (peso, reputacao, category_id, listing_type_id) e o fluxo do auto-preenchimento.
+- Planejada a estrutura de retorno da API mockada (comissoes, tarifa fixa, frete com desconto, break-even, warnings) e a regra de banner visual obrigatorio.
+- Fixada a diretriz de seguranca de que chaves de autenticacao mock/local nunca devem ser hardcoded em arquivos versionados do React no Git.
+- Todos os documentos de controle foram devidamente consolidados e atualizados.
 
 ## Objetivo da proxima etapa
 
-A proxima etapa consiste em aguardar a auditoria tecnica final e a confirmacao humana do usuario antes de qualquer stage ou commit local.
+A proxima etapa consiste em aguardar a auditoria final do Codex sobre as correcoes documentais executadas.
 
 ## Comando para enviar ao Antigravity
 
 ```txt
-Execute apenas uma etapa: aguarde a confirmacao humana do usuario antes de qualquer nova acao.
+Execute apenas uma etapa: Correcoes documentais executadas e aguardando auditoria final do Codex.
 
 Nao faca git add.
 Nao faca commit.

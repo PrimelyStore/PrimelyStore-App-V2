@@ -1332,3 +1332,22 @@ Garantias Cumpridas:
 * Nenhuma conexao real com APIs externas ou banco de dados.
 * O token `mock-valid-token` e usado apenas para simulacoes e testes offline, sem validacao real de credenciais ou JWT.
 * Sem deploy para o Supabase, sem migrations e sem chaves reais no codigo.
+
+---
+
+## Registro 2026-06-12 - Fase 5.5L-6E
+
+Status: [~] Planejamento de Integracao Frontend/Simulador (Correcoes documentais executadas e aguardando auditoria final do Codex)
+
+Objetivo: Planejar de forma documental a integracao do simulador de precificacao com a Edge Function local do Mercado Livre, identificando a arquitetura de autenticacao segura. As correcoes documentais foram executadas e aguardam auditoria final do Codex.
+
+Resultados de Auditoria e Implementacao:
+1. **Documentacao de Integracao**: Criado o plano detalhado identificando campos de entrada, campos de preenchimento automatico (peso pendente de auditoria das colunas) e tratamento de erros sem calculos locais duplicados.
+2. **Seguranca de Autenticacao**: Declarado o bloqueio de integracao direta do React usando chaves internas/mockadas. Definida a separacao entre testes em memoria, fetch mockado no frontend e a futura chamada HTTP local real (que dependera da integracao segura com o Supabase Auth).
+3. **Interface Visual**: Estabelecida a obrigatoriedade do banner visual de alerta sobre calculos baseados em simulacoes locais.
+
+Garantias Cumpridas:
+* Etapa estritamente documental de planejamento conceitual.
+* Sem alteracao de codigo frontend ou backend.
+* Sem chamadas de rede real, secrets expostos, deploy, migrations ou SQL.
+* Rollback condicionado a confirmacao humana explicita.
