@@ -15,12 +15,13 @@
 - [/] Planejamento da Abstracao de Provedores de Taxas do Mercado Livre (Fase 5.5L-6G) - Em andamento.
   - [x] 5.5L-6G.1: Planejamento documental e formalizacao (Concluido e comitado).
   - [x] 5.5L-6G.2: Criacao dos tipos TypeScript e interface do provedor (Concluido e comitado no commit 18972ea).
-  - [/] 5.5L-6G.3: Criacao do provedor local mockado delegando para a funcao existente (Implementacao concluida, aguardando nova auditoria do Codex.).
-  - [ ] 5.5L-6G.4: Injecao do provedor em CustosMargem.tsx.
+  - [x] 5.5L-6G.3: Criacao do provedor local mockado delegando para a funcao existente (Concluido e comitado no commit aed3dbd).
+  - [x] 5.5L-6G.4: Injecao do provider em CustosMargem.tsx (Concluido e aprovado pelo Codex, aguardando confirmacao humana para checkpoint).
   - [ ] 5.5L-6G.5: Testes de contrato e regressao.
   - [ ] 5.5L-6G.6: Extracao final da logica e remocao de compatibilidade (apos aprovacao).
 
 ## Tarefas de Controle Pendentes
 - [x] Obter veredito final favoravel na auditoria tecnica do Codex para a Fase 5.5L-6G.1 (Documental).
 - [x] Obter veredito final favoravel na auditoria tecnica do Codex para a Fase 5.5L-6G.2 (Tipos/Interface).
-- [ ] Obter veredito final favoravel na auditoria tecnica do Codex para a Fase 5.5L-6G.3 (Provedor Local).
+- [x] Obter veredito final favoravel na auditoria tecnica do Codex para a Fase 5.5L-6G.3 (Provedor Local).
+- [x] Obter veredito final favoravel na auditoria tecnica do Codex para a Fase 5.5L-6G.4 (Integracao React).

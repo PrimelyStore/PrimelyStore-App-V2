@@ -407,3 +407,22 @@ A Fase 5.5L-6G fica formalmente dividida nas seguintes microfases:
   - Build de producao executado e aprovado sem erros.
   - Nao foram encontrados termos proibidos (fetch, http, supabase, JWT, etc.) nos novos arquivos.
   - Nenhuma alteracao realizada em codigo funcional ou configuracoes existentes.
+
+---
+
+## 17. Implementacao da Fase 5.5L-6G.4 (Integracao do Provedor no React)
+* **Objetivo**: Integrar o provedor de taxas Mercado Livre no simulador visual `CustosMargem.tsx` via injecao de dependencia, removendo a chamada direta ao service e adaptando os testes de interface para rodarem 100% offline e mockados pelo contrato.
+* **Arquivos Criados/Modificados**:
+  - `src/pages/CustosMargem.tsx` (modificado)
+  - `src/pages/CustosMargem.test.tsx` (modificado)
+  - `src/services/mercadoLivreFees/defaultMercadoLivreFeesProvider.ts` (criado)
+* **Estrategia Adotada**:
+  - Refatorado o componente `CustosMargem` para aceitar `mercadoLivreFeesProvider?: MercadoLivreFeesProvider` em suas propriedades, utilizando o fallback `defaultMercadoLivreFeesProvider` que instancia estaticamente a classe local concreta.
+  - Substituida a chamada direta a `simularTaxasMercadoLivreLocal` por `await mercadoLivreFeesProvider.simularTaxas(input)`.
+  - A suite de testes `CustosMargem.test.tsx` foi totalmente reestruturada para validar dez cenarios: nove utilizam um provedor falso/mockado injetado para testar isoladamente o comportamento da interface (loading, erros, warnings, recalculo interativo), e um valida de forma integrada e offline o fallback do provedor padrao local, sem realizar chamadas de rede ou API externa.
+* **Validacoes locais**:
+  - Suite local com 31 testes Vitest passou com sucesso.
+  - Build de producao do Vite finalizado sem erros de tipagem.
+  - Busca estrita por termos proibidos (fetch, supabase, JWT, Bearer, Deno, etc.) retornou limpa nas areas alteradas.
+  - Aprovacao final concedida na auditoria do Codex (veredito APROVADO_PARA_CONTINUAR).
+  - Nenhuma alteracao realizada em formulas ou regras financeiras do service.

@@ -7,17 +7,17 @@ import {
     buscarRegrasFiscaisCompraV5,
     buscarSugestoesCustoMedioV5,
     calcularSimulacaoMargemV5,
-    simularTaxasMercadoLivreLocal,
     type ProdutoPrecificacaoV5Item,
     type ConfiguracaoOperacaoV5,
     type CustoPrepCenterV5,
     type CanalVendaV5,
     type RegraFiscalCompraV5,
     type SugestaoCustoMedioV5,
-    type ParamentrosSimulacaoV5,
-    type SimulacaoMercadoLivreResultado,
-    type SimulacaoMercadoLivreInput
+    type ParamentrosSimulacaoV5
 } from '../services/precificacaoService'
+import type { MercadoLivreFeesProvider } from '../services/mercadoLivreFees/MercadoLivreFeesProvider'
+import type { MercadoLivreSimulacaoInput, MercadoLivreSimulacaoResultado } from '../services/mercadoLivreFees/types'
+import { defaultMercadoLivreFeesProvider } from '../services/mercadoLivreFees/defaultMercadoLivreFeesProvider'
 import {
     atualizarMapeamentoMarketplace,
     criarMapeamentoMarketplace,
@@ -138,7 +138,13 @@ function formatarPercentual(valor?: number | string | null) {
     return `${Number(valor ?? 0).toFixed(2)}%`
 }
 
-export function CustosMargem() {
+type CustosMargemProps = {
+    mercadoLivreFeesProvider?: MercadoLivreFeesProvider
+}
+
+export function CustosMargem({
+    mercadoLivreFeesProvider = defaultMercadoLivreFeesProvider
+}: CustosMargemProps) {
     const [status, setStatus] = useState<StatusCarregamento>('carregando')
     const [mensagem, setMensagem] = useState('Carregando dados de custos e precificação...')
     
@@ -201,7 +207,7 @@ export function CustosMargem() {
     // Estado da simulacao assincrona do Mercado Livre
     const [mlSimulando, setMlSimulando] = useState<boolean>(false)
     const [mlErro, setMlErro] = useState<string | null>(null)
-    const [mlResultado, setMlResultado] = useState<SimulacaoMercadoLivreResultado | null>(null)
+    const [mlResultado, setMlResultado] = useState<MercadoLivreSimulacaoResultado | null>(null)
 
     async function carregarDados() {
         try {
@@ -452,7 +458,7 @@ export function CustosMargem() {
             setMlSimulando(true)
             setMlErro(null)
             try {
-                const input: SimulacaoMercadoLivreInput = {
+                const input: MercadoLivreSimulacaoInput = {
                     preco_venda: Number(simPrecoVenda || 0),
                     custo_produto: Number(simCustoProduto || 0),
                     aliquota_imposto: Number(simImpostoPercentual || 0) / 100,
@@ -463,7 +469,7 @@ export function CustosMargem() {
                     custo_logistico_sem_frete: Number(mlCustoLogisticoSemFrete || 0),
                     custo_logistico_frete_gratis: Number(mlCustoLogisticoFreteGratis || 0)
                 }
-                const res = await simularTaxasMercadoLivreLocal(input)
+                const res = await mercadoLivreFeesProvider.simularTaxas(input)
                 if (ativo) {
                     setMlResultado(res)
                     setMlErro(null)
@@ -499,7 +505,8 @@ export function CustosMargem() {
         mlCategoryId,
         mlListingTypeId,
         mlCustoLogisticoSemFrete,
-        mlCustoLogisticoFreteGratis
+        mlCustoLogisticoFreteGratis,
+        mercadoLivreFeesProvider
     ])
 
     useEffect(() => {

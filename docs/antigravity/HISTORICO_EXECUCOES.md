@@ -4,7 +4,38 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
 
 ---
 
-##### [2026-06-15] Fase 5.5L-6G.3 - Criacao do provedor local de taxas do Mercado Livre, delegando para a funcao existente (Implementacao Concluida, Auditoria Codex Pendente)
+##### [2026-06-15] Fase 5.5L-6G.4 - Integracao controlada do provider local de taxas com o simulador Mercado Livre no React (Concluido e Aprovado pelo Codex, aguardando confirmacao humana para checkpoint)
+
+* **Objetivo**: Fazer o simulador Mercado Livre em CustosMargem.tsx utilizar o contrato MercadoLivreFeesProvider e o provider local aprovado, substituindo a chamada direta a simularTaxasMercadoLivreLocal, sem alterar formulas, resultados ou comportamento visual.
+* **Arquivos Criados/Alterados**:
+  - `src/pages/CustosMargem.tsx` (alterado)
+  - `src/pages/CustosMargem.test.tsx` (alterado)
+  - `src/services/mercadoLivreFees/defaultMercadoLivreFeesProvider.ts` (criado)
+  - `docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md` (alterado)
+  - `ROADMAP.md` (alterado)
+  - `TASKS.md` (alterado)
+  - `docs/antigravity/STATUS_ATUAL.md` (alterado)
+  - `docs/antigravity/HISTORICO_EXECUCOES.md` (alterado)
+  - `docs/antigravity/PROXIMO_COMANDO.md` (alterado)
+  - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (alterado)
+* **Resumo da Etapa**:
+  1. Refatorado o componente `CustosMargem.tsx` para usar a propriedade opcional `mercadoLivreFeesProvider` tipada pelo contrato, com fallback estatico para `defaultMercadoLivreFeesProvider`.
+  2. Substituida a chamada direta a `simularTaxasMercadoLivreLocal` por `await mercadoLivreFeesProvider.simularTaxas(input)`.
+  3. Totalmente reestruturado o arquivo `CustosMargem.test.tsx` para validar dez cenarios: nove utilizando um provedor falso/mockado injetado para testar isoladamente o comportamento visual (loading, warnings, erros, recalculo, etc.) e um validando o fallback do provedor padrao local offline, sem conexao de rede ou API real.
+  4. Executados 31 testes unitarios Vitest offline com 100% de sucesso e build de producao concluido com sucesso.
+  5. Varredura feita nas areas alteradas sem encontrar termos proibidos (fetch, http, supabase, JWT, Bearer, etc.).
+* **Garantias de Seguranca**:
+  - Nenhuma alteracao em formulas ou regras financeiras do service.
+  - Nenhum commit, stage, push, deploy, secrets, API real, migrations ou SQL realizados.
+* **Rollback Documental**:
+  - O comando teorico de rollback exato para reverter as alteracoes documentais e de codigo e:
+    `git restore docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md ROADMAP.md TASKS.md docs/antigravity/STATUS_ATUAL.md docs/antigravity/HISTORICO_EXECUCOES.md docs/antigravity/PROXIMO_COMANDO.md docs/antigravity/RESPOSTA_ANTIGRAVITY.md docs/antigravity/RESPOSTA_CODEX.md src/pages/CustosMargem.tsx src/pages/CustosMargem.test.tsx`
+  - E o comando de descarte do arquivo untracked criado e:
+    `Remove-Item src/services/mercadoLivreFees/defaultMercadoLivreFeesProvider.ts`
+
+---
+
+##### [2026-06-15] Fase 5.5L-6G.3 - Criacao do provedor local de taxas do Mercado Livre, delegando para a funcao existente (Concluido e comitado no commit aed3dbd)
 
 * **Objetivo**: Criar a classe concreta LocalMockMercadoLivreFeesProvider implementando a interface MercadoLivreFeesProvider, delegando para simularTaxasMercadoLivreLocal, sem duplicar formulas.
 * **Arquivos Criados/Alterados**:

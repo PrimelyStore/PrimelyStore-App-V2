@@ -1435,7 +1435,7 @@ Garantias Cumpridas:
 
 ## Registro 2026-06-15 - Fase 5.5L-6G.3
 
-Status: [/] Criacao do provedor local de taxas do Mercado Livre, delegando para a funcao existente (Implementacao concluida, aguardando nova auditoria do Codex.)
+Status: [x] Criacao do provedor local de taxas do Mercado Livre, delegando para a funcao existente (Concluido e comitado no commit aed3dbd)
 
 Objetivo: Criar a classe concreta LocalMockMercadoLivreFeesProvider implementando a interface MercadoLivreFeesProvider, delegando para simularTaxasMercadoLivreLocal, sem duplicar formulas.
 
@@ -1449,4 +1449,25 @@ Resultados de Auditoria e Implementacao:
 
 Garantias Cumpridas:
 * Nenhuma alteracao em codigo funcional existente (precificacaoService.ts, CustosMargem.tsx);
+* Nenhum commit, stage, push, deploy, secrets, API real, migrations ou SQL realizados.
+
+---
+
+## Registro 2026-06-15 - Fase 5.5L-6G.4
+
+Status: [x] Integracao controlada do provider local de taxas com o simulador Mercado Livre no React (Concluido e aprovado pelo Codex, aguardando confirmacao humana para checkpoint)
+
+Objetivo: Fazer o simulador Mercado Livre em CustosMargem.tsx utilizar o contrato MercadoLivreFeesProvider e o provider local aprovado, substituindo a chamada direta a simularTaxasMercadoLivreLocal, sem alterar formulas, resultados ou comportamento visual.
+
+Resultados de Auditoria e Implementacao:
+1. **Integracao no React**: Substituida a chamada direta a `simularTaxasMercadoLivreLocal` por `await mercadoLivreFeesProvider.simularTaxas(input)` no hook `useEffect` de `CustosMargem.tsx`.
+2. **Injecao de Dependencias**: Adicionado suporte para injetar `mercadoLivreFeesProvider` via propriedade opcional de `CustosMargem`, com fallback automatico para a instancia estatica `defaultMercadoLivreFeesProvider` tipada pelo contrato.
+3. **Isolamento de UI**: A pagina conhece apenas o contrato de provedor, inputs/outputs, loading, erros e warnings. Nao ha formulas, fixtures, limites de comissoes ou regras de break-even importadas ou embutidas na pagina.
+4. **Testes Unitarios e Integracao**: A suite `CustosMargem.test.tsx` foi totalmente atualizada. Nove cenarios de testes utilizam um provedor falso injetado para validar o comportamento isolado da interface (loading, warnings, erros, recalculo interativo, comportamento da aba padrao, etc.), e um cenario valida o fallback do provedor padrao local offline sem acoplamento com rede ou APIs externas.
+5. **Validacao de Testes e Build**: Executada a suite de 31 testes unitarios Vitest com 100% de sucesso e build de producao finalizado com exito absoluto.
+6. **Varredura de Termos Proibidos**: Busca estrita confirmou a ausencia de fetch, http, supabase, JWT, Bearer, token, Deno ou VITE_ nas areas alteradas.
+
+Garantias Cumpridas:
+* Nenhuma alteracao em formulas ou valores calculados de comissao/imposto;
+* Nenhuma alteracao no simulador padrao ou outras abas de CustosMargem.tsx;
 * Nenhum commit, stage, push, deploy, secrets, API real, migrations ou SQL realizados.
