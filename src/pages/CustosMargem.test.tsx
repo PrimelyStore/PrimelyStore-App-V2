@@ -1,180 +1,9 @@
-# Resposta Antigravity - Fase 5.5L-6F (Correcoes Tecnicas e Auditoria de Untracked)
-
-## 1. Branch e Status do Git
-- **Branch atual**: feature/mercado-livre-fees-quote-frontend-mock
-- **git status --short**:
-  ```bash
-   M AGENTS.md
-   M ROADMAP.md
-   M TASKS.md
-   M docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md
-   M docs/antigravity/HISTORICO_EXECUCOES.md
-   M docs/antigravity/PROXIMO_COMANDO.md
-   M docs/antigravity/RESPOSTA_ANTIGRAVITY.md
-   M docs/antigravity/RESPOSTA_CODEX.md
-   M docs/antigravity/STATUS_ATUAL.md
-   M package-lock.json
-   M package.json
-   M scripts/codex-responder-antigravity.ps1
-   M src/pages/CustosMargem.tsx
-   M src/services/precificacaoService.ts
-   M vite.config.ts
-  ?? head_custos.tsx
-  ?? src/pages/CustosMargem.test.tsx
-  ?? src/services/precificacaoService.test.ts
-  ?? src/test/
-  ?? temp_diff_service.txt
-  ```
-
----
-
-## 2. Relatorio de Correcoes Executadas nesta Rodada
-
-1. **Correcao 1 - Reducao de Diff (Acentuacao)**:
-   - Restaurados manualmente os acentos, textos e emojis originais das abas e do Simulador Padrao no arquivo `CustosMargem.tsx` (como "Simulador de Precificação", "Custos Físicos de Aquisição", "Preço de Venda Gerencial (R$)", "Lucro Líquido Unitário", "Margem Líquida", etc.).
-   - Apenas o bloco especifico de simulacao do Mercado Livre continua utilizando termos sem acento, minimizando drasticamente o diff e respeitando a interface padrao existente.
-   - Ajustados os seletores e assercoes em `CustosMargem.test.tsx` para usarem as strings literais exatas e acentuadas do componente (ex: `'Simulador de Precificação'`, `'Custos Físicos de Aquisição'`), mantendo a integridade sem regexes permissivas.
-
-2. **Correcao 2 - Validacao de Valores nao Finitos**:
-   - A funcao `simularTaxasMercadoLivreLocal` em `precificacaoService.ts` valida com `Number.isFinite` todos os parametros de entrada (preco de venda, custo do produto, aliquota de imposto, custos logisticos adicionais e peso).
-   - Rejeita com erro estruturado qualquer entrada contendo `NaN`, `Infinity`, `-Infinity`, valores negativos em campos nao permitidos e preco de venda menor ou igual a zero.
-
-3. **Correcao 3 - Testes Unitarios do Service**:
-   - Criados testes unitarios diretos da funcao de simulacao Mercado Livre em `precificacaoService.test.ts`, cobrindo exaustivamente faixas de preco (`78.99`, `79.00`, `79.01`), calculo de break-even, warnings e rejeicao de nao finitos/negativos.
-
-4. **Correcao 4 - Erro Simplificado no Componente**:
-   - Ajustado o catch no componente `CustosMargem.tsx` para que, ao ocorrer um erro desconhecido na simulacao, retorne a mensagem generica: `"Nao foi possivel concluir a simulacao local. Revise os valores informados."` sem expor dados internos de banco, JWT ou Supabase CLI.
-
-5. **Correcao 5 - Script de Comunicacao do Codex (UTF-8)**:
-   - Ajustado o script `scripts/codex-responder-antigravity.ps1` adicionando a configuracao de encoding no PowerShell local (`OutputEncoding` e `-Encoding UTF8` no Get-Content) para assegurar que caracteres acentuados nao sejam corrompidos em '?' ao extrair dados de status, diff e arquivos.
-
-6. **Auditoria de Untracked**:
-   - Os arquivos `head_custos.tsx` e `temp_diff_service.txt` sao classificados como backups e diffs temporarios de auditoria. Eles estao estritamente proibidos de entrar no stage/commit e nao devem ser removidos do workspace sem confirmacao humana explicita.
-   - Os novos testes em `src/pages/CustosMargem.test.tsx` e `src/services/precificacaoService.test.ts` estao prontos para auditoria e listados a seguir.
-
----
-
-## 3. Codigos Fonte dos Arquivos Untracked para Auditoria
-
-### 3.1. [precificacaoService.test.ts](file:///d:/Programacao/PrimelyStore/primely-store-app/src/services/precificacaoService.test.ts)
-```typescript
-import { describe, it, expect } from 'vitest'
-import { simularTaxasMercadoLivreLocal } from './precificacaoService'
-
-describe('precificacaoService - simularTaxasMercadoLivreLocal', () => {
-    const baseInput = {
-        preco_venda: 120.00,
-        custo_produto: 45.00,
-        aliquota_imposto: 0.04, // 4%
-        peso_gramas: 500,
-        reputacao: 'green' as const,
-        category_id: 'MLB1234',
-        listing_type_id: 'gold_special' as const
-    }
-
-    it('deve confirmar que a resposta contem is_mocked igual a true', async () => {
-        const res = await simularTaxasMercadoLivreLocal(baseInput)
-        expect(res.is_mocked).toBe(true)
-    })
-
-    it('deve simular preco 78.99 aplicando a tarifa fixa da faixa inferior (R$ 6.00) e sem frete gratis obrigatorio', async () => {
-        const input = {
-            ...baseInput,
-            preco_venda: 78.99
-        }
-        const res = await simularTaxasMercadoLivreLocal(input)
-        expect(res.tarifa_fixa).toBe(6.00)
-        expect(res.custo_logistico_aplicado).toBe(0.00)
-    })
-
-    it('deve simular preco 79.00 aplicando frete gratis e sem tarifa fixa (transicao da faixa)', async () => {
-        const input = {
-            ...baseInput,
-            preco_venda: 79.00
-        }
-        const res = await simularTaxasMercadoLivreLocal(input)
-        expect(res.tarifa_fixa).toBe(0.00)
-        expect(res.custo_logistico_aplicado).toBe(12.60)
-    })
-
-    it('deve simular preco 79.01 aplicando frete gratis e sem tarifa fixa', async () => {
-        const input = {
-            ...baseInput,
-            preco_venda: 79.01
-        }
-        const res = await simularTaxasMercadoLivreLocal(input)
-        expect(res.tarifa_fixa).toBe(0.00)
-        expect(res.custo_logistico_aplicado).toBe(12.60)
-    })
-
-    it('deve calcular preco minimo recomendado (break-even) em um caso valido', async () => {
-        const res = await simularTaxasMercadoLivreLocal(baseInput)
-        expect(res.preco_minimo_recomendado).toBe(60.71)
-    })
-
-    it('deve gerar warning quando o preco de venda estiver abaixo do break-even', async () => {
-        const input = {
-            ...baseInput,
-            preco_venda: 55.00
-        }
-        const res = await simularTaxasMercadoLivreLocal(input)
-        const warning = res.warnings.find(w => w.codigo === 'preco_abaixo_break_even')
-        expect(warning).toBeDefined()
-        expect(warning?.mensagem).toContain('60.71')
-    })
-
-    it('deve gerar warning de lucro negativo quando o preco de venda for menor que o custo total', async () => {
-        const input = {
-            ...baseInput,
-            preco_venda: 10.00
-        }
-        const res = await simularTaxasMercadoLivreLocal(input)
-        const warning = res.warnings.find(w => w.codigo === 'lucro_negativo')
-        expect(warning).toBeDefined()
-        expect(warning?.mensagem).toContain('Lucro liquido estimado esta negativo')
-    })
-
-    it('deve rejeitar preco_venda igual a NaN', async () => {
-        const input = {
-            ...baseInput,
-            preco_venda: NaN
-        }
-        await expect(simularTaxasMercadoLivreLocal(input)).rejects.toThrow('Preco de venda deve ser um numero finito.')
-    })
-
-    it('deve rejeitar preco_venda igual a Infinity', async () => {
-        const input = {
-            ...baseInput,
-            preco_venda: Infinity
-        }
-        await expect(simularTaxasMercadoLivreLocal(input)).rejects.toThrow('Preco de venda deve ser um numero finito.')
-    })
-
-    it('deve rejeitar custo_logistico_sem_frete negativo', async () => {
-        const input = {
-            ...baseInput,
-            custo_logistico_sem_frete: -10
-        }
-        await expect(simularTaxasMercadoLivreLocal(input)).rejects.toThrow('Custo logistico sem frete nao pode ser negativo.')
-    })
-
-    it('deve rejeitar peso nao finito', async () => {
-        const input = {
-            ...baseInput,
-            peso_gramas: NaN
-        }
-        await expect(simularTaxasMercadoLivreLocal(input)).rejects.toThrow('Peso em gramas deve ser um numero finito.')
-    })
-})
-```
-
-### 3.2. [CustosMargem.test.tsx](file:///d:/Programacao/PrimelyStore/primely-store-app/src/pages/CustosMargem.test.tsx)
-```typescript
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { CustosMargem } from './CustosMargem'
 import * as precificacaoService from '../services/precificacaoService'
 
+// Mocking precificacaoService
 vi.mock('../services/precificacaoService', async (importOriginal) => {
     const original = await importOriginal<typeof import('../services/precificacaoService')>()
     return {
@@ -199,6 +28,7 @@ vi.mock('../services/precificacaoService', async (importOriginal) => {
     }
 })
 
+// Mocking produtoCanalMarketplaceService
 vi.mock('../services/produtoCanalMarketplaceService', () => {
     return {
         atualizarMapeamentoMarketplace: vi.fn(),
@@ -235,23 +65,29 @@ describe('CustosMargem - Simulador Mercado Livre (Fase 5.5L-6F)', () => {
 
         render(<CustosMargem />)
 
+        // Aguarda carregar os dados iniciais
         await waitFor(() => {
             expect(screen.queryByText(/Carregando/i)).not.toBeInTheDocument()
         })
 
+        // Clicar na aba simulador
         const tabSimulador = screen.getByText('Simulador de Precificação')
         fireEvent.click(tabSimulador)
 
+        // Deve exibir o seletor de modos
         expect(screen.getByText('Simulador Padrao')).toBeInTheDocument()
         const btnMl = screen.getByRole('button', { name: 'Mercado Livre' })
         expect(btnMl).toBeInTheDocument()
 
+        // Alterna para o modo Mercado Livre
         fireEvent.click(btnMl)
 
+        // Aguarda a simulacao terminar para evitar warnings de act()
         await waitFor(() => {
             expect(screen.queryByText(/Simulando taxas.../i)).not.toBeInTheDocument()
         })
 
+        // Deve renderizar os inputs especificos
         expect(screen.getByText('Categoria Mercado Livre')).toBeInTheDocument()
         expect(screen.getByText('Tipo de Anuncio')).toBeInTheDocument()
         expect(screen.getByText('Peso Estimado (gramas)')).toBeInTheDocument()
@@ -272,9 +108,11 @@ describe('CustosMargem - Simulador Mercado Livre (Fase 5.5L-6F)', () => {
         fireEvent.click(screen.getByText('Simulador de Precificação'))
         fireEvent.click(screen.getByRole('button', { name: 'Mercado Livre' }))
 
+        // Deve renderizar a mensagem de erro estruturada
         expect(await screen.findByText('Erro na Simulacao')).toBeInTheDocument()
         expect(await screen.findByText('Nao foi possivel concluir a simulacao local. Revise os valores informados.')).toBeInTheDocument()
 
+        // O formulario de inputs ainda deve estar visivel
         expect(screen.getByText('Dados Basicos da Venda')).toBeInTheDocument()
     })
 
@@ -294,8 +132,10 @@ describe('CustosMargem - Simulador Mercado Livre (Fase 5.5L-6F)', () => {
         fireEvent.click(screen.getByText('Simulador de Precificação'))
         fireEvent.click(screen.getByRole('button', { name: 'Mercado Livre' }))
 
+        // Deve exibir o indicador de loading
         expect(screen.getByText('Simulando taxas...')).toBeInTheDocument()
 
+        // Resolve a promise para liberar recursos e limpar estado
         resolverPromise({
             preco_venda: 120.00,
             custo_produto: 70.00,
@@ -312,6 +152,7 @@ describe('CustosMargem - Simulador Mercado Livre (Fase 5.5L-6F)', () => {
             warnings: []
         })
 
+        // Aguarda sumir o loading
         await waitFor(() => {
             expect(screen.queryByText('Simulando taxas...')).not.toBeInTheDocument()
         })
@@ -343,8 +184,10 @@ describe('CustosMargem - Simulador Mercado Livre (Fase 5.5L-6F)', () => {
         fireEvent.click(screen.getByText('Simulador de Precificação'))
         fireEvent.click(screen.getByRole('button', { name: 'Mercado Livre' }))
 
+        // Aguarda carregar
         await screen.findByText('Metricas Mercado Livre')
 
+        // Deve exibir o banner de governanca
         expect(screen.getByText('Simulacao Local Mockada')).toBeInTheDocument()
         expect(screen.getByText(/Calculos baseados em simulacao mockada\/local/i)).toBeInTheDocument()
     })
@@ -374,10 +217,11 @@ describe('CustosMargem - Simulador Mercado Livre (Fase 5.5L-6F)', () => {
         fireEvent.click(screen.getByText('Simulador de Precificação'))
         fireEvent.click(screen.getByRole('button', { name: 'Mercado Livre' }))
 
+        // Deve renderizar os resultados mockados
         expect(await screen.findByText('Metricas Mercado Livre')).toBeInTheDocument()
-        expect(await screen.findByText(/R\$\s*8[.,]80/)).toBeInTheDocument()
-        expect(await screen.findByText(/7[.,]33%/)).toBeInTheDocument()
-        expect(await screen.findByText(/12[.,]57%/)).toBeInTheDocument()
+        expect(await screen.findByText(/R\$\s*8[.,]80/)).toBeInTheDocument() // Lucro Liquido
+        expect(await screen.findByText(/7[.,]33%/)).toBeInTheDocument() // Margem Liquida
+        expect(await screen.findByText(/12[.,]57%/)).toBeInTheDocument() // ROI
     })
 
     it('deve recalcular valores interativamente ao alterar inputs do Mercado Livre', async () => {
@@ -390,19 +234,30 @@ describe('CustosMargem - Simulador Mercado Livre (Fase 5.5L-6F)', () => {
         fireEvent.click(screen.getByText('Simulador de Precificação'))
         fireEvent.click(screen.getByRole('button', { name: 'Mercado Livre' }))
 
+        // Com o preco de venda inicial (120) e custo inicial (45)
+        // Com aliquota = 4.0%, peso = 500, reputacao = green, category = MLB1234, listing_type = gold_special
+        // Pela logica real em TS:
+        // preco_venda = 120, custo = 45, imposto = 4.80, comissao = 14.40, frete = 12.60
+        // Lucro = 120 - 45 - 4.80 - 14.40 - 12.60 = 43.20
         expect(await screen.findByText('Metricas Mercado Livre')).toBeInTheDocument()
         expect(await screen.findByText(/R\$\s*43[.,]20/)).toBeInTheDocument()
 
+        // Localizar e alterar o preco de venda para R$ 150.00
         const precoInput = screen.getByLabelText('Preco de Venda Gerencial (R$)')
         fireEvent.change(precoInput, { target: { value: '150.00' } })
 
+        // Localizar e alterar o custo do produto para R$ 60.00
         const custoInput = screen.getByLabelText('Custo do Produto - COGS (R$)')
         fireEvent.change(custoInput, { target: { value: '60.00' } })
 
+        // Recalculo esperado:
+        // preco_venda = 150, custo = 60, imposto = 6.00, comissao = 18.00, frete = 12.60
+        // Lucro = 150 - 60 - 6.00 - 18.00 - 12.60 = 53.40
         await waitFor(() => {
             expect(screen.getByText(/R\$\s*53[.,]40/)).toBeInTheDocument()
         })
 
+        // Confirmar que o banner aparece
         expect(screen.getByText('Simulacao Local Mockada')).toBeInTheDocument()
     })
 
@@ -416,10 +271,12 @@ describe('CustosMargem - Simulador Mercado Livre (Fase 5.5L-6F)', () => {
 
             fireEvent.click(screen.getByText('Simulador de Precificação'))
 
+            // Simulador Padrao deve estar ativo
             expect(screen.getByText('Custos Físicos de Aquisição')).toBeInTheDocument()
             expect(screen.getByText('Custos do Canal, Impostos e Ads')).toBeInTheDocument()
             expect(screen.getByText('Métricas de Performance Simulação')).toBeInTheDocument()
 
+            // Campos especificos
             expect(screen.getByText('Preço de Venda Gerencial (R$)')).toBeInTheDocument()
             expect(screen.getByText('Custo de Aquisição do Produto (R$)')).toBeInTheDocument()
             expect(screen.getByText('Custo Prep Center (R$)')).toBeInTheDocument()
@@ -427,24 +284,10 @@ describe('CustosMargem - Simulador Mercado Livre (Fase 5.5L-6F)', () => {
             expect(screen.getByText('Custo Frete Inbound / Envio FBA (R$)')).toBeInTheDocument()
             expect(screen.getByText('Outros Custos Extras (R$)')).toBeInTheDocument()
 
+            // Resultados calculados iniciais
             expect(screen.getByText('Lucro Líquido Unitário')).toBeInTheDocument()
             expect(screen.getByText('Margem Líquida')).toBeInTheDocument()
             expect(screen.getByText('ROI Estimado')).toBeInTheDocument()
         })
     })
 })
-```
-
----
-
-## 4. Garantias de Seguranca
-- Sem chamadas de rede real, sem secrets expostas, sem deploy, sem migrations, sem SQL.
-- O simulador padrao existente foi totalmente preservado com sua acentuacao original restabelecida.
-- Nao houve criacao de novas modificacoes de codigo nos arquivos restritos de infraestrutura (`package.json`, `package-lock.json`, `vite.config.ts` e `AGENTS.md`) nesta microfase, mantendo as alteracoes anteriores intactas.
-
----
-
-## 5. Resultados de Validacao
-- **npm run test**: 18 testes passaram (11 do service e 7 do componente).
-- **npm run build**: Compilacao gerada com sucesso.
-- **git diff --check**: Passou limpo.

@@ -8,7 +8,11 @@
 - [x] Planejamento documental de taxas e custos logisticos do Mercado Livre (Fase 5.5L-6A) concluido.
 - [x] Implementacao local e mockada de helpers e testes unitarios offline do Mercado Livre em Deno (Fase 5.5L-6B/C) concluida.
 - [x] Implementacao da Edge Function mockada mercado-livre-fees-quote e testes HTTP locais (Fase 5.5L-6D) concluida e commitada.
-- [ ] Planejamento documental da integracao frontend/simulador com a Edge Function mockada do Mercado Livre (Fase 5.5L-6E) concluido - Correcoes documentais executadas e aguardando auditoria final do Codex.
+- [x] Planejamento documental do simulador local independente do Mercado Livre (Fase 5.5L-6E) concluido e comitado.
+- [/] Simulador Mercado Livre Local/Mockado Independente no Frontend (Fase 5.5L-6F) - em andamento (aguardando auditoria do Codex).
+  - [x] Ajustar o script `scripts/codex-responder-antigravity.ps1` para usar UTF-8 na leitura e saida.
+  - [x] Classificar `head_custos.tsx` e `temp_diff_service.txt` como arquivos temporarios untracked proibidos para stage/commit.
 
 ## Tarefas de Controle Pendentes
-- [ ] Correcoes documentais executadas e aguardando auditoria final do Codex.
+- [x] Obter confirmacao humana do usuario para aprovacao da Fase 5.5L-6F (Confirmada Opcao 1 - simulador local puro independente).
+- [ ] Obter veredito final favoravel na auditoria tecnica do Codex para a Fase 5.5L-6F.

@@ -81,6 +81,13 @@ Nao adicionar biblioteca nova sem explicar:
 3. qual impacto no projeto;
 4. se existe alternativa usando o que ja esta instalado.
 
+### 3.1. Justificativa de Dependencias de Teste (Vitest & Testing Library)
+A suite de testes do frontend foi estendida com as seguintes ferramentas de desenvolvimento (`devDependencies`):
+* **Vitest**: Um test-runner nativo do Vite de altissima performance. Escolhido porque compartilha a mesma pipeline de transformacao do Vite (economizando complexidade de Babel/Webpack/Jest), funcionando com suporte total a TypeScript e ESM no React 19.
+* **jsdom**: Fornece um ambiente simulado de navegador (DOM) em Node.js para rodar testes offline de renderizacao de componentes de tela (como o simulador em `CustosMargem.tsx`).
+* **@testing-library/react** & **@testing-library/jest-dom**: APIs padrao da industria para interacao amigavel de teste e assercoes no DOM simulado, garantindo testes faceis de manter, focados no comportamento que o usuario ve (como loading, banners de seguranca, sucesso e erros mockados).
+* **Nao existem alternativas nativas no Vite** para testes de componentes visuais do React sem alguma forma de test runner e emulador de DOM. Essas ferramentas estao estritamente limitadas a ambiente de desenvolvimento/CI, com impacto nulo no bundle de producao (0 bytes adicionais para o cliente final).
+
 ---
 
 ## 4. Ordem obrigatoria de leitura

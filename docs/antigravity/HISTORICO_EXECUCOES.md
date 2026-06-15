@@ -4,6 +4,47 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
 
 ---
 
+##### [2026-06-14] Fase 5.5L-6F - Implementacao do Simulador Mercado Livre Local/Mockado Independente no Frontend (Aguardando Auditoria do Codex)
+
+* **Objetivo**: Concluir a implementacao do simulador de precificacao mockado independente no frontend, permitindo alternar de forma segura entre o Simulador Padrao e o Simulador Mercado Livre (Local/Mock) com aviso de governanca, calculo local puro em TypeScript, testes unitarios offline e interativos, com tratamento de erros simplificado, validacao de finitude de dados e restauracao de acentuacao.
+* **Arquivos Criados/Alterados**:
+  - `src/pages/CustosMargem.tsx` (alterado)
+  - `src/services/precificacaoService.ts` (alterado)
+  - `scripts/codex-responder-antigravity.ps1` (alterado)
+  - `package.json` e `package-lock.json` (alterados)
+  - `vite.config.ts` (alterado)
+  - `src/pages/CustosMargem.test.tsx` (criado)
+  - `src/services/precificacaoService.test.ts` (criado)
+  - `src/test/setup.ts` (criado)
+  - `docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md` (atualizado)
+  - `ROADMAP.md` (atualizado)
+  - `TASKS.md` (atualizado)
+  - `docs/antigravity/STATUS_ATUAL.md` (atualizado)
+  - `docs/antigravity/HISTORICO_EXECUCOES.md` (atualizado)
+  - `docs/antigravity/PROXIMO_COMANDO.md` (atualizado)
+  - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (atualizado)
+  - `AGENTS.md` (modificado apenas para justificativas de teste)
+* **Resumo da Etapa**:
+  1. O usuario confirmou explicitamente a Opcao 1, autorizando formalmente manter o simulador do Mercado Livre com formulas mockadas locais no frontend React.
+  2. Implementada validacao estrita de finitude em `precificacaoService.ts` com `Number.isFinite` para preco, custo, aliquota, frete e peso, rejeitando NaN, Infinity, -Infinity e negativos.
+  3. Criados 11 testes unitarios diretos do service em `precificacaoService.test.ts` cobrindo break-even, faixas de transicao (78.99, 79.00, 79.01), rejeicao de nao finitos e warning explicito de lucro_negativo.
+  4. Simplificado o catch no componente `CustosMargem.tsx` para exibir erros amigaveis sem expor termos tecnicos como JWT, Edge Functions ou auth de producao.
+  5. Ajustado o script `scripts/codex-responder-antigravity.ps1` para forcar a codificacao UTF-8 na leitura com `-Encoding UTF8` e na saida com `OutputEncoding`, resolvendo a corrupcao de caracteres acentuados no PowerShell.
+  6. Removidos todos os acentos e emojis das novas strings inseridas em `CustosMargem.tsx` e `CustosMargem.test.tsx` (substituindo por ASCII simples), prevenindo quaisquer sequencias de `????` no terminal do Windows.
+  7. Resultado atual: 18 testes aprovados no Vitest (11 do service e 7 do componente), build de producao concluido com sucesso e git diff --check limpo.
+  8. Nenhum deploy, API real, secret, migration ou SQL foi utilizado.
+* **Garantias de Seguranca**:
+  - Sem uso de rede real, sem credenciais expostas, sem deploy, sem migrations, sem SQL e sem stage/commit no Git.
+* **Rollback Completo da Fase (Requer Confirmacao Humana)**:
+  - Nao executar rollback sem confirmacao humana previa.
+  - Procedimento de rollback de referencia no PowerShell:
+    1. Executar o descarte das alteracoes tracked:
+       git checkout -- src/pages/CustosMargem.tsx src/services/precificacaoService.ts package.json package-lock.json vite.config.ts ROADMAP.md TASKS.md AGENTS.md docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md docs/antigravity/STATUS_ATUAL.md docs/antigravity/HISTORICO_EXECUCOES.md docs/antigravity/PROXIMO_COMANDO.md docs/antigravity/RESPOSTA_ANTIGRAVITY.md scripts/codex-responder-antigravity.ps1
+    2. Remover os arquivos e pastas temporarios/untracked usando PowerShell:
+       Remove-Item -Recurse -Force src/pages/CustosMargem.test.tsx, src/services/precificacaoService.test.ts, src/test/, head_custos.tsx, temp_diff_service.txt
+
+---
+
 ## [2026-06-12] Fase 5.5L-6E - Planejamento da integracao frontend/simulador
 
 * **Objetivo**: Planejar de forma documental a integracao da aba de simulador de precificacao com a Edge Function local do Mercado Livre, identificando a arquitetura de autenticacao segura, a natureza mockada da aliquota tributaria de 4% (sujeita a validacao fiscal humana) e o bloqueio de chamadas reais do React ate a validacao de sessoes.

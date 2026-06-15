@@ -1337,17 +1337,36 @@ Garantias Cumpridas:
 
 ## Registro 2026-06-12 - Fase 5.5L-6E
 
-Status: [~] Planejamento de Integracao Frontend/Simulador (Correcoes documentais executadas e aguardando auditoria final do Codex)
+Status: [x] Planejamento de Integracao Frontend/Simulador (Concluido)
 
-Objetivo: Planejar de forma documental a integracao do simulador de precificacao com a Edge Function local do Mercado Livre, identificando a arquitetura de autenticacao segura. As correcoes documentais foram executadas e aguardam auditoria final do Codex.
+Objetivo: Planejar de forma documental a integracao do simulador de precificacao com a Edge Function local do Mercado Livre, identificando a arquitetura de autenticacao segura.
 
 Resultados de Auditoria e Implementacao:
-1. **Documentacao de Integracao**: Criado o plano detalhado identificando campos de entrada, campos de preenchimento automatico (peso pendente de auditoria das colunas) e tratamento de erros sem calculos locais duplicados.
-2. **Seguranca de Autenticacao**: Declarado o bloqueio de integracao direta do React usando chaves internas/mockadas. Definida a separacao entre testes em memoria, fetch mockado no frontend e a futura chamada HTTP local real (que dependera da integracao segura com o Supabase Auth).
+1. **Documentacao de Integracao**: Criado o plano detalhado identificando campos de entrada, campos de preenchimento automatico e tratamento de erros sem calculos locais duplicados.
+2. **Seguranca de Autenticacao**: Declarado o bloqueio de integracao direta do React usando chaves internas/mockadas. Definida a separacao entre testes em memoria, fetch mockado no frontend e a futura chamada HTTP local real.
 3. **Interface Visual**: Estabelecida a obrigatoriedade do banner visual de alerta sobre calculos baseados em simulacoes locais.
 
 Garantias Cumpridas:
 * Etapa estritamente documental de planejamento conceitual.
-* Sem alteracao de codigo frontend ou backend.
 * Sem chamadas de rede real, secrets expostos, deploy, migrations ou SQL.
-* Rollback condicionado a confirmacao humana explicita.
+
+---
+
+## Registro 2026-06-13 - Fase 5.5L-6F
+
+Status: [/] Simulador Mercado Livre Local/Mockado Independente no Frontend (Aguardando Auditoria do Codex)
+
+Objetivo: Concluir a implementacao do simulador de precificacao mockado independente no frontend, permitindo alternar de forma segura entre o Simulador Padrao e o Simulador Mercado Livre (Local/Mock) com aviso de governanca, calculo local puro em TypeScript, testes unitarios offline e interativos.
+
+Resultados de Auditoria e Implementacao:
+1. **Decisao Humana Oficial**: Aprovada a Opcao 1 pelo usuario para manter o simulador do Mercado Livre com formulas mockadas locais no frontend React, independente e sem chamada da Edge Function nesta fase.
+2. **Camada de Servicos**: Habilitada a simulacao local mockada do Mercado Livre em `precificacaoService.ts` como funcao pura em TypeScript, sem chamadas HTTP e sem tokens. Implementada validacao estrita de finitude com `Number.isFinite` rejeitando NaN, Infinity, negativos e preco <= 0.
+3. **Camada Visual**: Ajustada a interface do Mercado Livre em `CustosMargem.tsx` para exibir o formulario e resultados de forma visivel e acessivel localmente, exibindo o banner informativo amarelado de governanca e tratando erros locais sem bloquear a tela e sem mencao a JWT ou Supabase CLI. Restaurada a acentuacao e formatacao original no Simulador Padrao e abas para minimizar o diff, mantendo apenas o bloco Mercado Livre sem acentos.
+4. **Validacao de Build e Testes**: Build completo executado sem erros (`npm run build`) e suite de 18 testes unitarios offline validada com 100% de sucesso no Vitest (sendo 11 testes diretos de servico e 7 testes de componentes visuais do frontend).
+5. **Script de Auditoria**: Ajustado o script `scripts/codex-responder-antigravity.ps1` para forcar leitura e saida UTF-8 no console do PowerShell 5.1 local, evitando Mojibakes e caracteres corrompidos '?' no terminal.
+6. **Arquivos Temporarios**: Classificados os arquivos untracked `head_custos.tsx` (backup do componente) e `temp_diff_service.txt` (diff do service) como arquivos temporarios de auditoria, proibidos de entrar no stage/commit e sem remocao sem confirmacao humana.
+
+Garantias Cumpridas:
+* Sem chamadas de rede real, sem secrets expostos, sem deploy, sem migrations, sem SQL e sem stage/commit no Git nesta rodada.
+* As dependencias de teste (Vitest, jsdom, Testing Library) estao restritas ao escopo de devDependencies.
+* Os arquivos temporarios `head_custos.tsx` e `temp_diff_service.txt` permanecem untracked e fora do stage/commit.

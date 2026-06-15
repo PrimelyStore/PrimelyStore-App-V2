@@ -7,13 +7,16 @@ import {
     buscarRegrasFiscaisCompraV5,
     buscarSugestoesCustoMedioV5,
     calcularSimulacaoMargemV5,
+    simularTaxasMercadoLivreLocal,
     type ProdutoPrecificacaoV5Item,
     type ConfiguracaoOperacaoV5,
     type CustoPrepCenterV5,
     type CanalVendaV5,
     type RegraFiscalCompraV5,
     type SugestaoCustoMedioV5,
-    type ParamentrosSimulacaoV5
+    type ParamentrosSimulacaoV5,
+    type SimulacaoMercadoLivreResultado,
+    type SimulacaoMercadoLivreInput
 } from '../services/precificacaoService'
 import {
     atualizarMapeamentoMarketplace,
@@ -183,6 +186,22 @@ export function CustosMargem() {
     const [simImpostoPercentual, setSimImpostoPercentual] = useState<string>('4.00')
     const [simAdsPercentual, setSimAdsPercentual] = useState<string>('8.00')
     const [simOutrosCustos, setSimOutrosCustos] = useState<string>('0.00')
+
+    // Modos de Simulacao (Fase 5.5L-6F)
+    const [modoSimulador, setModoSimulador] = useState<'padrao' | 'mercado_livre'>('padrao')
+
+    // Parametros do Mercado Livre
+    const [mlCategoryId, setMlCategoryId] = useState<string>('MLB1234')
+    const [mlListingTypeId, setMlListingTypeId] = useState<'gold_special' | 'gold_pro'>('gold_special')
+    const [mlPesoGramas, setMlPesoGramas] = useState<string>('500')
+    const [mlReputacao, setMlReputacao] = useState<'official_store' | 'platinum' | 'gold' | 'green' | 'none'>('green')
+    const [mlCustoLogisticoSemFrete, setMlCustoLogisticoSemFrete] = useState<string>('0.00')
+    const [mlCustoLogisticoFreteGratis, setMlCustoLogisticoFreteGratis] = useState<string>('0.00')
+
+    // Estado da simulacao assincrona do Mercado Livre
+    const [mlSimulando, setMlSimulando] = useState<boolean>(false)
+    const [mlErro, setMlErro] = useState<string | null>(null)
+    const [mlResultado, setMlResultado] = useState<SimulacaoMercadoLivreResultado | null>(null)
 
     async function carregarDados() {
         try {
@@ -423,6 +442,65 @@ export function CustosMargem() {
     useEffect(() => {
         carregarDados()
     }, [])
+
+    useEffect(() => {
+        if (modoSimulador !== 'mercado_livre') return
+
+        let ativo = true
+
+        async function executarSimulacao() {
+            setMlSimulando(true)
+            setMlErro(null)
+            try {
+                const input: SimulacaoMercadoLivreInput = {
+                    preco_venda: Number(simPrecoVenda || 0),
+                    custo_produto: Number(simCustoProduto || 0),
+                    aliquota_imposto: Number(simImpostoPercentual || 0) / 100,
+                    peso_gramas: Number(mlPesoGramas || 0),
+                    reputacao: mlReputacao,
+                    category_id: mlCategoryId,
+                    listing_type_id: mlListingTypeId,
+                    custo_logistico_sem_frete: Number(mlCustoLogisticoSemFrete || 0),
+                    custo_logistico_frete_gratis: Number(mlCustoLogisticoFreteGratis || 0)
+                }
+                const res = await simularTaxasMercadoLivreLocal(input)
+                if (ativo) {
+                    setMlResultado(res)
+                    setMlErro(null)
+                }
+            } catch (err) {
+                if (ativo) {
+                    setMlResultado(null)
+                    if (err instanceof Error && (err.message.includes('finito') || err.message.includes('negativo') || err.message.includes('zero') || err.message.includes('100%'))) {
+                        setMlErro(err.message)
+                    } else {
+                        setMlErro('Nao foi possivel concluir a simulacao local. Revise os valores informados.')
+                    }
+                }
+            } finally {
+                if (ativo) {
+                    setMlSimulando(false)
+                }
+            }
+        }
+
+        executarSimulacao()
+
+        return () => {
+            ativo = false
+        }
+    }, [
+        modoSimulador,
+        simPrecoVenda,
+        simCustoProduto,
+        simImpostoPercentual,
+        mlPesoGramas,
+        mlReputacao,
+        mlCategoryId,
+        mlListingTypeId,
+        mlCustoLogisticoSemFrete,
+        mlCustoLogisticoFreteGratis
+    ])
 
     useEffect(() => {
         if (abaAtiva === 'mapeamento') {
@@ -806,6 +884,34 @@ export function CustosMargem() {
             )}
 
             {abaAtiva === 'simulador' && (
+                <div className="space-y-4">
+                    {/* Seletor de Modo de Simulacao (Fase 5.5L-6F) */}
+                    <div className="flex bg-slate-900/60 p-1 rounded-lg border border-slate-800 max-w-md">
+                        <button
+                            type="button"
+                            onClick={() => setModoSimulador('padrao')}
+                            className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                                modoSimulador === 'padrao'
+                                    ? 'bg-indigo-600 text-white shadow'
+                                    : 'text-slate-400 hover:text-slate-200'
+                            }`}
+                        >
+                            Simulador Padrao
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setModoSimulador('mercado_livre')}
+                            className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                                modoSimulador === 'mercado_livre'
+                                    ? 'bg-indigo-600 text-white shadow'
+                                    : 'text-slate-400 hover:text-slate-200'
+                            }`}
+                        >
+                            Mercado Livre
+                        </button>
+                    </div>
+
+                    {modoSimulador === 'padrao' && (
                 <div className="grid gap-6 lg:grid-cols-3">
                     {/* Painel de Parâmetros / Inputs */}
                     <div className="lg:col-span-2 space-y-4">
@@ -936,7 +1042,7 @@ export function CustosMargem() {
                     <div className="space-y-4">
                         <section className={`rounded-2xl border p-5 shadow-lg ${corClasseResultado.bg} flex flex-col justify-between h-full min-h-[300px]`}>
                             <div>
-                                <h3 className="text-base font-semibold text-slate-300 mb-4">Métricas de Performance Simula</h3>
+                                <h3 className="text-base font-semibold text-slate-300 mb-4">Métricas de Performance Simulação</h3>
                                 
                                 <div className="space-y-5">
                                     <div>
@@ -1006,6 +1112,224 @@ export function CustosMargem() {
                             </div>
                         </AppCard>
                     </div>
+                </div>
+                    )}
+
+                    {modoSimulador === 'mercado_livre' && (
+                        <div className="grid gap-6 lg:grid-cols-3">
+                            {/* Coluna 1 e 2: Formulario de Inputs (Sempre Visivel) */}
+                            <div className="lg:col-span-2 space-y-4">
+                                <AppCard>
+                                    <h3 className="text-base font-semibold mb-4 text-indigo-400">Dados Basicos da Venda</h3>
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                         <div>
+                                            <label htmlFor="ml-preco-venda-input" className="block text-xs text-slate-400 mb-1">Preco de Venda Gerencial (R$)</label>
+                                            <input
+                                                id="ml-preco-venda-input"
+                                                type="number"
+                                                step="0.01"
+                                                value={simPrecoVenda}
+                                                onChange={(e) => setSimPrecoVenda(e.target.value)}
+                                                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                                            />
+                                         </div>
+                                         <div>
+                                            <label htmlFor="ml-custo-produto-input" className="block text-xs text-slate-400 mb-1">Custo do Produto - COGS (R$)</label>
+                                            <input
+                                                id="ml-custo-produto-input"
+                                                type="number"
+                                                step="0.01"
+                                                value={simCustoProduto}
+                                                onChange={(e) => setSimCustoProduto(e.target.value)}
+                                                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-slate-400 mb-1">Aliquota de Imposto Estimada (%)</label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                value={simImpostoPercentual}
+                                                onChange={(e) => setSimImpostoPercentual(e.target.value)}
+                                                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-slate-400 mb-1">Categoria Mercado Livre</label>
+                                            <input
+                                                type="text"
+                                                value={mlCategoryId}
+                                                onChange={(e) => setMlCategoryId(e.target.value)}
+                                                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-slate-400 mb-1">Tipo de Anuncio</label>
+                                            <select
+                                                value={mlListingTypeId}
+                                                onChange={(e) => setMlListingTypeId(e.target.value as 'gold_special' | 'gold_pro')}
+                                                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                                            >
+                                                <option value="gold_special">Classico</option>
+                                                <option value="gold_pro">Premium</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-slate-400 mb-1">Peso Estimado (gramas)</label>
+                                            <input
+                                                type="number"
+                                                value={mlPesoGramas}
+                                                onChange={(e) => setMlPesoGramas(e.target.value)}
+                                                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-slate-400 mb-1">Reputacao da Conta</label>
+                                            <select
+                                                value={mlReputacao}
+                                                onChange={(e) => setMlReputacao(e.target.value as 'official_store' | 'platinum' | 'gold' | 'green' | 'none')}
+                                                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                                            >
+                                                <option value="official_store">Official Store</option>
+                                                <option value="platinum">Platinum</option>
+                                                <option value="gold">Gold</option>
+                                                <option value="green">Green</option>
+                                                <option value="none">Sem reputacao</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-slate-400 mb-1">Custo Logistico Sem Frete (R$)</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={mlCustoLogisticoSemFrete}
+                                                onChange={(e) => setMlCustoLogisticoSemFrete(e.target.value)}
+                                                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-slate-400 mb-1">Custo Logistico Frete Gratis (R$)</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={mlCustoLogisticoFreteGratis}
+                                                onChange={(e) => setMlCustoLogisticoFreteGratis(e.target.value)}
+                                                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                </AppCard>
+
+                                {/* Banner de governanca com aviso */}
+                                <div className="rounded-xl border border-yellow-900/40 bg-yellow-950/20 p-4">
+                                    <div className="flex items-start space-x-3">
+                                        <span className="text-lg mt-0.5">[!]</span>
+                                        <div>
+                                            <h4 className="font-semibold text-slate-300">Simulacao Local Mockada</h4>
+                                            <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                                                Calculos baseados em simulacao mockada/local. Validar custos e taxas reais antes de aplicar precos.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Coluna 3: Resultados e Estados do Simulador */}
+                            <div className="space-y-4">
+                                {mlSimulando && (
+                                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-6 text-center text-slate-400 min-h-[300px] flex items-center justify-center">
+                                        Simulando taxas...
+                                    </div>
+                                )}
+
+                                {!mlSimulando && mlErro && (
+                                    <div className="rounded-xl border border-red-900/40 bg-red-950/20 p-6 space-y-2 min-h-[300px]">
+                                        <h4 className="text-base font-semibold text-red-400">Erro na Simulacao</h4>
+                                        <p className="text-xs text-slate-300">{mlErro}</p>
+                                    </div>
+                                )}
+
+                                {!mlSimulando && !mlErro && mlResultado && (
+                                    <div className="space-y-4">
+                                        <section className="rounded-2xl border p-5 shadow-lg bg-indigo-950/20 border-indigo-900/40 flex flex-col justify-between min-h-[300px]">
+                                            <div>
+                                                <h3 className="text-base font-semibold text-slate-300 mb-4">Metricas Mercado Livre</h3>
+
+                                                <div className="space-y-5">
+                                                    <div>
+                                                        <p className="text-xs text-slate-400">Lucro Liquido Unitario</p>
+                                                        <p className="text-3xl font-bold mt-1 text-indigo-400">
+                                                            {formatarMoeda(mlResultado.lucro_liquido)}
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <p className="text-xs text-slate-400">Margem Liquida</p>
+                                                            <p className="text-lg font-semibold text-slate-200 mt-1">
+                                                                {formatarPercentual(mlResultado.margem_liquida * 100)}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-slate-400">ROI Estimado</p>
+                                                            <p className="text-lg font-semibold text-slate-200 mt-1">
+                                                                {formatarPercentual(mlResultado.roi * 100)}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-8 pt-4 border-t border-slate-800/60 text-[10px] text-slate-500 leading-relaxed">
+                                                * ROI calculado com base no custo unitario do produto.
+                                            </div>
+                                        </section>
+
+                                        <AppCard>
+                                            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Resumo das Taxas e Custos</h4>
+                                            <div className="space-y-2 text-xs">
+                                                <div className="flex justify-between py-1 border-b border-slate-800/40">
+                                                    <span className="text-slate-400">Comissao ({formatarPercentual(mlResultado.taxa_comissao_percentual * 100)})</span>
+                                                    <span className="text-slate-200 font-mono">{formatarMoeda(mlResultado.comissao)}</span>
+                                                </div>
+                                                <div className="flex justify-between py-1 border-b border-slate-800/40">
+                                                    <span className="text-slate-400">Tarifa Fixa</span>
+                                                    <span className="text-slate-200 font-mono">{formatarMoeda(mlResultado.tarifa_fixa)}</span>
+                                                </div>
+                                                <div className="flex justify-between py-1 border-b border-slate-800/40">
+                                                    <span className="text-slate-400">Total Canal</span>
+                                                    <span className="text-slate-200 font-mono">{formatarMoeda(mlResultado.total_comissao)}</span>
+                                                </div>
+                                                <div className="flex justify-between py-1 border-b border-slate-800/40">
+                                                    <span className="text-slate-400">Custo Logistico Aplicado</span>
+                                                    <span className="text-slate-200 font-mono">{formatarMoeda(mlResultado.custo_logistico_aplicado)}</span>
+                                                </div>
+                                                <div className="flex justify-between py-1 border-b border-slate-800/40">
+                                                    <span className="text-slate-400">Imposto ({simImpostoPercentual}%)</span>
+                                                    <span className="text-slate-200 font-mono">{formatarMoeda(mlResultado.imposto_calculado)}</span>
+                                                </div>
+                                                <div className="flex justify-between py-1 border-b border-slate-800/40 font-semibold">
+                                                    <span className="text-slate-300">Preco Minimo (Break-even)</span>
+                                                    <span className="text-slate-200 font-mono">{formatarMoeda(mlResultado.preco_minimo_recomendado)}</span>
+                                                </div>
+                                            </div>
+                                        </AppCard>
+
+                                        {mlResultado.warnings.length > 0 && (
+                                            <div className="rounded-xl border border-yellow-900/40 bg-yellow-950/20 p-4 space-y-2">
+                                                <h4 className="text-xs font-semibold text-yellow-400 uppercase tracking-wider">Avisos ({mlResultado.warnings.length})</h4>
+                                                <ul className="list-disc list-inside text-xs text-slate-300 space-y-1">
+                                                    {mlResultado.warnings.map((w, idx) => (
+                                                        <li key={idx}>{w.mensagem}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
