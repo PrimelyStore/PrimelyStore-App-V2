@@ -1414,9 +1414,9 @@ Garantias Cumpridas:
 
 ---
 
-## Registro 2026-06-15 - Fase 5.5L-6G.2
+### Registro 2026-06-15 - Fase 5.5L-6G.2
 
-Status: [/] Criacao dos tipos TypeScript e da interface do provedor de taxas do Mercado Livre (Implementacao concluida e aprovada pelo Codex, aguardando confirmacao humana para checkpoint)
+Status: [x] Criacao dos tipos TypeScript e da interface do provedor de taxas do Mercado Livre (Concluido e comitado no commit 18972ea)
 
 Objetivo: Criar os contratos TypeScript e a interface do provedor de calculo de taxas do Mercado Livre, garantindo desacoplamento de rede e React.
 
@@ -1424,9 +1424,29 @@ Resultados de Auditoria e Implementacao:
 1. **Tipos de Contrato**: Criado `types.ts` definindo os tipos de entrada (`MercadoLivreSimulacaoInput`) e saida (`MercadoLivreSimulacaoResultado`) por meio de imports de tipos estritos de `precificacaoService.ts`, evitando duplicidade fisica de interfaces.
 2. **Origem da Simulacao**: Criado o tipo `MercadoLivreFeesProviderSource` para representar as origens da simulacao ('local_mock' | 'edge_function' | 'official_api') e integrado no resultado estendido.
 3. **Interface do Provedor**: Criada a interface abstrata `MercadoLivreFeesProvider` definindo o metodo `simularTaxas` assincrono e independente de React ou infraestrutura.
-4. **Validacao de Codigo e Build**: Suite de 18 testes Vitest aprovada e build de producao concluido com sucesso.
+4. **Validacao de Codigo e Build**: O Antigravity informou que a suite de 18 testes Vitest passou offline e o build de producao foi concluido com sucesso.
 5. **Varredura de Termos Proibidos**: Varredura feita nos novos arquivos sem encontrar termos proibidos (fetch, http, supabase, JWT, Bearer, etc.).
 
 Garantias Cumpridas:
 * Nenhuma alteracao em codigo funcional existente (`precificacaoService.ts`, `CustosMargem.tsx`);
+* Nenhum commit, stage, push, deploy, secrets, API real, migrations ou SQL realizados.
+
+---
+
+## Registro 2026-06-15 - Fase 5.5L-6G.3
+
+Status: [/] Criacao do provedor local de taxas do Mercado Livre, delegando para a funcao existente (Implementacao concluida, aguardando nova auditoria do Codex.)
+
+Objetivo: Criar a classe concreta LocalMockMercadoLivreFeesProvider implementando a interface MercadoLivreFeesProvider, delegando para simularTaxasMercadoLivreLocal, sem duplicar formulas.
+
+Resultados de Auditoria e Implementacao:
+1. **Classe Concreta**: Criado LocalMockMercadoLivreFeesProvider.ts com id imutavel 'local_mock' e delegando integralmente as chamadas para a funcao de calculo preexistente.
+2. **Propagacao de Erros**: Preservadas todas as excecoes e validacoes originais com a propagacao nativa do TypeScript, sem silenciar ou generalizar erros.
+3. **Prevencao de Duplicidade**: Nao foram introduzidas formulas, fixtures de pesos/precos, comissoes ou regras de break-even na classe nova.
+4. **Varredura de Termos Proibidos**: Varredura feita nos novos arquivos sem encontrar termos proibidos (fetch, http, supabase, JWT, Bearer, etc.).
+5. **Testes Unitarios**: Criados 10 testes unitarios de regressao testando integridade de id, origem, valores identicos ao service, preservacao de break-even, warnings e rejeicao de nao finitos. O Antigravity informou que a suite local de 28 testes Vitest passou com sucesso.
+6. **Compilacao de Build**: O Antigravity informou que a compilacao de producao foi concluida com sucesso absoluto.
+
+Garantias Cumpridas:
+* Nenhuma alteracao em codigo funcional existente (precificacaoService.ts, CustosMargem.tsx);
 * Nenhum commit, stage, push, deploy, secrets, API real, migrations ou SQL realizados.

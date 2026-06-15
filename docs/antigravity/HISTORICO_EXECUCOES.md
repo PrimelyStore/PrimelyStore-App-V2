@@ -4,7 +4,38 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
 
 ---
 
-##### [2026-06-15] Fase 5.5L-6G.2 - Criacao dos tipos TypeScript e da interface do provedor de taxas do Mercado Livre (Implementacao concluida e aprovada pelo Codex, aguardando confirmacao humana para checkpoint)
+##### [2026-06-15] Fase 5.5L-6G.3 - Criacao do provedor local de taxas do Mercado Livre, delegando para a funcao existente (Implementacao Concluida, Auditoria Codex Pendente)
+
+* **Objetivo**: Criar a classe concreta LocalMockMercadoLivreFeesProvider implementando a interface MercadoLivreFeesProvider, delegando para simularTaxasMercadoLivreLocal, sem duplicar formulas.
+* **Arquivos Criados/Alterados**:
+  - `src/services/mercadoLivreFees/LocalMockMercadoLivreFeesProvider.ts` (criado)
+  - `src/services/mercadoLivreFees/LocalMockMercadoLivreFeesProvider.test.ts` (criado)
+  - `docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md` (alterado)
+  - `ROADMAP.md` (alterado)
+  - `TASKS.md` (alterado)
+  - `docs/antigravity/STATUS_ATUAL.md` (alterado)
+  - `docs/antigravity/HISTORICO_EXECUCOES.md` (alterado)
+  - `docs/antigravity/PROXIMO_COMANDO.md` (alterado)
+  - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (alterado)
+* **Resumo da Etapa**:
+  1. Criado o arquivo `LocalMockMercadoLivreFeesProvider.ts` com id imutavel 'local_mock' e delegando integralmente as chamadas de simulacao para a funcao preexistente `simularTaxasMercadoLivreLocal`.
+  2. Adicionado o campo `provider_source: 'local_mock'` estendendo o retorno original do calculador.
+  3. Preservados todos os campos originais de retorno e a propagacao de erros/excecoes numericas.
+  4. Varredura feita nos novos arquivos sem encontrar termos proibidos (fetch, http, supabase, JWT, Bearer, etc.).
+  5. Criados 10 testes unitarios de regressao no novo arquivo de testes e o Antigravity informou que a suite local de 28 testes Vitest passou com sucesso.
+  6. O Antigravity informou que a compilacao de build foi concluida com sucesso absoluto.
+* **Garantias de Seguranca**:
+  - Nenhuma alteracao em codigo funcional existente (`precificacaoService.ts`, `CustosMargem.tsx`).
+  - Nenhum commit, stage, push, deploy, secrets, API real, migrations ou SQL realizados.
+* **Rollback Documental**:
+  - O comando teorico de rollback exato para reverter as alteracoes documentais e:
+    `git checkout -- docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md ROADMAP.md TASKS.md docs/antigravity/STATUS_ATUAL.md docs/antigravity/HISTORICO_EXECUCOES.md docs/antigravity/PROXIMO_COMANDO.md docs/antigravity/RESPOSTA_ANTIGRAVITY.md`
+  - E o comando de descarte dos arquivos untracked criados e:
+    `Remove-Item src/services/mercadoLivreFees/LocalMockMercadoLivreFeesProvider.ts, src/services/mercadoLivreFees/LocalMockMercadoLivreFeesProvider.test.ts`
+
+---
+
+##### [2026-06-15] Fase 5.5L-6G.2 - Criacao dos tipos TypeScript e da interface do provedor de taxas do Mercado Livre (Concluido e comitado no commit 18972ea)
 
 * **Objetivo**: Criar os contratos TypeScript e a interface do provedor de calculo de taxas do Mercado Livre, garantindo desacoplamento de rede e React.
 * **Arquivos Criados/Alterados**:

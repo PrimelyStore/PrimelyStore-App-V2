@@ -389,3 +389,21 @@ A Fase 5.5L-6G fica formalmente dividida nas seguintes microfases:
   - Build de producao executado e aprovado sem erros.
   - Nao foram encontrados termos proibidos (fetch, http, supabase, JWT, etc.) nos novos arquivos.
   - Nenhuma alteracao realizada em codigo funcional ou configuracoes existentes.
+
+---
+
+## 16. Implementacao da Fase 5.5L-6G.3 (Provedor Local Mockado Concreto)
+* **Objetivo**: Criar o provedor local concreto `LocalMockMercadoLivreFeesProvider` delegando as chamadas para a funcao de calculo preexistente `simularTaxasMercadoLivreLocal`, sem duplicidade de formulas.
+* **Arquivos Criados**:
+  - `src/services/mercadoLivreFees/LocalMockMercadoLivreFeesProvider.ts`
+  - `src/services/mercadoLivreFees/LocalMockMercadoLivreFeesProvider.test.ts`
+* **Estrategia Adotada**:
+  - A classe concreta implementa `MercadoLivreFeesProvider` e possui `id: 'local_mock'`.
+  - As chamadas de simulacao sao repassadas integralmente para `simularTaxasMercadoLivreLocal`.
+  - O resultado retornado e estendido para incluir `provider_source: 'local_mock'`.
+  - Erros e excecoes sao propagados de forma nativa e transparente.
+* **Validacoes locais**:
+  - Suite local com 28 testes Vitest (incluindo 10 testes especificos de regressao para o provider local mockado) passou com sucesso.
+  - Build de producao executado e aprovado sem erros.
+  - Nao foram encontrados termos proibidos (fetch, http, supabase, JWT, etc.) nos novos arquivos.
+  - Nenhuma alteracao realizada em codigo funcional ou configuracoes existentes.
