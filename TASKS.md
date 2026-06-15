@@ -13,13 +13,13 @@
   - [x] Ajustar o script `scripts/codex-responder-antigravity.ps1` para usar UTF-8 na leitura e saida.
   - [x] Classificar `head_custos.tsx` e `temp_diff_service.txt` como arquivos temporarios untracked proibidos para stage/commit.
 - [/] Planejamento da Abstracao de Provedores de Taxas do Mercado Livre (Fase 5.5L-6G) - Em andamento.
-  - [/] 5.5L-6G.1: Planejamento documental e formalizacao (Implementacao documental concluida, auditoria pendente).
-  - [ ] 5.5L-6G.2: Criacao dos tipos TypeScript e interface do provedor.
-  - [ ] 5.5L-6G.3: Criacao do provedor local mockado delegando para a funcao existente.
+  - [x] 5.5L-6G.1: Planejamento documental e formalizacao (Concluido e comitado).
+  - [/] 5.5L-6G.2: Criacao dos tipos TypeScript e interface do provedor (Implementacao concluida e aprovada pelo Codex, aguardando confirmacao humana para checkpoint).
+  - [ ] 5.5L-6G.3: Criacao do provedor local mockado delegando para a funcao existente (Aguardando autorizacao humana).
   - [ ] 5.5L-6G.4: Injecao do provedor em CustosMargem.tsx.
   - [ ] 5.5L-6G.5: Testes de contrato e regressao.
   - [ ] 5.5L-6G.6: Extracao final da logica e remocao de compatibilidade (apos aprovacao).
 
 ## Tarefas de Controle Pendentes
-- [x] Obter confirmacao humana do usuario para aprovacao da Fase 5.5L-6F.
-- [ ] Obter veredito final favoravel na auditoria tecnica do Codex para a Fase 5.5L-6G.1 (Documental).
+- [x] Obter veredito final favoravel na auditoria tecnica do Codex para a Fase 5.5L-6G.1 (Documental).
+- [x] Obter veredito final favoravel na auditoria tecnica do Codex para a Fase 5.5L-6G.2 (Tipos/Interface).

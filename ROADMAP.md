@@ -1411,3 +1411,22 @@ Garantias Cumpridas:
 * Nenhuma alteracao em arquivos .ts, .tsx, JSON, Edge Functions, dependencias ou configuracoes do Vite.
 * Sem stage (git add), commit ou push nesta microfase documental.
 * Sem deploy, secrets, API real, migrations ou SQL.
+
+---
+
+## Registro 2026-06-15 - Fase 5.5L-6G.2
+
+Status: [/] Criacao dos tipos TypeScript e da interface do provedor de taxas do Mercado Livre (Implementacao concluida e aprovada pelo Codex, aguardando confirmacao humana para checkpoint)
+
+Objetivo: Criar os contratos TypeScript e a interface do provedor de calculo de taxas do Mercado Livre, garantindo desacoplamento de rede e React.
+
+Resultados de Auditoria e Implementacao:
+1. **Tipos de Contrato**: Criado `types.ts` definindo os tipos de entrada (`MercadoLivreSimulacaoInput`) e saida (`MercadoLivreSimulacaoResultado`) por meio de imports de tipos estritos de `precificacaoService.ts`, evitando duplicidade fisica de interfaces.
+2. **Origem da Simulacao**: Criado o tipo `MercadoLivreFeesProviderSource` para representar as origens da simulacao ('local_mock' | 'edge_function' | 'official_api') e integrado no resultado estendido.
+3. **Interface do Provedor**: Criada a interface abstrata `MercadoLivreFeesProvider` definindo o metodo `simularTaxas` assincrono e independente de React ou infraestrutura.
+4. **Validacao de Codigo e Build**: Suite de 18 testes Vitest aprovada e build de producao concluido com sucesso.
+5. **Varredura de Termos Proibidos**: Varredura feita nos novos arquivos sem encontrar termos proibidos (fetch, http, supabase, JWT, Bearer, etc.).
+
+Garantias Cumpridas:
+* Nenhuma alteracao em codigo funcional existente (`precificacaoService.ts`, `CustosMargem.tsx`);
+* Nenhum commit, stage, push, deploy, secrets, API real, migrations ou SQL realizados.

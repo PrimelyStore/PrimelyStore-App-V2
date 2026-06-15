@@ -1,36 +1,24 @@
-# Proximo comando para o Antigravity
+# Proximo Comando Recomendado
 
 ## Contexto identificado
 
-A Fase 5.5L-6G.1 de Planejamento da Abstracao de Provedores de Taxas do Mercado Livre foi concluida exclusivamente em nivel documental:
-- A arquitetura de provedores foi mapeada e os criterios e diretrizes foram formalizados em docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md.
-- Os arquivos ROADMAP.md, TASKS.md e os documentos de controle do Antigravity foram atualizados com as microfases, garantias e criterios de aceite.
-- Todos os arquivos editados estao livres de acentos e em ASCII simples.
-- Nao houve nenhuma alteracao em arquivos de codigo (.ts, .tsx), scripts, JSON de configuracoes ou dependencias do projeto.
-- Nao houve stage (git add), commit, push, deploy, SQL, migrations ou segredos utilizados.
+A Fase 5.5L-6G.2 de criacao dos tipos TypeScript e interface do provedor de taxas do Mercado Livre foi concluida e recebeu o veredito APROVADO_PARA_CONTINUAR do Codex:
+- Os novos arquivos src/services/mercadoLivreFees/types.ts e MercadoLivreFeesProvider.ts foram criados sem o uso de termos proibidos.
+- Nao houve alteracao em codigo funcional existente (precificacaoService.ts, CustosMargem.tsx) ou arquivos JSON de configuracao.
+- A execucao local pelo Antigravity registrou 18 testes passados com sucesso e build de producao concluido com sucesso.
+- O status da Fase 5.5L-6G.2 foi padronizado em todos os documentos de controle como: "Implementacao concluida e aprovada pelo Codex, aguardando confirmacao humana para checkpoint".
+- Os arquivos foram adicionados ao stage via comando git add explicito.
+- A Fase 5.5L-6G.3 permanece nao iniciada e depende de confirmacao humana explicita do usuario.
+- Nao houve commit, push, deploy, SQL ou migrations.
 
 ## Objetivo da proxima etapa
 
-Apresentar o novo relatorio de auditoria tecnica e documental do Codex para a Fase 5.5L-6G.1 e aguardar a decisao humana explicita.
+Obter autorizacao humana explicita para realizar o commit local e push da Fase 5.5L-6G.2 e, posteriormente, obter autorizacao para iniciar a Fase 5.5L-6G.3.
 
 ## Comando para enviar ao Antigravity
 
 ```txt
-Apresente o veredito da auditoria tecnica e documental do Codex para a Fase 5.5L-6G.1.
+Autorizo o commit local e push dos arquivos staged correspondentes a Fase 5.5L-6G.2.
 
-Nao faca git add.
-Nao faca commit.
-Nao faca push.
-Nao faca deploy.
-Nao chame APIs reais.
-Nao leia secrets reais.
-Nao execute SQL ou migrations.
-
-Aguarde a decisao e autorizacao humana explicita antes de prosseguir.
+Apos o push, aguardo instrucoes para iniciar a Fase 5.5L-6G.3.
 ```
-
-## Criterios de aceite
-
-- Nao sugerir ou executar git add, commit ou push.
-- Nao realizar deploy.
-- Aguardar confirmacao humana explicita do usuario para a auditoria pre-stage.

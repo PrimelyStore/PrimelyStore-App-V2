@@ -340,7 +340,7 @@ Para garantir uma transicao livre de quebras:
 ### 14.11. Criterios de Aceite da Futura Implementacao
 1. Criacao da interface `MercadoLivreFeesProvider` e factory inicial.
 2. Provedor local retornando calculos corretos via delegacao a funcao existente.
-3. Componente `CustosMargem.tsx` refatorado para usar o provedor de forma generica, sem conhecer formulas ou URLs.
+3. Componente `CustosMargem.tsx` refatorado para usar o provedor por meio de seu contrato, sem conhecer formulas ou URLs.
 4. Preservacao de todos os comportamentos visuais (formulario, banner, loadings, erros, warnings, break-even).
 5. Todas as suites de testes Vitest relacionadas ao simulador, provider e componente passando offline com sucesso.
 6. Build de producao compilado sem erros.
@@ -372,3 +372,20 @@ A Fase 5.5L-6G fica formalmente dividida nas seguintes microfases:
 - **5.5L-6G.5**: Implementacao de testes de contrato e testes de regressao para garantir que o provedor retorne o mesmo resultado do simulador anterior.
 - **5.5L-6G.6**: Extracao final da logica de calculo de dentro da funcao antiga para o novo provedor local e remocao da funcao de compatibilidade temporaria (apenas apos testes e aprovacao humana).
 - **Fase remota futura separada**: Planejamento e implementacao do provedor remoto baseado em Edge Function do Supabase (sem data ou autorizacao na fase atual).
+
+---
+
+## 15. Implementacao da Fase 5.5L-6G.2 (Tipos e Interface TypeScript)
+* **Objetivo**: Criar os contratos TypeScript e a interface do provedor de calculo de taxas do Mercado Livre (`MercadoLivreFeesProvider`), sem implementar calculos ou alteracoes em codigo funcional.
+* **Arquivos Criados**:
+  - `src/services/mercadoLivreFees/types.ts`
+  - `src/services/mercadoLivreFees/MercadoLivreFeesProvider.ts`
+* **Estrategia Adotada**:
+  - Reutilizacao total dos tipos do formulador e resultado (`SimulacaoMercadoLivreInput`, `SimulacaoMercadoLivreResultado`, `SimulacaoMercadoLivreWarning`) via `import type` a partir de `../precificacaoService.ts`, evitando qualquer duplicidade fisica de codigo.
+  - Criacao do tipo `MercadoLivreFeesProviderSource` para definir a origem da simulacao ('local_mock' | 'edge_function' | 'official_api') e estender o resultado de simulacao original via intersecao de tipos para rastrear essa origem.
+  - Interface `MercadoLivreFeesProvider` definida de forma independente, assincrona, e sem acoplamento a rede, banco, Supabase ou React.
+* **Validacoes locais**:
+  - Suite de 18 testes Vitest passou com sucesso.
+  - Build de producao executado e aprovado sem erros.
+  - Nao foram encontrados termos proibidos (fetch, http, supabase, JWT, etc.) nos novos arquivos.
+  - Nenhuma alteracao realizada em codigo funcional ou configuracoes existentes.

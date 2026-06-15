@@ -4,7 +4,37 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
 
 ---
 
-##### [2026-06-15] Fase 5.5L-6G.1 - Planejamento da Abstracao de Provedores de Taxas do Mercado Livre (Implementacao Documental Concluida, Auditoria Codex Pendente)
+##### [2026-06-15] Fase 5.5L-6G.2 - Criacao dos tipos TypeScript e da interface do provedor de taxas do Mercado Livre (Implementacao concluida e aprovada pelo Codex, aguardando confirmacao humana para checkpoint)
+
+* **Objetivo**: Criar os contratos TypeScript e a interface do provedor de calculo de taxas do Mercado Livre, garantindo desacoplamento de rede e React.
+* **Arquivos Criados/Alterados**:
+  - `src/services/mercadoLivreFees/types.ts` (criado)
+  - `src/services/mercadoLivreFees/MercadoLivreFeesProvider.ts` (criado)
+  - `docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md` (alterado)
+  - `ROADMAP.md` (alterado)
+  - `TASKS.md` (alterado)
+  - `docs/antigravity/STATUS_ATUAL.md` (alterado)
+  - `docs/antigravity/HISTORICO_EXECUCOES.md` (alterado)
+  - `docs/antigravity/PROXIMO_COMANDO.md` (alterado)
+  - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (alterado)
+* **Resumo da Etapa**:
+  1. Criado o arquivo `types.ts` definindo os tipos de entrada (`MercadoLivreSimulacaoInput`) e saida (`MercadoLivreSimulacaoResultado`) por meio de imports de tipos estritos de `precificacaoService.ts`, evitando duplicidade fisica de interfaces.
+  2. Criado o tipo `MercadoLivreFeesProviderSource` para representar as origens da simulacao ('local_mock' | 'edge_function' | 'official_api') e integrado no resultado estendido.
+  3. Criada a interface abstrata `MercadoLivreFeesProvider` definindo o metodo `simularTaxas` assincrono e independente de React ou infraestrutura.
+  4. Suite de 18 testes Vitest aprovada e build de producao concluido com sucesso.
+  5. Varredura feita nos novos arquivos sem encontrar termos proibidos (fetch, http, supabase, JWT, Bearer, etc.).
+* **Garantias de Seguranca**:
+  - Nenhuma alteracao em codigo funcional existente (`precificacaoService.ts`, `CustosMargem.tsx`).
+  - Nenhum commit, stage, push, deploy, secrets, API real, migrations ou SQL realizados.
+* **Rollback Documental**:
+  - O procedimento de rollback serve apenas como referencia tecnica e nenhum comando de descarte de alteracoes pode ser executado sem confirmacao humana previa. O comando teorico de rollback exato para reverter os arquivos documentais e:
+    `git checkout -- docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md ROADMAP.md TASKS.md docs/antigravity/STATUS_ATUAL.md docs/antigravity/HISTORICO_EXECUCOES.md docs/antigravity/PROXIMO_COMANDO.md docs/antigravity/RESPOSTA_ANTIGRAVITY.md`
+  - E o comando de descarte dos arquivos untracked criados e:
+    `Remove-Item -Recurse -Force src/services/mercadoLivreFees/`
+
+---
+
+##### [2026-06-15] Fase 5.5L-6G.1 - Planejamento da Abstracao de Provedores de Taxas do Mercado Livre (Concluido e Comitado)
 
 * **Objetivo**: Planejar de forma documental a arquitetura desacoplada de provedores de calculo de taxas do Mercado Livre, refinando regras de selecao segura, UI desacoplada, prevencao de duplicidade, transicao de compatibilidade e rollback.
 * **Arquivos Criados/Alterados**:
@@ -23,6 +53,7 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
   5. Planejada a prevencao de duplicidade com testes de contrato (que apenas detectam divergencias entre as implementacoes, mas nao eliminam por si mesmos o risco de duplicacao).
   6. Validada a ausencia completa de alteracoes em codigo-fonte, arquivos JSON de configuracao ou dependencias. Sem stage (`git add`), commit, push ou deploy.
 * **Garantias de Seguranca**:
+  - Commit realizado: `5a694c0 docs: planeja abstracao de provedores Mercado Livre` na branch `planning/mercado-livre-fees-provider` publicada na origem.
   - Etapa estritamente documental e conceitual. Sem chaves reais, sem chamadas HTTP e sem alteracoes operacionais.
 * **Rollback Documental**:
   - O procedimento de rollback serve apenas como referencia tecnica e nenhum comando de descarte de alteracoes pode ser executado sem confirmacao humana previa. O comando teorico de rollback exato para reverter os arquivos documentais e:
