@@ -1354,7 +1354,7 @@ Garantias Cumpridas:
 
 ## Registro 2026-06-13 - Fase 5.5L-6F
 
-Status: [/] Simulador Mercado Livre Local/Mockado Independente no Frontend (Aguardando Auditoria do Codex)
+Status: [x] Simulador Mercado Livre Local/Mockado Independente no Frontend (Concluido e Comitado)
 
 Objetivo: Concluir a implementacao do simulador de precificacao mockado independente no frontend, permitindo alternar de forma segura entre o Simulador Padrao e o Simulador Mercado Livre (Local/Mock) com aviso de governanca, calculo local puro em TypeScript, testes unitarios offline e interativos.
 
@@ -1367,6 +1367,47 @@ Resultados de Auditoria e Implementacao:
 6. **Arquivos Temporarios**: Classificados os arquivos untracked `head_custos.tsx` (backup do componente) e `temp_diff_service.txt` (diff do service) como arquivos temporarios de auditoria, proibidos de entrar no stage/commit e sem remocao sem confirmacao humana.
 
 Garantias Cumpridas:
-* Sem chamadas de rede real, sem secrets expostos, sem deploy, sem migrations, sem SQL e sem stage/commit no Git nesta rodada.
-* As dependencias de teste (Vitest, jsdom, Testing Library) estao restritas ao escopo de devDependencies.
-* Os arquivos temporarios `head_custos.tsx` e `temp_diff_service.txt` permanecem untracked e fora do stage/commit.
+* Suite de 18 testes unitarios e de regressao offline aprovados no Vitest;
+* Build de producao executado e aprovado sem erros;
+* Fase concluida e comitada na branch publicada: `feature/mercado-livre-fees-quote-frontend-mock`;
+* Commit realizado: `a71fe52 feat: adiciona simulador local mockado do Mercado Livre`;
+* As dependencias de teste (Vitest, jsdom, Testing Library) estao restritas ao escopo de devDependencies;
+* Os arquivos temporarios `head_custos.tsx` e `temp_diff_service.txt` permaneceram untracked e fora do stage/commit.
+
+---
+
+## Registro 2026-06-15 - Fase 5.5L-6G.1
+
+Status: [/] Planejamento da Abstracao de Provedores de Taxas do Mercado Livre (Implementacao Documental Concluida, Auditoria Codex Pendente)
+
+Objetivo: Planejar documentalmente a arquitetura de provedores de taxas do Mercado Livre, definindo a interface MercadoLivreFeesProvider, o provedor local Mockado, e conceituando o futuro provedor Edge Function desativado.
+
+Resultados do Planejamento:
+1. **Interface Conceitual**: Definida a interface MercadoLivreFeesProvider contendo simularTaxas com inputs, outputs, warnings e tratamento amigavel de erros.
+2. **Provedores Conceituados**: Provedor local Mockado (ativo por padrao) delegando para a funcao existente e provedor Edge Function desativado de forma conceitual (sem criacao de classes, fetch, URL, JWT, tokens ou configuracoes de ambiente).
+3. **Escopo da Edge Function**: Declarado que a Edge Function atual tambem utiliza regras mockadas, e nao representa taxas oficiais do Mercado Livre.
+4. **UI Completamente Desacoplada**: A UI nao contera formulas, fixtures de peso/preco, URLs ou detalhes de infraestrutura da Edge Function / Supabase, conhecendo apenas os tipos de dados de entrada e saida.
+5. **Selecao do Provedor**: Provedor local sera o unico disponivel no sistema via Factory de forma explicita, sem selecao automatica por sessao, token, URLs ou variavel VITE_.
+6. **Estrategia de Testes**: Testes offline do provedor local, testes de contrato e mock do provedor na UI React. Testes de contrato detectam divergencias entre implementacoes, mas nao eliminam por si mesmos o risco de duplicacao de formulas.
+7. **Compatibilidade Temporaria**: O novo provedor local delegara inicialmente a execucao para a funcao simularTaxasMercadoLivreLocal preexistente, movendo a logica e removendo a funcao antiga apenas em fase posterior apos testes.
+8. **Plano de Rollback**: Procedimento de rollback de referencia (atraves de git checkout) para restaurar ou reverter apenas arquivos autorizados da microfase apos apresentar o diff e solicitar confirmacao humana explicita.
+9. **Criterios de Aceite Documentais**:
+   - Arquitetura de provedores documentada.
+   - Somente provedor local autorizado na factory inicial.
+   - Provedor remoto apenas conceitual.
+   - Estrategia de migracao com testes de contrato (que detectam divergencias) e testes offline documentados.
+   - Nenhuma alteracao em arquivos `.ts`, `.tsx`, JSON, configuracoes ou dependencias.
+   - Nenhum stage (`git add`), commit, push ou deploy.
+10. **Divisao de Microfases**:
+    - **5.5L-6G.1**: Planejamento documental e formalizacao.
+    - **5.5L-6G.2**: Criacao dos tipos TypeScript e definicao da interface do provedor.
+    - **5.5L-6G.3**: Criacao do provedor local mockado delegando para a funcao existente.
+    - **5.5L-6G.4**: Injecao do provedor em CustosMargem.tsx.
+    - **5.5L-6G.5**: Testes de contrato e regressao.
+    - **5.5L-6G.6**: Extracao final da logica e remocao de compatibilidade (apos aprovacao).
+    - **Fase remota futura separada**: Planejamento do provedor Edge Function (sem data ou autorizacao).
+
+Garantias Cumpridas:
+* Nenhuma alteracao em arquivos .ts, .tsx, JSON, Edge Functions, dependencias ou configuracoes do Vite.
+* Sem stage (git add), commit ou push nesta microfase documental.
+* Sem deploy, secrets, API real, migrations ou SQL.

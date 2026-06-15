@@ -4,7 +4,33 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
 
 ---
 
-##### [2026-06-14] Fase 5.5L-6F - Implementacao do Simulador Mercado Livre Local/Mockado Independente no Frontend (Aguardando Auditoria do Codex)
+##### [2026-06-15] Fase 5.5L-6G.1 - Planejamento da Abstracao de Provedores de Taxas do Mercado Livre (Implementacao Documental Concluida, Auditoria Codex Pendente)
+
+* **Objetivo**: Planejar de forma documental a arquitetura desacoplada de provedores de calculo de taxas do Mercado Livre, refinando regras de selecao segura, UI desacoplada, prevencao de duplicidade, transicao de compatibilidade e rollback.
+* **Arquivos Criados/Alterados**:
+  - `docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md` (alterado)
+  - `ROADMAP.md` (alterado)
+  - `TASKS.md` (alterado)
+  - `docs/antigravity/STATUS_ATUAL.md` (alterado)
+  - `docs/antigravity/HISTORICO_EXECUCOES.md` (alterado)
+  - `docs/antigravity/PROXIMO_COMANDO.md` (alterado)
+  - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (alterado)
+* **Resumo da Etapa**:
+  1. Formalizada a arquitetura conceitual de provedores de taxas do Mercado Livre. O provedor local mockado (`LocalMockMercadoLivreFeesProvider`) sera o unico disponivel no sistema, delegando inicialmente as chamadas para a funcao preexistente `simularTaxasMercadoLivreLocal`.
+  2. O provedor remoto (`EdgeFunctionMercadoLivreFeesProvider`) permanecera apenas conceitual, sem classes, fetch ou dependencias criadas nesta fase. A Edge Function atual utiliza regras mockadas, nao representando taxas oficiais do Mercado Livre.
+  3. A interface do usuario (`CustosMargem.tsx`) foi planejada para ficar completamente desacoplada de formulas financeiras, limites de preco, pesos ou detalhes de rede/infraestrutura.
+  4. Mapeadas as microfases recomendadas e os criterios de aceite documentais da Fase 5.5L-6G.1.
+  5. Planejada a prevencao de duplicidade com testes de contrato (que apenas detectam divergencias entre as implementacoes, mas nao eliminam por si mesmos o risco de duplicacao).
+  6. Validada a ausencia completa de alteracoes em codigo-fonte, arquivos JSON de configuracao ou dependencias. Sem stage (`git add`), commit, push ou deploy.
+* **Garantias de Seguranca**:
+  - Etapa estritamente documental e conceitual. Sem chaves reais, sem chamadas HTTP e sem alteracoes operacionais.
+* **Rollback Documental**:
+  - O procedimento de rollback serve apenas como referencia tecnica e nenhum comando de descarte de alteracoes pode ser executado sem confirmacao humana previa. O comando teorico de rollback exato para reverter os arquivos documentais e:
+    `git checkout -- docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md ROADMAP.md TASKS.md docs/antigravity/STATUS_ATUAL.md docs/antigravity/HISTORICO_EXECUCOES.md docs/antigravity/PROXIMO_COMANDO.md docs/antigravity/RESPOSTA_ANTIGRAVITY.md`
+
+---
+
+##### [2026-06-14] Fase 5.5L-6F - Implementacao do Simulador Mercado Livre Local/Mockado Independente no Frontend (Concluido e Comitado)
 
 * **Objetivo**: Concluir a implementacao do simulador de precificacao mockado independente no frontend, permitindo alternar de forma segura entre o Simulador Padrao e o Simulador Mercado Livre (Local/Mock) com aviso de governanca, calculo local puro em TypeScript, testes unitarios offline e interativos, com tratamento de erros simplificado, validacao de finitude de dados e restauracao de acentuacao.
 * **Arquivos Criados/Alterados**:

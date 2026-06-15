@@ -267,3 +267,108 @@ A interface do simulador devera conter um banner informativo amarelado de destaq
   3. **Testes Unitarios do Service**: Criado o arquivo `precificacaoService.test.ts` contendo 11 testes especificos cobrindo as faixas de preco de transicao (78.99, 79.00 e 79.01), break-even, margens negativas e rejeicao de nao finitos.
   4. **Erro Simplificado no Componente**: Removidos quaisquer termos de Supabase JWT, Edge Function indisponivel ou autenticacao de producao, retornando uma mensagem limpa e coerente com a execucao offline local.
   5. **Script de Auditoria**: Ajustado o script `scripts/codex-responder-antigravity.ps1` configurando a leitura e saida em UTF-8 no console do PowerShell, resolvendo a corrupcao textual.
+
+---
+
+## 14. Planejamento da Abstracao de Provedores de Taxas do Mercado Livre (Fase 5.5L-6G)
+
+### 14.1. Objetivo do Planejamento
+Desenhar uma arquitetura desacoplada para o simulador do Mercado Livre, permitindo que a interface do usuario (`CustosMargem.tsx`) consuma um provedor abstrato de calculos de taxas. Isso garante que, no futuro, o provedor em memoria possa ser substituido por uma chamada remota a uma Edge Function ou outra fonte oficial de calculos sem alterar o componente visual do frontend.
+
+### 14.2. Interface Conceitual do Provedor (`MercadoLivreFeesProvider`)
+Sera definida uma interface abstrata em TypeScript atuando como contrato para os calculos de taxas:
+- **Interface**: `MercadoLivreFeesProvider` contendo o metodo `simularTaxas(input: SimulacaoMercadoLivreInput): Promise<SimulacaoMercadoLivreResultado>`.
+- **Entrada (`SimulacaoMercadoLivreInput`)**: Parametros coletados do formulario (preco_venda, custo_produto, aliquota_imposto, peso_gramas, reputacao, category_id, listing_type_id, etc.).
+- **Resposta (`SimulacaoMercadoLivreResultado`)**: Valores simulados e warnings de lucratividade (lucro_liquido, margem_liquida, roi, preco_minimo_recomendado, warnings, etc.).
+- **Erros**: Qualquer excecao (validacao ou rede) deve ser traduzida em erro estruturado com mensagens amigaveis, sem expor informacoes tecnicas (JWT, endpoints, logs internos).
+
+### 14.3. Provedores Conceituais
+1. **`LocalMockMercadoLivreFeesProvider`**: Executa os calculos locais em memoria delegando temporariamente para a funcao pura preexistente `simularTaxasMercadoLivreLocal`.
+2. **`EdgeFunctionMercadoLivreFeesProvider` (Apenas Conceitual)**: Provedor futuro para chamadas a Edge Function do Supabase. Este provedor **permanece apenas planejado**.
+   - Nao sera criada nenhuma classe, arquivo, esqueleto de implementacao, fetch, URL, headers, JWT, token ou variavel de ambiente nesta fase.
+   - Sua futura implementacao dependera de autenticacao segura por sessao JWT, configuracoes homologadas, testes offline, validacao das regras e autorizacao humana explicita.
+   - Nota: A Edge Function atual tambem utiliza regras mockadas de comissao e frete, nao representando taxas oficiais do Mercado Livre. Uma futura fonte oficial exigira integracao e validacao fiscal humana posterior.
+
+### 14.4. UI Desacoplada e Sem Conhecimento Interno
+O componente `CustosMargem.tsx` nao contera nenhum conhecimento sobre:
+- Formulas financeiras de comissao, tarifa fixa, ou descontos de reputacao.
+- Fixtures, faixas de preco limite (R$ 79,00) ou tabelas logisticas de frete por peso.
+- URL, fetch, headers, JWT, tokens ou detalhes de infraestrutura da Edge Function / Supabase.
+- A UI interagira apenas com os tipos de entrada, resposta, loading, erro, warnings e dados exibidos na tela.
+
+### 14.5. Selecao Segura do Provedor
+Na primeira implementacao desta arquitetura:
+- O provedor local sera o unico disponivel no sistema.
+- A injecao do provedor sera explicita.
+- Nao havera selecao automatica por sessao, existencia de token, URL ou variavel de ambiente `VITE_`.
+- Nao havera fallback automatico para provedor remoto.
+- A Factory inicial, se criada, retornara estritamente a instancia do provedor local.
+
+### 14.6. Estrategia de Prevencao de Duplicidade
+Nao havera importacao direta do mesmo modulo entre o runtime do React (Vite) e o runtime do Deno (Edge Function) nesta primeira fase.
+- A integridade de formulas sera avaliada por contratos de entrada/saida equivalentes, compartilhamento de fixtures de casos de teste, testes de contrato e comparacao deterministica dos resultados mockados de testes offline. Testes de contrato detectam divergencias entre implementacoes, mas nao eliminam por si mesmos o risco de duplicacao de formulas.
+- Qualquer compartilhamento fisico de codigo sera analisado em fase posterior para contornar limitacoes e diferencas de runtime.
+
+### 14.7. Estrutura Futura de Arquivos (Sem criacao nesta fase)
+Se confirmada a necessidade de evitar fragmentacao, a estrutura planejada sera:
+- `src/services/mercadoLivreFees/types.ts`
+- `src/services/mercadoLivreFees/MercadoLivreFeesProvider.ts`
+- `src/services/mercadoLivreFees/LocalMockMercadoLivreFeesProvider.ts`
+- `src/services/mercadoLivreFees/providerFactory.ts`
+- `src/services/mercadoLivreFees/LocalMockMercadoLivreFeesProvider.test.ts`
+- `src/services/mercadoLivreFees/providerContract.test.ts`
+
+### 14.8. Compatibilidade Temporaria e Transicao Segura
+Para garantir uma transicao livre de quebras:
+- A funcao `simularTaxasMercadoLivreLocal` sera mantida intacta temporariamente.
+- O novo provedor local delegara inicialmente a execucao para essa funcao existente.
+- Somente em microfase posterior, a logica sera movida definitivamente para dentro do provedor, sem duplicar formulas no arquivo principal.
+- A funcao antiga sera removida do modulo original apenas apos testes aprovados e confirmacao humana.
+
+### 14.9. Estrategia de Testes Offline
+- Testes unitarios do provedor local serao isolados e offline.
+- Testes de contrato serao criados para comparar de forma deterministica os resultados.
+- A pagina React sera testada com mock do provedor, simulando estados de sucesso, loading e erro sem realizar conexoes HTTP ou depender de rede.
+
+### 14.10. Riscos Identificados e Mitigacoes
+- **Divergencia entre Mock e Real**: Mitigado pelo banner visual obrigatorio e instrucoes ao gestor.
+- **Duplicacao de Regras**: Mitigado por testes de contrato com payloads identicos de teste no frontend e backend.
+- **Uso Acidental de Provedor Remoto**: Mitigado pelo bloqueio completo de rotas e factory restrita a local.
+- **Exposicao de Credenciais**: Mitigado pelo desacoplamento total da UI, impedindo passagem de tokens.
+- **Quebra do Simulador Atual**: Mitigado por testes de regressao e compatibilidade temporaria.
+
+### 14.11. Criterios de Aceite da Futura Implementacao
+1. Criacao da interface `MercadoLivreFeesProvider` e factory inicial.
+2. Provedor local retornando calculos corretos via delegacao a funcao existente.
+3. Componente `CustosMargem.tsx` refatorado para usar o provedor de forma generica, sem conhecer formulas ou URLs.
+4. Preservacao de todos os comportamentos visuais (formulario, banner, loadings, erros, warnings, break-even).
+5. Todas as suites de testes Vitest relacionadas ao simulador, provider e componente passando offline com sucesso.
+6. Build de producao compilado sem erros.
+
+### 14.12. Plano de Rollback da Abstracao
+O procedimento de rollback serve apenas como referencia tecnica e nunca deve ser executado de forma automatica ou sem confirmacao humana explicita.
+Se a refatoracao apresentar problemas na implementacao:
+- Apresentar o diff stat detalhado das alteracoes da microfase.
+- Solicitar confirmacao humana previa e explicita.
+- Restaurar ou reverter apenas os arquivos autorizados da microfase (nunca descartar alteracoes nao relacionadas ou de outras branches).
+
+### 14.13. Criterios de Aceite da Fase 5.5L-6G.1
+Esta microfase e exclusivamente documental e de planejamento conceitual.
+- Arquitetura de provedores documentada conceitualmente.
+- Provedor local mockado como o unico disponivel e autorizado para a primeira implementacao.
+- Provedor remoto (Edge Function) documentado apenas de forma conceitual, sem esqueleto de codigo ou configuracao.
+- Estrategia de migracao planejada sem duplicacao de formulas e mantendo compatibilidade temporaria.
+- Estrategia de testes offline e de contrato documentada.
+- Riscos e plano de rollback documental explicitamente mapeados.
+- Nenhuma alteracao em arquivos `.ts`, `.tsx`, JSON, configuracoes ou dependencias do projeto.
+- Nenhum stage (`git add`), commit, push ou deploy realizado.
+
+### 14.14. Divisao de Microfases Recomendadas
+A Fase 5.5L-6G fica formalmente dividida nas seguintes microfases:
+- **5.5L-6G.1**: Planejamento documental e formalizacao (Esta etapa atual).
+- **5.5L-6G.2**: Criacao dos tipos TypeScript e definicao da interface do provedor de calculo de taxas do Mercado Livre.
+- **5.5L-6G.3**: Criacao do provedor local mockado (`LocalMockMercadoLivreFeesProvider`) que delegara a execucao para a funcao pura preexistente `simularTaxasMercadoLivreLocal`.
+- **5.5L-6G.4**: Injecao explicita do provedor local no componente visual `CustosMargem.tsx`.
+- **5.5L-6G.5**: Implementacao de testes de contrato e testes de regressao para garantir que o provedor retorne o mesmo resultado do simulador anterior.
+- **5.5L-6G.6**: Extracao final da logica de calculo de dentro da funcao antiga para o novo provedor local e remocao da funcao de compatibilidade temporaria (apenas apos testes e aprovacao humana).
+- **Fase remota futura separada**: Planejamento e implementacao do provedor remoto baseado em Edge Function do Supabase (sem data ou autorizacao na fase atual).
