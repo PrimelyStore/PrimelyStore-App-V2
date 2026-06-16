@@ -1455,7 +1455,7 @@ Garantias Cumpridas:
 
 ## Registro 2026-06-15 - Fase 5.5L-6G.4
 
-Status: [x] Integracao controlada do provider local de taxas com o simulador Mercado Livre no React (Concluido e aprovado pelo Codex, aguardando confirmacao humana para checkpoint)
+Status: [x] Integracao controlada do provider local de taxas com o simulador Mercado Livre no React (Concluido e comitado no commit daa7485)
 
 Objetivo: Fazer o simulador Mercado Livre em CustosMargem.tsx utilizar o contrato MercadoLivreFeesProvider e o provider local aprovado, substituindo a chamada direta a simularTaxasMercadoLivreLocal, sem alterar formulas, resultados ou comportamento visual.
 
@@ -1470,4 +1470,24 @@ Resultados de Auditoria e Implementacao:
 Garantias Cumpridas:
 * Nenhuma alteracao em formulas ou valores calculados de comissao/imposto;
 * Nenhuma alteracao no simulador padrao ou outras abas de CustosMargem.tsx;
+* Nenhum commit, stage, push, deploy, secrets, API real, migrations ou SQL realizados.
+
+---
+
+## Registro 2026-06-15 - Fase 5.5L-6G.5
+
+Status: [x] Testes de contrato e regressao do provider de taxas do Mercado Livre (Concluido e aprovado pelo Codex, aguardando confirmacao humana para checkpoint)
+
+Objetivo: Criar testes de contrato e regressao que comprovem que qualquer implementacao de MercadoLivreFeesProvider respeita o contrato genérico esperado, submetendo o provedor local a essa suite de conformidade.
+
+Resultados de Auditoria e Implementacao:
+1. **Suíte de Testes de Contrato**: Criado o arquivo `MercadoLivreFeesProvider.contract.test.ts` que exporta a funcao utilitaria de suite `executarContratoDoProvider`, contendo 11 cenarios especificos de paridade, assincronismo, imutabilidade, paridade de erros e limites de preco.
+2. **Submissao do Provedor Local**: O provedor `LocalMockMercadoLivreFeesProvider` foi submetido e validado com sucesso na suite de contrato.
+3. **Paridade Financeira e de Comportamento**: Todos os testes comparam os retornos profundos contra a funcao pura delegada original `simularTaxasMercadoLivreLocal`, sem duplicar formulas ou fixar numeros manualmente no codigo do teste.
+4. **Validacao de Testes e Build**: Vitest executou a suite com 42 testes no total (sendo 11 no arquivo de contrato) aprovados com sucesso. O build de producao finalizou com exito absoluto.
+5. **Busca de Termos Proibidos**: A varredura de seguranca no novo arquivo retornou totalmente limpa para fetch, http, supabase, JWT, Bearer, token, Deno ou VITE_.
+
+Garantias Cumpridas:
+* Nenhuma alteracao em arquivos de producao ou testes anteriores;
+* Nenhuma duplicacao ou importacao manual de formulas financeiras no teste;
 * Nenhum commit, stage, push, deploy, secrets, API real, migrations ou SQL realizados.

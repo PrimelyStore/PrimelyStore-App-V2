@@ -16,8 +16,8 @@
   - [x] 5.5L-6G.1: Planejamento documental e formalizacao (Concluido e comitado).
   - [x] 5.5L-6G.2: Criacao dos tipos TypeScript e interface do provedor (Concluido e comitado no commit 18972ea).
   - [x] 5.5L-6G.3: Criacao do provedor local mockado delegando para a funcao existente (Concluido e comitado no commit aed3dbd).
-  - [x] 5.5L-6G.4: Injecao do provider em CustosMargem.tsx (Concluido e aprovado pelo Codex, aguardando confirmacao humana para checkpoint).
-  - [ ] 5.5L-6G.5: Testes de contrato e regressao.
+  - [x] 5.5L-6G.4: Injecao do provider em CustosMargem.tsx (Concluido e comitado no commit daa7485).
+  - [x] 5.5L-6G.5: Testes de contrato e regressao (Concluido e aprovado pelo Codex, aguardando confirmacao humana para checkpoint).
   - [ ] 5.5L-6G.6: Extracao final da logica e remocao de compatibilidade (apos aprovacao).
 
 ## Tarefas de Controle Pendentes
@@ -25,3 +25,4 @@
 - [x] Obter veredito final favoravel na auditoria tecnica do Codex para a Fase 5.5L-6G.2 (Tipos/Interface).
 - [x] Obter veredito final favoravel na auditoria tecnica do Codex para a Fase 5.5L-6G.3 (Provedor Local).
 - [x] Obter veredito final favoravel na auditoria tecnica do Codex para a Fase 5.5L-6G.4 (Integracao React).
+- [x] Obter veredito final favoravel na auditoria tecnica do Codex para a Fase 5.5L-6G.5 (Testes de Contrato).

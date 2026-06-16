@@ -426,3 +426,20 @@ A Fase 5.5L-6G fica formalmente dividida nas seguintes microfases:
   - Busca estrita por termos proibidos (fetch, supabase, JWT, Bearer, Deno, etc.) retornou limpa nas areas alteradas.
   - Aprovacao final concedida na auditoria do Codex (veredito APROVADO_PARA_CONTINUAR).
   - Nenhuma alteracao realizada em formulas ou regras financeiras do service.
+
+---
+
+## 18. Implementacao da Fase 5.5L-6G.5 (Testes de Contrato e Regressao)
+* **Objetivo**: Criar testes de contrato e regressao que comprovem que qualquer implementacao de `MercadoLivreFeesProvider` respeita o contrato genérico esperado, submetendo o provedor local a essa suite de conformidade.
+* **Arquivos Criados/Modificados**:
+  - `src/services/mercadoLivreFees/MercadoLivreFeesProvider.contract.test.ts` (criado)
+* **Estrategia Adotada**:
+  - Definicao de uma funcao utilitaria genérica de conformidade de contrato `executarContratoDoProvider` que recebe um callback instanciador de provedor, o ID esperado e a fonte de provedor esperada.
+  - A suite de contrato valida 11 cenarios genéricos de robustez: identificador estavel, inclusao de `provider_source`, equivalencia assintrona, determinismo, imutabilidade de input, propagacao correta de excecoes/erros ( NaN, Infinity e custo negativo) e paridade exata profunda comparada dinamicamente contra a funcao delegada `simularTaxasMercadoLivreLocal`.
+  - Os limites de preco criticos (`78.99`, `79.00` e `79.01`) foram inclusos na matriz de paridade dinamica, sem fixar formulas ou numeros manualmente no codigo de teste para evitar acoplamento financeiro.
+  - Registro de que o teste de contrato e a primeira barreira contra desvios de paridade de comportamento em futuras refatoracoes ou novas implementacoes (remotas/API).
+* **Validacoes locais**:
+  - Suite de testes do Vitest executada localmente com 42 testes no total (11 testes no arquivo de contrato) aprovados com sucesso.
+  - Build de producao do Vite finalizado sem erros de tipagem.
+  - Busca estrita por termos proibidos (fetch, http, supabase, JWT, Bearer, token, Deno, VITE_) retornou limpa no arquivo novo.
+  - Nenhuma alteracao realizada em arquivos de producao ou testes antigos.
