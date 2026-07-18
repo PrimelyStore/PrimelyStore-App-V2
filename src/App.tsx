@@ -11,6 +11,7 @@ import { AppLayout } from './components/layout/AppLayout'
 import { AuthProvider } from './contexts/AuthContext'
 import { useAuth } from './hooks/useAuth'
 import { Alertas } from './pages/Alertas'
+import { CurvaABC } from './pages/CurvaABC'
 import { AmazonFBA } from './pages/AmazonFBA'
 import { ConciliacaoAmazonOlistPrimelyFba } from './pages/ConciliacaoAmazonOlistPrimelyFba'
 import { Compras } from './pages/Compras'
@@ -19,11 +20,13 @@ import { ConciliacaoOlistPrimelyEstoque } from './pages/ConciliacaoOlistPrimelyE
 import { Dashboard } from './pages/Dashboard'
 import { Estoque } from './pages/Estoque'
 import { Fornecedores } from './pages/Fornecedores'
+import { IntegracoesOlist } from './pages/IntegracoesOlist'
 import { Login } from './pages/Login'
 import { Lotes } from './pages/Lotes'
 import { Movimentacoes } from './pages/Movimentacoes'
 import { Produtos } from './pages/Produtos'
 import { Vendas } from './pages/Vendas'
+import { CustosMargem } from './pages/CustosMargem'
 
 function RotaProtegida() {
   const { autenticado, carregando } = useAuth()
@@ -70,6 +73,7 @@ function AppRoutes() {
           <Route path="/vendas" element={<Vendas />} />
           <Route path="/estoque" element={<Estoque />} />
           <Route path="/amazon-fba" element={<AmazonFBA />} />
+          <Route path="/integracoes-olist" element={<IntegracoesOlist />} />
           <Route
             path="/conciliacao-olist-amazon"
             element={<ConciliacaoOlistAmazon />}
@@ -82,6 +86,8 @@ function AppRoutes() {
             path="/conciliacao-amazon-olist-primely-fba"
             element={<ConciliacaoAmazonOlistPrimelyFba />}
           />
+          <Route path="/curva-abc" element={<CurvaABC />} />
+          <Route path="/custos-margem" element={<CustosMargem />} />
           <Route path="/lotes" element={<Lotes />} />
           <Route path="/movimentacoes" element={<Movimentacoes />} />
           <Route path="/alertas" element={<Alertas />} />
