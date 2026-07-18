@@ -155,3 +155,36 @@ export async function sincronizarAmazonFBAEstoqueSnapshot() {
 
     return data
 }
+
+export type AmazonSaudeResultado = {
+    ok: boolean
+    message: string | null
+    timestamp: string | null
+    configured_secrets_count: number | null
+    total_expected_secrets: number | null
+    lwa_token_ok: boolean
+}
+
+export async function buscarSaudeAmazon(): Promise<AmazonSaudeResultado> {
+    const { data, error } = await supabase.functions.invoke('amazon-spapi-health', {
+        method: 'GET',
+    })
+
+    if (error) {
+        throw new Error(error.message)
+    }
+
+    if (!data) {
+        throw new Error('A verificação de saúde da Amazon não retornou dados.')
+    }
+
+    return {
+        ok: Boolean(data.ok),
+        message: typeof data.message === 'string' ? data.message : null,
+        timestamp: typeof data.timestamp === 'string' ? data.timestamp : null,
+        configured_secrets_count: typeof data.configured_secrets_count === 'number' ? data.configured_secrets_count : null,
+        total_expected_secrets: typeof data.total_expected_secrets === 'number' ? data.total_expected_secrets : null,
+        lwa_token_ok: Boolean(data.lwa_token_ok ?? data.lwa?.ok),
+    }
+}
+

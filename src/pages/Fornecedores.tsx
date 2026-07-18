@@ -6,6 +6,7 @@ import {
     type Fornecedor,
     type NovoFornecedor,
 } from '../services/fornecedoresService'
+import { AppButton, AppCard, DataTableContainer, PageHeader, StatusBadge, stickyTableHeadClassName } from '../components/ui'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
 
@@ -110,6 +111,8 @@ export function Fornecedores() {
         null
     )
 
+    const [mostrarFormulario, setMostrarFormulario] = useState(false)
+
     const [formulario, setFormulario] =
         useState<FormularioFornecedor>(formularioInicial)
 
@@ -152,11 +155,20 @@ export function Fornecedores() {
     function limparFormulario() {
         setFormulario(formularioInicial)
         setFornecedorEditandoId(null)
+        setMostrarFormulario(false)
+    }
+
+    function abrirFormularioCadastro() {
+        setFormulario(formularioInicial)
+        setFornecedorEditandoId(null)
+        setMostrarFormulario(true)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
     function iniciarEdicao(fornecedor: Fornecedor) {
         setFornecedorEditandoId(fornecedor.id)
         setFormulario(fornecedorParaFormulario(fornecedor))
+        setMostrarFormulario(true)
         setStatus('sucesso')
         setMensagem(`Editando o fornecedor: ${fornecedor.nome}`)
         window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -241,24 +253,15 @@ export function Fornecedores() {
 
     return (
         <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
-                <p className="text-sm uppercase tracking-widest text-cyan-400">
-                    Módulo
-                </p>
+            <PageHeader
+                tag="MÓDULO"
+                title="Fornecedores"
+                description="Cadastro, edição e listagem dos fornecedores da operação."
+            />
 
-                <h1 className="mt-3 text-3xl font-bold">
-                    Fornecedores
-                </h1>
-
-                <p className="mt-4 max-w-3xl text-slate-300">
-                    Cadastro, edição e listagem dos fornecedores da operação.
-                </p>
-            </div>
-
-            <form
-                onSubmit={enviarFormulario}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg"
-            >
+            {mostrarFormulario ? (
+                <AppCard>
+                    <form onSubmit={enviarFormulario}>
                 <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h2 className="text-xl font-semibold">
@@ -271,14 +274,15 @@ export function Fornecedores() {
                         </p>
                     </div>
 
-                    {estaEditando && (
-                        <button
+                    {mostrarFormulario && (
+                        <AppButton
                             type="button"
+                            variant="secondary"
+                            size="sm"
                             onClick={limparFormulario}
-                            className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
                         >
-                            Cancelar edição
-                        </button>
+                            {estaEditando ? 'Cancelar edição' : 'Cancelar cadastro'}
+                        </AppButton>
                     )}
                 </div>
 
@@ -503,10 +507,10 @@ export function Fornecedores() {
                 </div>
 
                 <div className="mt-6 flex justify-end">
-                    <button
+                    <AppButton
                         type="submit"
+                        variant="primary"
                         disabled={salvando}
-                        className="rounded-xl bg-cyan-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {salvando
                             ? estaEditando
@@ -515,11 +519,36 @@ export function Fornecedores() {
                             : estaEditando
                                 ? 'Atualizar fornecedor'
                                 : 'Cadastrar fornecedor'}
-                    </button>
+                    </AppButton>
                 </div>
-            </form>
+                    </form>
+                </AppCard>
+            ) : (
+                <AppCard>
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h2 className="text-xl font-semibold">
+                                Fornecedores
+                            </h2>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+                            <p className="mt-2 text-sm text-slate-400">
+                                O formulário fica fechado para manter a tela mais limpa. Clique no botão para cadastrar um novo fornecedor.
+                            </p>
+                        </div>
+
+                        <AppButton
+                            type="button"
+                            variant="primary"
+                            onClick={abrirFormularioCadastro}
+                            className="w-full md:w-auto"
+                        >
+                            Cadastrar novo fornecedor
+                        </AppButton>
+                    </div>
+                </AppCard>
+            )}
+
+            <AppCard>
                 <p className="text-sm text-slate-400">
                     Status da consulta:
                 </p>
@@ -539,15 +568,15 @@ export function Fornecedores() {
                 <p className="mt-3 text-slate-300">
                     {mensagem}
                 </p>
-            </div>
+            </AppCard>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <AppCard>
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">
                         Fornecedores encontrados
                     </h2>
 
-                    <span className="rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
+                    <span className="inline-flex w-max whitespace-nowrap items-center rounded-full bg-slate-800 px-3 py-1 text-sm text-slate-300">
                         Total: {fornecedores.length}
                     </span>
                 </div>
@@ -559,9 +588,9 @@ export function Fornecedores() {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
-                        <table className="w-full min-w-[1200px] border-collapse text-left text-sm">
-                            <thead className="bg-slate-950 text-slate-400">
+                    <DataTableContainer>
+                        <table className="w-full min-w-[1040px] border-collapse text-left text-sm">
+                            <thead className={`${stickyTableHeadClassName} text-slate-400`}>
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Nome</th>
                                     <th className="px-4 py-3 font-medium">Fantasia</th>
@@ -579,7 +608,7 @@ export function Fornecedores() {
                             <tbody className="divide-y divide-slate-800 bg-slate-900">
                                 {fornecedores.map((fornecedor) => (
                                     <tr key={fornecedor.id} className="hover:bg-slate-800/60">
-                                        <td className="px-4 py-3 text-slate-100">
+                                        <td className="max-w-[260px] px-4 py-3 font-medium text-slate-100">
                                             {fornecedor.nome}
                                         </td>
 
@@ -599,8 +628,8 @@ export function Fornecedores() {
                                             {fornecedor.contato_nome ?? '-'}
                                         </td>
 
-                                        <td className="px-4 py-3 text-slate-300">
-                                            {fornecedor.email ?? '-'}
+                                        <td className="max-w-[220px] px-4 py-3 text-slate-300">
+                                            <span className="break-all">{fornecedor.email ?? '-'}</span>
                                         </td>
 
                                         <td className="px-4 py-3 text-slate-300">
@@ -614,35 +643,31 @@ export function Fornecedores() {
                                         </td>
 
                                         <td className="px-4 py-3 text-slate-300">
-                                            {fornecedor.status}
+                                            <StatusBadge
+                                                tone={fornecedor.status === 'ativo' ? 'success' : 'muted'}
+                                            >
+                                                {fornecedor.status}
+                                            </StatusBadge>
                                         </td>
 
                                         <td className="px-4 py-3">
-                                            <button
+                                            <AppButton
                                                 type="button"
+                                                variant="secondary"
+                                                size="sm"
                                                 onClick={() => iniciarEdicao(fornecedor)}
-                                                className="rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10"
                                             >
                                                 Editar
-                                            </button>
+                                            </AppButton>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
 
-                <div className="mt-6 rounded-xl border border-slate-700 bg-slate-950 p-5">
-                    <p className="mb-3 text-sm text-slate-400">
-                        Retorno bruto do Supabase:
-                    </p>
-
-                    <pre className="max-h-80 overflow-auto rounded-lg bg-black p-4 text-xs text-slate-200">
-                        {JSON.stringify(fornecedores, null, 2)}
-                    </pre>
-                </div>
-            </div>
+            </AppCard>
         </div>
     )
 }

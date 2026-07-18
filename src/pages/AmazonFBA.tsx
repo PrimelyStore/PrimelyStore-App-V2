@@ -5,8 +5,24 @@ import {
     type AmazonFBAEstoqueSnapshot,
     type SincronizacaoAmazonFBAResultado,
 } from '../services/amazonService'
+import {
+    AppButton,
+    AppCard,
+    DataTableContainer,
+    PageHeader,
+    StatusBadge,
+    stickyTableHeadClassName,
+} from '../components/ui'
 
 type StatusCarregamento = 'carregando' | 'sucesso' | 'erro'
+type StatusBadgeTone =
+    | 'default'
+    | 'success'
+    | 'warning'
+    | 'danger'
+    | 'info'
+    | 'purple'
+    | 'muted'
 
 type FiltrosAmazonFBA = {
     busca: string
@@ -60,24 +76,24 @@ function obterClasseTotal(total: number) {
     return 'text-emerald-300'
 }
 
-function obterClasseSituacao(item: AmazonFBAEstoqueSnapshot) {
+function obterTomSituacao(item: AmazonFBAEstoqueSnapshot): StatusBadgeTone {
     if (item.total_quantity <= 0) {
-        return 'border-slate-700 bg-slate-800 text-slate-300'
+        return 'muted'
     }
 
     if (item.unfulfillable_total_quantity > 0) {
-        return 'border-red-500/30 bg-red-500/10 text-red-300'
+        return 'danger'
     }
 
     if (item.reserved_total_quantity > 0) {
-        return 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300'
+        return 'warning'
     }
 
     if (item.researching_total_quantity > 0) {
-        return 'border-purple-500/30 bg-purple-500/10 text-purple-300'
+        return 'purple'
     }
 
-    return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+    return 'success'
 }
 
 function obterTextoSituacao(item: AmazonFBAEstoqueSnapshot) {
@@ -289,56 +305,49 @@ export function AmazonFBA() {
 
     return (
         <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
-                <p className="text-sm uppercase tracking-widest text-cyan-400">
-                    Amazon SP-API
-                </p>
+            <PageHeader
+                tag="Amazon SP-API"
+                title="Estoque Amazon FBA"
+                description="Visualização do snapshot importado da Amazon FBA Inventory API. Esta tela mostra o espelho da Amazon e não altera o estoque FIFO interno."
+            />
 
-                <h1 className="mt-3 text-3xl font-bold">
-                    Estoque Amazon FBA
-                </h1>
-
-                <p className="mt-4 max-w-4xl text-slate-300">
-                    Visualização do snapshot importado da Amazon FBA Inventory API.
-                    Esta tela mostra o espelho da Amazon e não altera o estoque FIFO interno.
-                </p>
-
-                <div className="mt-6 flex flex-wrap gap-3">
-                    <button
+            <AppCard>
+                <div className="flex flex-wrap gap-3">
+                    <AppButton
                         type="button"
+                        variant="success"
                         onClick={sincronizarAmazonFBA}
                         disabled={carregando || sincronizando}
-                        className="rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {sincronizando
                             ? 'Sincronizando...'
                             : 'Sincronizar Amazon FBA'}
-                    </button>
+                    </AppButton>
 
-                    <button
+                    <AppButton
                         type="button"
+                        variant="primary"
                         onClick={carregarSnapshot}
                         disabled={carregando || sincronizando}
-                        className="rounded-xl bg-cyan-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {carregando && !sincronizando
                             ? 'Atualizando...'
                             : 'Atualizar tela'}
-                    </button>
+                    </AppButton>
 
-                    <button
+                    <AppButton
                         type="button"
+                        variant="secondary"
                         onClick={limparFiltros}
                         disabled={sincronizando}
-                        className="rounded-xl border border-slate-700 px-5 py-3 font-semibold text-slate-200 transition hover:border-cyan-400 hover:text-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         Limpar filtros
-                    </button>
+                    </AppButton>
                 </div>
-            </div>
+            </AppCard>
 
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         SKUs no snapshot
                     </p>
@@ -351,9 +360,9 @@ export function AmazonFBA() {
                         Com estoque: {formatarNumero(resumo.skusComEstoque)} |
                         Zerados: {formatarNumero(resumo.skusZerados)}
                     </p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Total FBA
                     </p>
@@ -365,9 +374,9 @@ export function AmazonFBA() {
                     <p className="mt-2 text-xs text-slate-500">
                         Soma de total_quantity
                     </p>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Disponível / Reservado
                     </p>
@@ -387,9 +396,9 @@ export function AmazonFBA() {
                             </p>
                         </div>
                     </div>
-                </div>
+                </AppCard>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+                <AppCard>
                     <p className="text-sm text-slate-400">
                         Pesquisa / Indisponível
                     </p>
@@ -413,10 +422,10 @@ export function AmazonFBA() {
                     <p className="mt-3 text-xs text-slate-500">
                         Sync: {formatarDataHora(resumo.ultimaSincronizacao)}
                     </p>
-                </div>
+                </AppCard>
             </section>
 
-            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <AppCard>
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold">
                         Filtros
@@ -487,9 +496,9 @@ export function AmazonFBA() {
                         </select>
                     </div>
                 </div>
-            </section>
+            </AppCard>
 
-            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <AppCard>
                 <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h2 className="text-xl font-semibold">
@@ -501,7 +510,7 @@ export function AmazonFBA() {
                         </p>
                     </div>
 
-                    <span className="w-fit rounded-full bg-slate-800 px-4 py-2 text-sm text-slate-300">
+                    <span className="w-fit inline-flex whitespace-nowrap items-center rounded-full bg-slate-800 px-4 py-2 text-sm text-slate-300">
                         Total filtrado: {itensFiltrados.length}
                     </span>
                 </div>
@@ -511,9 +520,9 @@ export function AmazonFBA() {
                         Nenhum item encontrado com os filtros atuais.
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
+                    <DataTableContainer>
                         <table className="min-w-[1400px] w-full border-collapse text-left text-sm">
-                            <thead className="bg-slate-950 text-slate-300">
+                            <thead className={stickyTableHeadClassName}>
                                 <tr>
                                     <th className="px-4 py-3">Produto</th>
                                     <th className="px-4 py-3">SKU</th>
@@ -588,13 +597,9 @@ export function AmazonFBA() {
                                         </td>
 
                                         <td className="px-4 py-4 align-top">
-                                            <span
-                                                className={`rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseSituacao(
-                                                    item
-                                                )}`}
-                                            >
+                                            <StatusBadge tone={obterTomSituacao(item)}>
                                                 {obterTextoSituacao(item)}
-                                            </span>
+                                            </StatusBadge>
                                         </td>
 
                                         <td className="px-4 py-4 align-top text-slate-300">
@@ -608,11 +613,11 @@ export function AmazonFBA() {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                    </DataTableContainer>
                 )}
-            </section>
+            </AppCard>
 
-            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
+            <AppCard>
                 <p className="text-sm text-slate-400">
                     Status da consulta:
                 </p>
@@ -632,7 +637,7 @@ export function AmazonFBA() {
                 <p className="mt-4 text-slate-100">
                     {mensagem}
                 </p>
-            </section>
+            </AppCard>
         </div>
     )
 }

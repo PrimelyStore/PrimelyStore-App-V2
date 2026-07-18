@@ -605,7 +605,7 @@ export function ConciliacaoAmazonOlistPrimelyFba() {
                         </p>
                     </div>
 
-                    <span className="w-fit rounded-full bg-slate-800 px-4 py-2 text-sm text-slate-300">
+                    <span className="w-fit inline-flex whitespace-nowrap items-center rounded-full bg-slate-800 px-4 py-2 text-sm text-slate-300">
                         Total filtrado: {itensFiltrados.length}
                     </span>
                 </div>
@@ -615,9 +615,9 @@ export function ConciliacaoAmazonOlistPrimelyFba() {
                         Nenhum item encontrado com os filtros atuais.
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-700">
+                    <div className="max-h-[70vh] max-w-full overflow-auto rounded-xl border border-slate-700">
                         <table className="min-w-[1900px] w-full border-collapse text-left text-sm">
-                            <thead className="bg-slate-950 text-slate-300">
+                            <thead className="sticky top-0 z-10 bg-slate-950 text-slate-300">
                                 <tr>
                                     <th className="px-4 py-3">Status</th>
                                     <th className="px-4 py-3">SKU / ASIN</th>
@@ -648,7 +648,7 @@ export function ConciliacaoAmazonOlistPrimelyFba() {
                                     >
                                         <td className="px-4 py-4 align-top">
                                             <span
-                                                className={`rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseStatus(
+                                                className={`inline-flex w-max whitespace-nowrap items-center rounded-full border px-3 py-1 text-xs font-semibold ${obterClasseStatus(
                                                     item.status_conciliacao
                                                 )}`}
                                             >
@@ -743,11 +743,11 @@ export function ConciliacaoAmazonOlistPrimelyFba() {
 
                                         <td className="px-4 py-4 align-top">
                                             {item.alerta_operacional ? (
-                                                <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-300">
+                                                <span className="inline-flex w-max whitespace-nowrap items-center rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-300">
                                                     Alerta
                                                 </span>
                                             ) : (
-                                                <span className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-300">
+                                                <span className="inline-flex w-max whitespace-nowrap items-center rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-300">
                                                     Normal
                                                 </span>
                                             )}
