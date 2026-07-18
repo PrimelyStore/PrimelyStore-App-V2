@@ -1476,7 +1476,7 @@ Garantias Cumpridas:
 
 ## Registro 2026-06-15 - Fase 5.5L-6G.5
 
-Status: [x] Testes de contrato e regressao do provider de taxas do Mercado Livre (Concluido e aprovado pelo Codex, aguardando confirmacao humana para checkpoint)
+Status: [x] Testes de contrato e regressao do provider de taxas do Mercado Livre (Concluido e comitado no commit fdaec16)
 
 Objetivo: Criar testes de contrato e regressao que comprovem que qualquer implementacao de MercadoLivreFeesProvider respeita o contrato genérico esperado, submetendo o provedor local a essa suite de conformidade.
 
@@ -1490,4 +1490,25 @@ Resultados de Auditoria e Implementacao:
 Garantias Cumpridas:
 * Nenhuma alteracao em arquivos de producao ou testes anteriores;
 * Nenhuma duplicacao ou importacao manual de formulas financeiras no teste;
+* Nenhum commit, stage, push, deploy, secrets, API real, migrations ou SQL realizados.
+
+---
+
+## Registro 2026-06-15 - Fase 5.5L-6G.6
+
+Status: [/] Extracao final dos tipos e da simulacao local do Mercado Livre para o modulo dedicado (Concluido, aguardando auditoria Codex e confirmacao humana para checkpoint)
+
+Objetivo: Remover de precificacaoService.ts as responsabilidades especificas do simulador Mercado Livre, transferindo-as para o modulo dedicado mercadoLivreFees.
+
+Resultados de Auditoria e Implementacao:
+1. **Separacao de Responsabilidades**: A funcao `simularTaxasMercadoLivreLocal` foi totalmente removida de `precificacaoService.ts` e transferida sem alteracao de formulas para `src/services/mercadoLivreFees/simularTaxasMercadoLivreLocal.ts`.
+2. **Centralizacao de Tipos**: Os tipos `SimulacaoMercadoLivreInput`, `SimulacaoMercadoLivreWarning` e `SimulacaoMercadoLivreResultado` foram migrados para `src/services/mercadoLivreFees/types.ts` e removidos de `precificacaoService.ts`.
+3. **Atualizacao de Importacoes**: O provedor `LocalMockMercadoLivreFeesProvider` e os testes de contrato foram atualizados para consumir a funcao do novo caminho canonico.
+4. **Movimentacao de Testes**: O arquivo `precificacaoService.test.ts` foi removido e seus testes locais foram migrados para `src/services/mercadoLivreFees/simularTaxasMercadoLivreLocal.test.ts` sem alteracao de regras ou resultados financeiros.
+5. **Validacao de Testes e Build**: A suite manteve os 42 testes no Vitest aprovados com sucesso absoluto. O build de producao finalizou sem erros.
+6. **Seguranca de Credenciais**: A busca estrita por termos proibidos no novo modulo e em arquivos alterados retornou limpa.
+
+Garantias Cumpridas:
+* Nenhuma formula ou arredondamento foi alterado ou simplificado;
+* A interface React permaneceu intacta e sem chamadas diretas a funcao local;
 * Nenhum commit, stage, push, deploy, secrets, API real, migrations ou SQL realizados.

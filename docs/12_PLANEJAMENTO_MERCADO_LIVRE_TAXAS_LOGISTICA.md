@@ -443,3 +443,27 @@ A Fase 5.5L-6G fica formalmente dividida nas seguintes microfases:
   - Build de producao do Vite finalizado sem erros de tipagem.
   - Busca estrita por termos proibidos (fetch, http, supabase, JWT, Bearer, token, Deno, VITE_) retornou limpa no arquivo novo.
   - Nenhuma alteracao realizada em arquivos de producao ou testes antigos.
+
+---
+
+## 19. Implementacao da Fase 5.5L-6G.6 (Extracao Final do Modulo)
+* **Objetivo**: Extrair a funcao de simulacao local `simularTaxasMercadoLivreLocal` e os tipos de comissoes do Mercado Livre de `precificacaoService.ts` para o novo modulo dedicado `mercadoLivreFees`, removendo a compatibilidade do antigo service.
+* **Arquivos Criados/Modificados/Removidos**:
+  - `src/services/mercadoLivreFees/simularTaxasMercadoLivreLocal.ts` (criado)
+  - `src/services/mercadoLivreFees/simularTaxasMercadoLivreLocal.test.ts` (criado)
+  - `src/services/precificacaoService.ts` (modificado)
+  - `src/services/mercadoLivreFees/types.ts` (modificado)
+  - `src/services/mercadoLivreFees/LocalMockMercadoLivreFeesProvider.ts` (modificado)
+  - `src/services/mercadoLivreFees/LocalMockMercadoLivreFeesProvider.test.ts` (modificado)
+  - `src/services/mercadoLivreFees/MercadoLivreFeesProvider.contract.test.ts` (modificado)
+  - `src/services/precificacaoService.test.ts` (removido)
+* **Estrategia Adotada**:
+  - A funcao pura `simularTaxasMercadoLivreLocal` foi movida integralmente para `simularTaxasMercadoLivreLocal.ts` no novo modulo, preservando regras, warnings, break-even e formulas.
+  - As interfaces de tipo Mercado Livre foram realocadas de forma definitiva para `types.ts` no novo modulo, sendo removidas de `precificacaoService.ts`.
+  - As importacoes de todos os arquivos de testes e do provider local concreto foram atualizadas para o novo modulo.
+  - O arquivo de testes `precificacaoService.test.ts` foi removido sob o Git e seus 11 cenarios foram integralmente transferidos para `simularTaxasMercadoLivreLocal.test.ts` sem alteracao funcional ou de valores.
+* **Validacoes locais**:
+  - Suite de testes geral Vitest rodada com 42 testes passando com sucesso total (nenhuma reducao).
+  - Build compilado e verificado sem erros.
+  - A varredura de seguranca por termos proibidos no novo modulo e nas alteracoes retornou totalmente limpa.
+  - Nenhuma alteracao no componente visual ou seus testes. Apenas o provider de taxas permanece sendo consumido.

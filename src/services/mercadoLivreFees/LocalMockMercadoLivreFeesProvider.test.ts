@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { LocalMockMercadoLivreFeesProvider } from './LocalMockMercadoLivreFeesProvider'
-import { simularTaxasMercadoLivreLocal } from '../precificacaoService'
+import { simularTaxasMercadoLivreLocal } from './simularTaxasMercadoLivreLocal'
 import type { MercadoLivreSimulacaoInput } from './types'
 
 describe('LocalMockMercadoLivreFeesProvider', () => {

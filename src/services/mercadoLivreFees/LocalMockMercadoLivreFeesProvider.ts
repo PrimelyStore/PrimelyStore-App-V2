@@ -1,6 +1,6 @@
 import type { MercadoLivreFeesProvider } from './MercadoLivreFeesProvider'
 import type { MercadoLivreSimulacaoInput, MercadoLivreSimulacaoResultado } from './types'
-import { simularTaxasMercadoLivreLocal } from '../precificacaoService'
+import { simularTaxasMercadoLivreLocal } from './simularTaxasMercadoLivreLocal'
 
 export class LocalMockMercadoLivreFeesProvider
   implements MercadoLivreFeesProvider {

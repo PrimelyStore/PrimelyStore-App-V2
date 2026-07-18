@@ -4,11 +4,42 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
 
 ---
 
-##### [2026-06-15] Fase 5.5L-6G.5 - Testes de contrato e regressao do provider de taxas do Mercado Livre (Concluido e Aprovado pelo Codex, aguardando confirmacao humana para checkpoint)
+##### [2026-07-18] Fase 5.5L-6G.6A - Corrigir lint local e reconciliar o estado Git (Concluido, aguardando auditoria Codex e confirmacao humana para checkpoint)
 
-* **Objetivo**: Criar testes de contrato e regressao que comprovem que qualquer implementacao de MercadoLivreFeesProvider respeita o contrato genérico esperado, submetendo o provedor local a essa suite de conformidade.
+* **Objetivo**: Corrigir erro de ESLint no-useless-assignment em `simularTaxasMercadoLivreLocal.ts` e reconciliar o estado Git real.
 * **Arquivos Criados/Alterados**:
-  - `src/services/mercadoLivreFees/MercadoLivreFeesProvider.contract.test.ts` (criado)
+  - `src/services/mercadoLivreFees/simularTaxasMercadoLivreLocal.ts` (corrigido erro de lint)
+  - `docs/antigravity/STATUS_ATUAL.md` (atualizado)
+  - `docs/antigravity/HISTORICO_EXECUCOES.md` (atualizado)
+  - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (atualizado)
+* **Resumo da Etapa**:
+  1. Corrigida a inicializacao de `custoLogisticoAplicado` no arquivo `simularTaxasMercadoLivreLocal.ts` utilizando uma expressao `const` tipada com condicional ternaria, eliminando o aviso de `no-useless-assignment`.
+  2. Executada a validacao do ESLint apenas no arquivo modificado, passando sem avisos ou erros.
+  3. Suite de testes Vitest rodada com sucesso: 42 testes totais passando (10 de CustosMargem.test.tsx e 32 do modulo mercadoLivreFees).
+  4. Executado build de producao com sucesso.
+  5. Auditado o `deno.lock` e confirmado que as dependencias adicionadas sao legitimas devDependencies declaradas em `package.json` (`vitest`, `jsdom`, `@testing-library/react` e `@testing-library/jest-dom`), nao configurando alteracao acidental. O arquivo nao foi alterado ou staged.
+  6. Reconciliado o estado Git: relatado claramente que os 14 arquivos ja estavam staged antes de iniciar esta subetapa.
+* **Garantias de Seguranca**:
+  - Nenhuma alteracao em formulas, limites de preco ou warnings.
+  - Nenhum commit, stage, push, deploy, secrets, API real, migrations ou SQL realizados.
+* **Rollback Documental**:
+  - O comando teorico para reverter a correcao de lint e as alteracoes documentais e:
+    `git restore src/services/mercadoLivreFees/simularTaxasMercadoLivreLocal.ts docs/antigravity/STATUS_ATUAL.md docs/antigravity/HISTORICO_EXECUCOES.md docs/antigravity/RESPOSTA_ANTIGRAVITY.md`
+
+---
+
+##### [2026-06-15] Fase 5.5L-6G.6 - Extracao final dos tipos e da simulacao local do Mercado Livre para o modulo dedicado (Concluido, aguardando auditoria Codex e confirmacao humana para checkpoint)
+
+* **Objetivo**: Remover de precificacaoService.ts as responsabilidades especificas do simulador Mercado Livre, transferindo-as para o modulo dedicado mercadoLivreFees.
+* **Arquivos Criados/Alterados/Removidos**:
+  - `src/services/mercadoLivreFees/simularTaxasMercadoLivreLocal.ts` (criado)
+  - `src/services/mercadoLivreFees/simularTaxasMercadoLivreLocal.test.ts` (criado)
+  - `src/services/precificacaoService.ts` (alterado)
+  - `src/services/mercadoLivreFees/types.ts` (alterado)
+  - `src/services/mercadoLivreFees/LocalMockMercadoLivreFeesProvider.ts` (alterado)
+  - `src/services/mercadoLivreFees/LocalMockMercadoLivreFeesProvider.test.ts` (alterado)
+  - `src/services/mercadoLivreFees/MercadoLivreFeesProvider.contract.test.ts` (alterado)
+  - `src/services/precificacaoService.test.ts` (removido)
   - `docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md` (alterado)
   - `ROADMAP.md` (alterado)
   - `TASKS.md` (alterado)
@@ -17,23 +48,28 @@ Este arquivo registra cronologicamente todas as execucoes e etapas de validacao/
   - `docs/antigravity/PROXIMO_COMANDO.md` (alterado)
   - `docs/antigravity/RESPOSTA_ANTIGRAVITY.md` (alterado)
 * **Resumo da Etapa**:
-  1. Criada a suite de testes de contrato genérica no arquivo `MercadoLivreFeesProvider.contract.test.ts` por meio da funcao utilitaria `executarContratoDoProvider`.
-  2. A suite valida 11 cenarios genéricos: id estavel, inclusao de `provider_source`, equivalencia assintrona, determinismo, imutabilidade de input, propagacao correta de erros/excecoes e paridade profunda dinámica.
-  3. Cobertos os limites criticos de preco `78.99`, `79.00` e `79.01` sem duplicar formulas ou fixar dados estaticos de calculo.
-  4. Executados 42 testes unitarios totais no Vitest (sendo 11 no arquivo de contrato) com 100% de sucesso. Build de producao concluido com sucesso absoluto.
-  5. Varredura de seguranca no novo arquivo retornou totalmente limpa para termos proibidos.
+  1. A funcao `simularTaxasMercadoLivreLocal` e as fixtures e tabelas de taxas correspondentes foram removidas de `precificacaoService.ts` e migradas para `simularTaxasMercadoLivreLocal.ts`.
+  2. Os tipos de dados reais foram migrados de `precificacaoService.ts` para `types.ts` no modulo `mercadoLivreFees`.
+  3. O arquivo de testes `precificacaoService.test.ts` foi removido sob o Git e seus 11 testes unitarios foram movidos para `simularTaxasMercadoLivreLocal.test.ts`.
+  4. Corrigidas as importacoes de todos os arquivos de testes e do provedor concreto para apontar para a nova origem canonica do modulo dedicado.
+  5. A suite de testes geral continuou com 42 testes no Vitest aprovados com sucesso. O build de producao finalizou sem erros.
+  6. Varredura de seguranca no novo modulo retornou limpa para termos proibidos.
 * **Garantias de Seguranca**:
-  - Nenhuma alteracao em arquivos de producao ou testes antigos.
+  - Nenhuma formula financeira ou regra foi alterada ou simplificada.
+  - A interface React permanece inalterada.
   - Nenhum commit, stage, push, deploy, secrets, API real, migrations ou SQL realizados.
 * **Rollback Documental**:
-  - O comando teorico de rollback exato para reverter as alteracoes documentais e:
-    `git restore docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md ROADMAP.md TASKS.md docs/antigravity/STATUS_ATUAL.md docs/antigravity/HISTORICO_EXECUCOES.md docs/antigravity/PROXIMO_COMANDO.md docs/antigravity/RESPOSTA_ANTIGRAVITY.md`
-  - E o comando de descarte do arquivo untracked criado e:
-    `Remove-Item src/services/mercadoLivreFees/MercadoLivreFeesProvider.contract.test.ts`
+  - O comando teorico de rollback exato para reverter as alteracoes documentais e de codigo de producao e:
+    `git restore docs/12_PLANEJAMENTO_MERCADO_LIVRE_TAXAS_LOGISTICA.md ROADMAP.md TASKS.md docs/antigravity/STATUS_ATUAL.md docs/antigravity/HISTORICO_EXECUCOES.md docs/antigravity/PROXIMO_COMANDO.md docs/antigravity/RESPOSTA_ANTIGRAVITY.md src/services/precificacaoService.ts src/services/mercadoLivreFees/types.ts src/services/mercadoLivreFees/LocalMockMercadoLivreFeesProvider.ts src/services/mercadoLivreFees/LocalMockMercadoLivreFeesProvider.test.ts src/services/mercadoLivreFees/MercadoLivreFeesProvider.contract.test.ts`
+  - Restaurar o arquivo de testes deletado:
+    `git restore src/services/precificacaoService.test.ts`
+  - E o comando de descarte dos arquivos untracked criados e:
+    `Remove-Item src/services/mercadoLivreFees/simularTaxasMercadoLivreLocal.ts, src/services/mercadoLivreFees/simularTaxasMercadoLivreLocal.test.ts`
 
 ---
 
-##### [2026-06-15] Fase 5.5L-6G.4 - Integracao controlada do provider local de taxas com o simulador Mercado Livre no React (Concluido e comitado no commit daa7485)
+##### [2026-06-15] Fase 5.5L-6G.5 - Testes de contrato e regressao do provider de taxas do Mercado Livre (Concluido e comitado no commit fdaec16)
+
 
 
 ---

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { simularTaxasMercadoLivreLocal } from './precificacaoService'
+import { simularTaxasMercadoLivreLocal } from './simularTaxasMercadoLivreLocal'
 
-describe('precificacaoService - simularTaxasMercadoLivreLocal', () => {
+describe('simularTaxasMercadoLivreLocal', () => {
     const baseInput = {
         preco_venda: 120.00,
         custo_produto: 45.00,

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import type { MercadoLivreFeesProvider } from './MercadoLivreFeesProvider'
 import type { MercadoLivreSimulacaoInput, MercadoLivreFeesProviderSource } from './types'
 import { LocalMockMercadoLivreFeesProvider } from './LocalMockMercadoLivreFeesProvider'
-import { simularTaxasMercadoLivreLocal } from '../precificacaoService'
+import { simularTaxasMercadoLivreLocal } from './simularTaxasMercadoLivreLocal'
 
 export function executarContratoDoProvider(
   criarProvider: () => MercadoLivreFeesProvider,
